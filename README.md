@@ -17,5 +17,6 @@ Planned features:
 - Interop with C
 - Rust-like tagged unions
 - If-expressions and switch-expressions
+- Type inference
 
 P.S. Octo is in the early stages of development. The parser isn't even done yet
