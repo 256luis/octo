@@ -1,0 +1,8 @@
+-Iinclude
+-Wall
+-Wextra
+-Wpedantic
+-pedantic
+-Wno-strict-prototypes
+-Wno-deprecated-declarations
+-std=c17
