@@ -6,7 +6,7 @@ import std;
 
 func main() -> void
 {
-	std::println("Hello, Octo!");
+    std::println("Hello, Octo!");
 }
 ```
 
@@ -18,4 +18,4 @@ Planned features:
 - Rust-like tagged unions
 - If-expressions and switch-expressions
 
-P.S. Octo is in the early stages of development. The parser isn't even done yet.
+P.S. Octo is in the early stages of development. The parser isn't even done yet
