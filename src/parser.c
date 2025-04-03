@@ -393,6 +393,8 @@ static Expression* parse_variable_declaration( Parser* parser )
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
+    expression->kind = EXPRESSIONKIND_VARIABLEDECLARATION;
+
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER );
 
@@ -467,6 +469,8 @@ Expression* parse_function_declaration( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
 
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER );
