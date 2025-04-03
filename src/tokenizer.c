@@ -7,6 +7,8 @@
 #include "tokenizer.h"
 #include "error.h"
 
+#define MAX_SYMBOL_LENGTH 512
+
 typedef enum CharacterType
 {
     CHARACTERTYPE_SPACE    = 0x00,
@@ -292,6 +294,7 @@ static void tokenizer_finalize_symbol( Tokenizer* tokenizer, TokenList* tokens )
     }
 
     tokenizer->symbol_last_index = 0;
+    memset( tokenizer->symbol, 0, sizeof( char ) * MAX_SYMBOL_LENGTH );
     if( !tokenizer->error_found )
     {
         token_list_append( tokens, token );
@@ -441,7 +444,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_SPECIAL:
             {
                 // check if tokenizer->symbol + tokenizer->character is a valid symbol
-                char new_symbol[512] = { 0 };
+                char new_symbol[ MAX_SYMBOL_LENGTH ] = { 0 };
                 strcpy(new_symbol, tokenizer->symbol);
                 new_symbol[ strlen(new_symbol) ] = tokenizer->character;
 
@@ -507,6 +510,11 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
                 break;
             }
         }
+    }
+
+    if( strlen( tokenizer->symbol ) > 0 )
+    {
+        tokenizer_finalize_symbol( tokenizer, &tokens );
     }
 
     /* if( tokenizer->error_found ) */
