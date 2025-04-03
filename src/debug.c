@@ -204,13 +204,13 @@ void expression_print( Expression* expression )
             if( expression->variable_declaration.value != NULL )
             {
                 expression_print( expression->variable_declaration.value );
-                putchar( '\n' );
             }
             else
             {
-                printf( "(null)\n" );
+                printf( "(null)" );
             }
 
+            putchar( '\n' );
             depth--;
             INDENT();
             printf( "}" );
@@ -289,19 +289,3 @@ void expression_print( Expression* expression )
         putchar( '\n' );
     }
 }
-
-/* void statement_print( Statement* statement ) */
-/* { */
-/*     printf( "%s", statement_kind_to_string[ statement->kind ] ); */
-/*     switch( statement->kind ) */
-/*     { */
-
-/*         default: */
-/*         { */
-/*             UNREACHABLE(); */
-/*             break; */
-/*         } */
-/*     } */
-
-/*     putchar( '\n' ); */
-/* } */
