@@ -1,5 +1,6 @@
 #include "debug.h"
 #include "parser.h"
+#include <stdbool.h>
 
 #define INDENT() for( int i = 0; i < depth; i++ ) printf( "    " )
 
@@ -39,13 +40,17 @@ char* token_kind_to_string[] = {
 };
 
 char* expression_kind_to_string[] = {
-    [ EXPRESSIONKIND_NUMBER ]       = "NUMBER",
-    [ EXPRESSIONKIND_IDENTIFIER ]   = "IDENTIFIER",
-    [ EXPRESSIONKIND_STRING ]       = "STRING",
-    [ EXPRESSIONKIND_CHARACTER ]    = "CHARACTER",
-    [ EXPRESSIONKIND_BINARY ]       = "BINARY",
-    [ EXPRESSIONKIND_UNARY ]        = "UNARY",
-    [ EXPRESSIONKIND_FUNCTIONCALL ] = "FUNCTIONCALL",
+    [ EXPRESSIONKIND_NUMBER ]              = "NUMBER",
+    [ EXPRESSIONKIND_IDENTIFIER ]          = "IDENTIFIER",
+    [ EXPRESSIONKIND_STRING ]              = "STRING",
+    [ EXPRESSIONKIND_CHARACTER ]           = "CHARACTER",
+    [ EXPRESSIONKIND_BINARY ]              = "BINARY",
+    [ EXPRESSIONKIND_UNARY ]               = "UNARY",
+    [ EXPRESSIONKIND_FUNCTIONCALL ]        = "FUNCTIONCALL",
+    [ EXPRESSIONKIND_VARIABLEDECLARATION ] = "VARIABLE DECLARATION",
+    [ EXPRESSIONKIND_FUNCTIONDECLARATION ] = "FUNCTION DECLARATION",
+    [ EXPRESSIONKIND_COMPOUND ]            = "COMPOUND",
+    [ EXPRESSIONKIND_RETURN ]              = "RETURN",
 };
 
 char* binary_operation_to_string[] = {
@@ -61,13 +66,6 @@ char* binary_operation_to_string[] = {
     [ BINARYOPERATION_LESSEQUAL ]    = "LESSEQUAL",
 };
 
-char* statement_kind_to_string[] = {
-    [ STATEMENTKIND_VARIABLEDECLARATION ] = "VARIABLE DECLARATION",
-    [ STATEMENTKIND_FUNCTIONDECLARATION ] = "FUNCTION DECLARATION",
-    [ STATEMENTKIND_COMPOUND ]            = "COMPOUND",
-    [ STATEMENTKIND_RETURN ]              = "RETURN",
-};
-
 char* unary_operation_to_string[] = {
     [ UNARYOPERATION_NEGATIVE ] = "NEGATIVE",
     [ UNARYOPERATION_NOT ] = "NOT",
@@ -78,29 +76,34 @@ static int depth = 0;
 void expression_print( Expression* expression )
 {
     printf( "%s", expression_kind_to_string[ expression->kind ] );
+    bool should_newline = true;
     switch( expression->kind )
     {
         case EXPRESSIONKIND_NUMBER:
         {
             printf( "(%d)", expression->number );
+            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
             printf( "(%s)", expression->identifier );
+            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
             printf( "(\"%s\")", expression->string );
+            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_CHARACTER:
         {
             printf( "(\'%c\')", expression->character );
+            should_newline = false;
             break;
         }
 
@@ -184,38 +187,23 @@ void expression_print( Expression* expression )
             break;
         }
 
-        default:
-        {
-            UNREACHABLE();
-            break;
-        }
-    }
-
-    // putchar( '\n' );
-}
-
-void statement_print( Statement* statement )
-{
-    printf( "%s", statement_kind_to_string[ statement->kind ] );
-    switch( statement->kind )
-    {
-        case STATEMENTKIND_VARIABLEDECLARATION:
+        case EXPRESSIONKIND_VARIABLEDECLARATION:
         {
             printf( " {\n" );
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", statement->variable_declaration.identifier );
+            printf( "identifier = %s\n", expression->variable_declaration.identifier );
 
             INDENT();
-            printf( "type = %s\n", statement->variable_declaration.type );
+            printf( "type = %s\n", expression->variable_declaration.type );
 
             INDENT();
             printf( "value = " );
 
-            if( statement->variable_declaration.value != NULL )
+            if( expression->variable_declaration.value != NULL )
             {
-                expression_print( statement->variable_declaration.value );
+                expression_print( expression->variable_declaration.value );
                 putchar( '\n' );
             }
             else
@@ -230,17 +218,17 @@ void statement_print( Statement* statement )
             break;
         }
 
-        case STATEMENTKIND_COMPOUND:
+        case EXPRESSIONKIND_COMPOUND:
         {
             printf( " {\n" );
             depth++;
 
-            for( size_t i = 0; i < statement->compound.statements.list.length; i++ )
+            for( size_t i = 0; i < expression->compound.expressions.list.length; i++ )
             {
                 INDENT();
                 printf( "[%lld] = ", i );
-                Statement s = statement_list_get( statement->compound.statements, i );
-                statement_print( &s );
+                Expression s = expression_list_get( expression->compound.expressions, i );
+                expression_print( &s );
             }
 
             depth--;
@@ -250,21 +238,21 @@ void statement_print( Statement* statement )
             break;
         }
 
-        case STATEMENTKIND_FUNCTIONDECLARATION:
+        case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
             printf( " {\n" );
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", statement->function_declaration.identifier );
+            printf( "identifier = %s\n", expression->function_declaration.identifier );
 
             INDENT();
-            printf( "return type = %s\n", statement->function_declaration.return_type );
+            printf( "return type = %s\n", expression->function_declaration.return_type );
 
-            for( int i = 0; i < statement->function_declaration.param_count; i++ )
+            for( int i = 0; i < expression->function_declaration.param_count; i++ )
             {
-                char* param_identifier = statement->function_declaration.param_identifiers[ i ];
-                char* param_type = statement->function_declaration.param_types[ i ];
+                char* param_identifier = expression->function_declaration.param_identifiers[ i ];
+                char* param_type = expression->function_declaration.param_types[ i ];
 
                 INDENT();
                 printf( "param[%d] = %s: %s\n", i, param_identifier, param_type );
@@ -272,7 +260,7 @@ void statement_print( Statement* statement )
 
             INDENT();
             printf( "body = " );
-            statement_print( statement->function_declaration.body );
+            expression_print( expression->function_declaration.body );
 
             depth--;
             INDENT();
@@ -281,10 +269,10 @@ void statement_print( Statement* statement )
             break;
         }
 
-        case STATEMENTKIND_RETURN:
+        case EXPRESSIONKIND_RETURN:
         {
             printf( "(");
-            expression_print( statement->return_statement.value );
+            expression_print( expression->return_expression.value );
             printf( ")");
             break;
         }
@@ -296,5 +284,24 @@ void statement_print( Statement* statement )
         }
     }
 
-    putchar( '\n' );
+    if( should_newline )
+    {
+        putchar( '\n' );
+    }
 }
+
+/* void statement_print( Statement* statement ) */
+/* { */
+/*     printf( "%s", statement_kind_to_string[ statement->kind ] ); */
+/*     switch( statement->kind ) */
+/*     { */
+
+/*         default: */
+/*         { */
+/*             UNREACHABLE(); */
+/*             break; */
+/*         } */
+/*     } */
+
+/*     putchar( '\n' ); */
+/* } */
