@@ -592,19 +592,31 @@ Expression* parser_parse( Parser* parser )
 
         case TOKENKIND_IDENTIFIER:
         {
-            UNIMPLEMENTED();
+            switch( parser->next_token.kind )
+            {
+                case TOKENKIND_LEFTPAREN:
+                {
+                    // function call
+                    expression = parse_function_call( parser );
+                    advance( parser );
+                    EXPECT( parser, TOKENKIND_SEMICOLON );
 
-            /* if( parser->next_token.kind == TOKENKIND_LEFTPAREN ) */
-            /* { */
-            /*     // function call */
-            /*     // expression = expression_to_expression( parse_function_call( parser ) ); */
+                    break;
+                }
 
-            /* } */
-            /* else if( parser->next_token.kind == TOKENKIND_EQUAL ) */
-            /* { */
-            /*     // assignment */
-            /*     UNIMPLEMENTED(); */
-            /* } */
+                case TOKENKIND_EQUAL:
+                {
+                    // assignment
+                    UNIMPLEMENTED();
+                    break;
+                }
+
+                default:
+                {
+                    UNREACHABLE();
+                }
+            }
+
             break;
         }
 
