@@ -35,6 +35,32 @@
         }                                                               \
     } ( ( void )0 )
 
+#define EXPECT_NEXT( parser_ptr, ... )                                  \
+    {                                                                   \
+        TokenKind expecteds[] = { __VA_ARGS__ };                        \
+        bool is_valid = false;                                          \
+        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ ) \
+        {                                                               \
+            if( parser_ptr->next_token.kind == expecteds[ i ] )         \
+            {                                                           \
+                is_valid = true;                                        \
+                break;                                                  \
+            }                                                           \
+        }                                                               \
+        if( !is_valid )                                                 \
+        {                                                               \
+            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );          \
+            Error error = {                                             \
+                .kind = ERRORKIND_UNEXPECTEDSYMBOL,                     \
+                .line = parser->next_token.line,                        \
+                .column = parser->next_token.column,                    \
+                .source_code = parser_ptr->source_code,                 \
+            };                                                          \
+            report_error( error );                                      \
+            return NULL;                                                \
+        }                                                               \
+    } ( ( void )0 )
+
 #define TOKENKIND_EXPRESSION_BASES                                      \
     TOKENKIND_NUMBER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER
 
@@ -565,6 +591,29 @@ Expression* parse_return( Parser* parser )
     return expression;
 }
 
+Expression* parse_assignment( Parser* parser )
+{
+    // UNIMPLEMENTED();
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_ASSIGNMENT;
+    expression->assignment.identifier = parser->current_token.identifier;
+
+    advance( parser );
+    EXPECT( parser, TOKENKIND_EQUAL );
+
+    advance( parser );
+    EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
+
+    expression->assignment.value = parse_expression( parser );
+
+    advance( parser );
+    EXPECT( parser, TOKENKIND_SEMICOLON );
+
+    return expression;
+}
+
 Expression* parser_parse( Parser* parser )
 {
     Expression* expression;
@@ -592,6 +641,10 @@ Expression* parser_parse( Parser* parser )
 
         case TOKENKIND_IDENTIFIER:
         {
+            EXPECT_NEXT( parser,
+                         TOKENKIND_LEFTPAREN,
+                         TOKENKIND_EQUAL);
+
             switch( parser->next_token.kind )
             {
                 case TOKENKIND_LEFTPAREN:
@@ -600,20 +653,20 @@ Expression* parser_parse( Parser* parser )
                     expression = parse_function_call( parser );
                     advance( parser );
                     EXPECT( parser, TOKENKIND_SEMICOLON );
-
                     break;
                 }
 
                 case TOKENKIND_EQUAL:
                 {
                     // assignment
-                    UNIMPLEMENTED();
+                    expression = parse_assignment( parser );
                     break;
                 }
 
                 default:
                 {
                     UNREACHABLE();
+                    break;
                 }
             }
 

@@ -51,6 +51,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_FUNCTIONDECLARATION ] = "FUNCTION DECLARATION",
     [ EXPRESSIONKIND_COMPOUND ]            = "COMPOUND",
     [ EXPRESSIONKIND_RETURN ]              = "RETURN",
+    [ EXPRESSIONKIND_ASSIGNMENT ]          = "ASSIGNMENT",
 };
 
 char* binary_operation_to_string[] = {
@@ -274,6 +275,27 @@ void expression_print( Expression* expression )
             printf( "(");
             expression_print( expression->return_expression.value );
             printf( ")");
+            break;
+        }
+
+        case EXPRESSIONKIND_ASSIGNMENT:
+        {
+            printf( " {\n" );
+            depth++;
+
+            INDENT();
+            printf( "identifier = %s\n", expression->assignment.identifier );
+
+            INDENT();
+            printf( "value = " );
+
+            expression_print( expression->assignment.value );
+
+            putchar( '\n' );
+            depth--;
+            INDENT();
+            printf( "}" );
+
             break;
         }
 

@@ -40,6 +40,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_FUNCTIONDECLARATION,
     EXPRESSIONKIND_COMPOUND,
     EXPRESSIONKIND_RETURN,
+    EXPRESSIONKIND_ASSIGNMENT,
 } ExpressionKind;
 
 typedef struct ExpressionList
@@ -110,6 +111,11 @@ typedef struct Expression
             struct Expression* value;
         } return_expression;
 
+        struct
+        {
+            char* identifier;
+            struct Expression* value;
+        } assignment;
     };
 } Expression;
 
