@@ -33,11 +33,19 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_STRING,
     EXPRESSIONKIND_CHARACTER,
-
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_UNARY,
     EXPRESSIONKIND_FUNCTIONCALL,
+    EXPRESSIONKIND_VARIABLEDECLARATION,
+    EXPRESSIONKIND_FUNCTIONDECLARATION,
+    EXPRESSIONKIND_COMPOUND,
+    EXPRESSIONKIND_RETURN,
 } ExpressionKind;
+
+typedef struct ExpressionList
+{
+    ArrayList list;
+} ExpressionList;
 
 typedef struct Expression
 {
@@ -70,37 +78,17 @@ typedef struct Expression
             struct Expression** args; // array of expression pointers
             size_t arg_count;
         } function_call;
-    };
-} Expression;
 
-typedef enum StatementKind
-{
-    STATEMENTKIND_VARIABLEDECLARATION,
-    STATEMENTKIND_FUNCTIONDECLARATION,
-    STATEMENTKIND_COMPOUND,
-    STATEMENTKIND_RETURN,
-} StatementKind;
-
-typedef struct StatementList
-{
-    ArrayList list;
-} StatementList;
-
-typedef struct Statement
-{
-    StatementKind kind;
-    union
-    {
-        struct
+                struct
         {
             char* identifier;
             char* type;
-            Expression* value;
+            struct Expression* value;
         } variable_declaration;
 
         struct
         {
-            StatementList statements;
+            ExpressionList expressions;
             int statement_count;
         } compound;
 
@@ -114,15 +102,70 @@ typedef struct Statement
             char** param_types;
             int param_count;
 
-            struct Statement* body;
+            struct Expression* body;
         } function_declaration;
 
         struct
         {
-            Expression* value;
-        } return_statement;
+            struct Expression* value;
+        } return_expression;
+
     };
-} Statement;
+} Expression;
+
+/* typedef enum StatementKind */
+/* { */
+/*     STATEMENTKIND_VARIABLEDECLARATION, */
+/*     STATEMENTKIND_FUNCTIONDECLARATION, */
+/*     STATEMENTKIND_FUNCTIONCALL, */
+/*     STATEMENTKIND_COMPOUND, */
+/*     STATEMENTKIND_RETURN, */
+/* } StatementKind; */
+
+/* typedef struct Statement */
+/* { */
+/*     StatementKind kind; */
+/*     union */
+/*     { */
+/*         struct */
+/*         { */
+/*             char* identifier; */
+/*             char* type; */
+/*             Expression* value; */
+/*         } variable_declaration; */
+
+/*         struct */
+/*         { */
+/*             StatementList statements; */
+/*             int statement_count; */
+/*         } compound; */
+
+/*         struct */
+/*         { */
+/*             char* identifier; */
+/*             char* return_type; */
+
+/*             // arrays to hold params info */
+/*             char** param_identifiers; */
+/*             char** param_types; */
+/*             int param_count; */
+
+/*             struct Statement* body; */
+/*         } function_declaration; */
+
+/*         struct */
+/*         { */
+/*             char* identifier; */
+/*             struct Expression** args; // array of expression pointers */
+/*             size_t arg_count; */
+/*         } function_call; */
+
+/*         struct */
+/*         { */
+/*             Expression* value; */
+/*         } return_statement; */
+/*     }; */
+/* } Statement; */
 
 typedef struct Parser
 {
@@ -136,14 +179,14 @@ typedef struct Parser
 
 Parser* parser_new( TokenList token_list, SourceCode source_code );
 void parser_free( Parser* parser );
-Statement* parser_parse( Parser* parser );
+Expression* parser_parse( Parser* parser );
 
 void expression_print( Expression* expression );
-void statement_print( Statement* statement );
+// void statement_print( Expression* statement );
 
-StatementList statement_list_new();
-void statement_list_free( StatementList statements );
-void statement_list_append( StatementList* statements, Statement value );
-Statement statement_list_get( StatementList statements, int index );
+ExpressionList expression_list_new();
+void expression_list_free( ExpressionList expressions );
+void expression_list_append( ExpressionList* expressions, Expression value );
+Expression expression_list_get( ExpressionList expressions, int index );
 
 #endif

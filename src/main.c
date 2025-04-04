@@ -72,13 +72,13 @@ int main( int argc, char* argv[] )
     }
 
     Parser* parser = parser_new( tokens, source_code );
-    Statement* statement = parser_parse( parser );
+    Expression* program = parser_parse( parser );
 
     putchar( '\n' );
     printf( "====== SYNTAX TREE ======\n" );
-    if( statement != NULL )
+    if( program != NULL )
     {
-        statement_print( statement );
+        expression_print( program );
     }
 
 }

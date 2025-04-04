@@ -42,16 +42,14 @@
     TOKENKIND_MINUS, TOKENKIND_BANG
 
 #define TOKENKIND_EXPRESSION_STARTERS                                   \
-    TOKENKIND_EXPRESSION_BASES, TOKENKIND_UNARY_OPERATORS, TOKENKIND_LEFTPAREN
+    TOKENKIND_EXPRESSION_BASES, TOKENKIND_UNARY_OPERATORS, TOKENKIND_LEFTPAREN, \
+    TOKENKIND_LET, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, TOKENKIND_LEFTBRACE, \
+    TOKENKIND_RETURN
 
 #define TOKENKIND_BINARY_OPERATORS                                      \
     TOKENKIND_PLUS, TOKENKIND_MINUS,TOKENKIND_STAR, TOKENKIND_FORWARDSLASH, \
     TOKENKIND_GREATER, TOKENKIND_LESS, TOKENKIND_DOUBLEEQUAL, TOKENKIND_NOTEQUAL, \
     TOKENKIND_GREATEREQUAL, TOKENKIND_LESSEQUAL
-
-#define TOKENKIND_STATEMENT_STARTERS                                    \
-    TOKENKIND_LET, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, TOKENKIND_LEFTBRACE, \
-    TOKENKIND_RETURN
 
 #define GET_TOKENKIND_GROUP_COUNT( ... )                                \
     ( sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
@@ -104,28 +102,28 @@ static UnaryOperation token_kind_to_unary_operation( TokenKind token_kind )
     }
 }
 
-StatementList statement_list_new()
+ExpressionList expression_list_new()
 {
-    StatementList statements = {
-        .list = array_list_new( sizeof( Statement ) ),
+    ExpressionList expressions = {
+        .list = array_list_new( sizeof( Expression ) ),
     };
 
-    return statements;
+    return expressions;
 }
 
-void statement_list_free( StatementList statements )
+void expression_list_free( ExpressionList expressions )
 {
-    array_list_free( statements.list );
+    array_list_free( expressions.list );
 }
 
-void statement_list_append( StatementList* statements, Statement statement )
+void expression_list_append( ExpressionList* expressions, Expression expression )
 {
-    array_list_append( &statements->list, &statement );
+    array_list_append( &expressions->list, &expression );
 }
 
-Statement statement_list_get( StatementList statements, int index )
+Expression expression_list_get( ExpressionList expressions, int index )
 {
-    return *( Statement* )array_list_get( statements.list, index );
+    return *( Expression* )array_list_get( expressions.list, index );
 }
 
 static void advance( Parser* parser )
@@ -390,15 +388,17 @@ static Expression* parse_expression( Parser* parser )
     return expression;
 }
 
-static Statement* parse_variable_declaration( Parser* parser )
+static Expression* parse_variable_declaration( Parser* parser )
 {
-    Statement* statement = calloc( 1, sizeof( Statement ) );
-    if( statement == NULL ) ALLOC_ERROR();
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_VARIABLEDECLARATION;
 
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-    statement->variable_declaration.identifier = parser->current_token.identifier;
+    expression->variable_declaration.identifier = parser->current_token.identifier;
 
     advance( parser );
     EXPECT( parser,
@@ -410,7 +410,7 @@ static Statement* parse_variable_declaration( Parser* parser )
         advance( parser );
         EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-        statement->variable_declaration.type = parser->current_token.identifier;
+        expression->variable_declaration.type = parser->current_token.identifier;
 
         advance( parser );
         EXPECT( parser,
@@ -419,42 +419,42 @@ static Statement* parse_variable_declaration( Parser* parser )
 
         if( parser->current_token.kind == TOKENKIND_SEMICOLON )
         {
-            return statement;
+            return expression;
         }
     }
 
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
-    statement->variable_declaration.value = parse_expression( parser );
+    expression->variable_declaration.value = parse_expression( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
 
-    return statement;
+    return expression;
 }
 
-Statement* parse_compound( Parser* parser )
+Expression* parse_compound( Parser* parser )
 {
-    Statement* compound_statement = calloc( 1, sizeof( Statement ) );
-    if( compound_statement == NULL ) ALLOC_ERROR();
+    Expression* compound_expression = calloc( 1, sizeof( Expression ) );
+    if( compound_expression == NULL ) ALLOC_ERROR();
 
-    compound_statement->compound.statements = statement_list_new();
-    compound_statement->kind = STATEMENTKIND_COMPOUND;
+    compound_expression->compound.expressions = expression_list_new();
+    compound_expression->kind = EXPRESSIONKIND_COMPOUND;
 
     advance( parser );
     EXPECT( parser,
-            TOKENKIND_STATEMENT_STARTERS,
+            TOKENKIND_EXPRESSION_STARTERS,
             TOKENKIND_RIGHTBRACE );
 
     if( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
     {
-        while( IS_TOKENKIND_IN_GROUP( parser->current_token.kind, TOKENKIND_STATEMENT_STARTERS ) )
+        while( IS_TOKENKIND_IN_GROUP( parser->current_token.kind, TOKENKIND_EXPRESSION_STARTERS ) )
         {
-            Statement* statement = parser_parse( parser );
+            Expression* expression = parser_parse( parser );
 
-            // technically we are leaking memory here but it should be okay since *statement
+            // technically we are leaking memory here but it should be okay since *expression
             // has to live for the rest of the program anyway
-            statement_list_append( &compound_statement->compound.statements, *statement);
+            expression_list_append( &compound_expression->compound.expressions, *expression);
             advance( parser );
         }
 
@@ -462,19 +462,21 @@ Statement* parse_compound( Parser* parser )
         EXPECT( parser, TOKENKIND_RIGHTBRACE );
     }
 
-    return compound_statement;
+    return compound_expression;
 }
 
-Statement* parse_function_declaration( Parser* parser )
+Expression* parse_function_declaration( Parser* parser )
 {
-    Statement* statement = calloc( 1, sizeof( Statement ) );
-    if( statement == NULL ) ALLOC_ERROR();
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
 
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-    statement->kind = STATEMENTKIND_FUNCTIONDECLARATION;
-    statement->function_declaration.identifier = parser->current_token.identifier;
+    expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
+    expression->function_declaration.identifier = parser->current_token.identifier;
 
     advance( parser );
     EXPECT( parser, TOKENKIND_LEFTPAREN );
@@ -482,7 +484,7 @@ Statement* parse_function_declaration( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTPAREN );
 
-    statement->function_declaration.param_count = 0;
+    expression->function_declaration.param_count = 0;
 
     if( parser->current_token.kind == TOKENKIND_IDENTIFIER )
     {
@@ -491,7 +493,7 @@ Statement* parse_function_declaration( Parser* parser )
 
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
         {
-            param_identifiers[ statement->function_declaration.param_count ] = parser->current_token.identifier;
+            param_identifiers[ expression->function_declaration.param_count ] = parser->current_token.identifier;
 
             advance( parser );
             EXPECT( parser, TOKENKIND_COLON );
@@ -499,8 +501,8 @@ Statement* parse_function_declaration( Parser* parser )
             advance( parser );
             EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-            param_types[ statement->function_declaration.param_count ] = parser->current_token.identifier;
-            statement->function_declaration.param_count++;
+            param_types[ expression->function_declaration.param_count ] = parser->current_token.identifier;
+            expression->function_declaration.param_count++;
 
             advance( parser );
             EXPECT( parser,
@@ -513,18 +515,18 @@ Statement* parse_function_declaration( Parser* parser )
             }
         }
 
-        // after getting all the params, copy to statement->function_declaration.param_identifiers
-        // and statement->function_declaration.param_types
-        size_t size = sizeof( char* ) * statement->function_declaration.param_count;
+        // after getting all the params, copy to expression->function_declaration.param_identifiers
+        // and expression->function_declaration.param_types
+        size_t size = sizeof( char* ) * expression->function_declaration.param_count;
 
-        statement->function_declaration.param_identifiers = malloc( size );
-        if( statement->function_declaration.param_identifiers == NULL ) ALLOC_ERROR();
+        expression->function_declaration.param_identifiers = malloc( size );
+        if( expression->function_declaration.param_identifiers == NULL ) ALLOC_ERROR();
 
-        statement->function_declaration.param_types = malloc( size );
-        if( statement->function_declaration.param_types == NULL ) ALLOC_ERROR();
+        expression->function_declaration.param_types = malloc( size );
+        if( expression->function_declaration.param_types == NULL ) ALLOC_ERROR();
 
-        memcpy( statement->function_declaration.param_identifiers, param_identifiers, size );
-        memcpy( statement->function_declaration.param_types, param_types, size );
+        memcpy( expression->function_declaration.param_identifiers, param_identifiers, size );
+        memcpy( expression->function_declaration.param_types, param_types, size );
     }
 
     // current token is right paren
@@ -535,56 +537,56 @@ Statement* parse_function_declaration( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-    statement->function_declaration.return_type = parser->current_token.identifier;
+    expression->function_declaration.return_type = parser->current_token.identifier;
 
     advance( parser );
     EXPECT( parser, TOKENKIND_LEFTBRACE );
 
-    statement->function_declaration.body = parse_compound( parser );
+    expression->function_declaration.body = parse_compound( parser );
 
-    return statement;
+    return expression;
 }
 
-Statement* parse_return( Parser* parser )
+Expression* parse_return( Parser* parser )
 {
-    Statement* statement = calloc( 1, sizeof( Statement ) );
-    if( statement == NULL ) ALLOC_ERROR();
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
 
-    statement->kind = STATEMENTKIND_RETURN;
+    expression->kind = EXPRESSIONKIND_RETURN;
 
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
-    statement->return_statement.value = parse_expression( parser );
+    expression->return_expression.value = parse_expression( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
 
-    return statement;
+    return expression;
 }
 
-Statement* parser_parse( Parser* parser )
+Expression* parser_parse( Parser* parser )
 {
-    Statement* statement;
+    Expression* expression;
     printf( "PARSING: %s\n", token_kind_to_string[ parser->current_token.kind ] );
 
     switch( parser->current_token.kind )
     {
         case TOKENKIND_LET:
         {
-            statement = parse_variable_declaration( parser );
+            expression = parse_variable_declaration( parser );
             break;
         }
 
         case TOKENKIND_LEFTBRACE:
         {
-            statement = parse_compound( parser );
+            expression = parse_compound( parser );
             break;
         }
 
         case TOKENKIND_FUNC:
         {
-            statement = parse_function_declaration( parser );
+            expression = parse_function_declaration( parser );
             break;
         }
 
@@ -595,19 +597,20 @@ Statement* parser_parse( Parser* parser )
             /* if( parser->next_token.kind == TOKENKIND_LEFTPAREN ) */
             /* { */
             /*     // function call */
-            /*     statement = parse_function_declaration( parser ); */
+            /*     // expression = expression_to_expression( parse_function_call( parser ) ); */
+
             /* } */
             /* else if( parser->next_token.kind == TOKENKIND_EQUAL ) */
             /* { */
             /*     // assignment */
             /*     UNIMPLEMENTED(); */
             /* } */
-            /* break; */
+            break;
         }
 
         case TOKENKIND_RETURN:
         {
-            statement = parse_return( parser );
+            expression = parse_return( parser );
             break;
         }
 
@@ -617,5 +620,5 @@ Statement* parser_parse( Parser* parser )
         }
     }
 
-    return statement;
+    return expression;
 }
