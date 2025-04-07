@@ -12,6 +12,9 @@ typedef enum ErrorKind
     // parser error
     ERRORKIND_UNEXPECTEDSYMBOL,
     // ERRORKIND_UNEXPECTEDEOF,
+
+    // semantic errors
+    ERRORKIND_SYMBOLREDECLARATION,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -33,13 +36,18 @@ typedef struct Error
 
     union
     {
+        char unclosed_paren;
+
         struct
         {
             char left_paren_mismatched;
             char right_paren_mismatched;
-        };
+        } mismatched_parens;
 
-        char unclosed_paren;
+        struct
+        {
+            char* identifier;
+        } symbol_redeclaration;
     };
 } Error;
 

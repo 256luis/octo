@@ -202,9 +202,9 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "value = " );
 
-            if( expression->variable_declaration.value != NULL )
+            if( expression->variable_declaration.rvalue != NULL )
             {
-                expression_print( expression->variable_declaration.value );
+                expression_print( expression->variable_declaration.rvalue );
             }
             else
             {

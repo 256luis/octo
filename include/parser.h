@@ -29,13 +29,18 @@ typedef enum UnaryOperation
 
 typedef enum ExpressionKind
 {
+    // rvalue expressions
     EXPRESSIONKIND_NUMBER,
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_STRING,
     EXPRESSIONKIND_CHARACTER,
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_UNARY,
+
+    // can be both rvalue and "top level"
     EXPRESSIONKIND_FUNCTIONCALL,
+
+    // "top level" expressions
     EXPRESSIONKIND_VARIABLEDECLARATION,
     EXPRESSIONKIND_FUNCTIONDECLARATION,
     EXPRESSIONKIND_COMPOUND,
@@ -51,6 +56,8 @@ typedef struct ExpressionList
 typedef struct Expression
 {
     ExpressionKind kind;
+    int line;
+    int column;
     union
     {
         // base cases
@@ -80,11 +87,11 @@ typedef struct Expression
             size_t arg_count;
         } function_call;
 
-                struct
+        struct
         {
             char* identifier;
             char* type;
-            struct Expression* value;
+            struct Expression* rvalue;
         } variable_declaration;
 
         struct

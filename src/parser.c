@@ -228,7 +228,7 @@ static Expression* parse_character( Parser* parser )
     return expression;
 }
 
-static Expression* parse_base_expression( Parser* parser )
+static Expression* parse_base_rvalue( Parser* parser )
 {
     switch( parser->current_token.kind )
     {
@@ -240,7 +240,7 @@ static Expression* parse_base_expression( Parser* parser )
     }
 }
 
-static Expression* parse_expression( Parser* parser );
+static Expression* parse_rvalue( Parser* parser );
 static Expression* parse_parentheses( Parser* parser )
 {
     Expression* expression;
@@ -248,7 +248,7 @@ static Expression* parse_parentheses( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
-    expression = parse_expression( parser );
+    expression = parse_rvalue( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_RIGHTPAREN );
@@ -274,7 +274,7 @@ static Expression* parse_unary( Parser* parser )
     bool is_current_token_unary_operator  = IS_TOKENKIND_IN_GROUP( parser->current_token.kind, TOKENKIND_UNARY_OPERATORS );
     if( is_current_token_expression_base )
     {
-        expression->unary.operand = parse_base_expression( parser );
+        expression->unary.operand = parse_base_rvalue( parser );
     }
     else if( is_current_token_unary_operator )
     {
@@ -320,7 +320,7 @@ static Expression* parse_function_call( Parser* parser )
 
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
         {
-            args[ expression->function_call.arg_count ] = parse_expression( parser );
+            args[ expression->function_call.arg_count ] = parse_rvalue( parser );
             expression->function_call.arg_count++;
 
             advance( parser );
@@ -345,7 +345,7 @@ static Expression* parse_function_call( Parser* parser )
     return expression;
 }
 
-static Expression* parse_expression( Parser* parser )
+static Expression* parse_rvalue( Parser* parser )
 {
     Expression* expression;
 
@@ -366,7 +366,7 @@ static Expression* parse_expression( Parser* parser )
         case TOKENKIND_STRING:
         case TOKENKIND_CHARACTER:
         {
-            expression = parse_base_expression( parser );
+            expression = parse_base_rvalue( parser );
             break;
         }
 
@@ -408,7 +408,7 @@ static Expression* parse_expression( Parser* parser )
         advance( parser );
         EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
-        expression->binary.right = parse_expression( parser );
+        expression->binary.right = parse_rvalue( parser );
     }
 
     return expression;
@@ -451,7 +451,7 @@ static Expression* parse_variable_declaration( Parser* parser )
 
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
-    expression->variable_declaration.value = parse_expression( parser );
+    expression->variable_declaration.rvalue = parse_rvalue( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
@@ -583,7 +583,7 @@ Expression* parse_return( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
-    expression->return_expression.value = parse_expression( parser );
+    expression->return_expression.value = parse_rvalue( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
@@ -606,7 +606,7 @@ Expression* parse_assignment( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
-    expression->assignment.value = parse_expression( parser );
+    expression->assignment.value = parse_rvalue( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
