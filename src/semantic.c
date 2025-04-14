@@ -85,6 +85,8 @@ Type analyze_rvalue_type( Expression* rvalue )
             UNREACHABLE();
         }
     }
+
+    return type;
 }
 
 static void analyze_variable_declaration( SemanticContext context, Expression* expression )
@@ -107,9 +109,10 @@ static void analyze_variable_declaration( SemanticContext context, Expression* e
     }
 
     // infer type if needed
-    if( expression->variable_declaration.type == NULL )
+    if( expression->variable_declaration.type.kind == TYPEKIND_TOINFER )
     {
         Type type = analyze_rvalue_type( expression->variable_declaration.rvalue );
+        // expression->variable_declaration.type = type;
     }
 }
 

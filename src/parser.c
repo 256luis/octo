@@ -414,6 +414,18 @@ static Expression* parse_rvalue( Parser* parser )
     return expression;
 }
 
+static Type parse_type( Parser* parser )
+{
+    Type type;
+
+    if( strcmp( parser->current_token.identifier, "int" ) == 0 ) type.kind = TYPEKIND_INT;
+    else if( strcmp( parser->current_token.identifier, "char" ) == 0 ) type.kind = TYPEKIND_CHAR;
+    else if( strcmp( parser->current_token.identifier, "string" ) == 0 ) type.kind = TYPEKIND_STRING;
+    else UNREACHABLE();
+
+    return type;
+}
+
 static Expression* parse_variable_declaration( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -436,7 +448,8 @@ static Expression* parse_variable_declaration( Parser* parser )
         advance( parser );
         EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-        expression->variable_declaration.type = parser->current_token.identifier;
+        // expression->variable_declaration.type = parser->current_token.identifier;
+        expression->variable_declaration.type = parse_type( parser );
 
         advance( parser );
         EXPECT( parser,

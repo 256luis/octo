@@ -4,6 +4,29 @@
 #include "error.h"
 #include "tokenizer.h"
 
+typedef enum TypeKind
+{
+    TYPEKIND_TOINFER,
+    TYPEKIND_INT,
+    TYPEKIND_CHAR,
+    TYPEKIND_STRING,
+    // TYPE_BOOL,
+    // TYPE_STRUCTURE,
+} TypeKind;
+
+typedef struct Type
+{
+    TypeKind kind;
+
+    /* union */
+    /* { */
+    /*     struct */
+    /*     { */
+    /*         struct type* types; */
+    /*     } structure; */
+    /* }; */
+} Type;
+
 typedef enum BinaryOperation
 {
     // arithmetic
@@ -90,7 +113,7 @@ typedef struct Expression
         struct
         {
             char* identifier;
-            char* type;
+            Type type;
             struct Expression* rvalue;
         } variable_declaration;
 

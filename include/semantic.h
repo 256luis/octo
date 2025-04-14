@@ -3,28 +3,6 @@
 
 #include "parser.h"
 
-typedef enum TypeKind
-{
-    TYPEKIND_INT,
-    TYPEKIND_CHAR,
-    TYPEKIND_STRING,
-    // TYPE_BOOL,
-    // TYPE_STRUCTURE,
-} TypeKind;
-
-typedef struct Type
-{
-    TypeKind kind;
-
-    /* union */
-    /* { */
-    /*     struct */
-    /*     { */
-    /*         struct type* types; */
-    /*     } structure; */
-    /* }; */
-} Type;
-
 typedef struct SymbolTable
 {
     char** identifiers;

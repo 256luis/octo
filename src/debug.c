@@ -196,8 +196,9 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "identifier = %s\n", expression->variable_declaration.identifier );
 
-            INDENT();
-            printf( "type = %s\n", expression->variable_declaration.type );
+            // TODO: fix this
+            /* INDENT(); */
+            /* printf( "type = %s\n", expression->variable_declaration.type ); */
 
             INDENT();
             printf( "value = " );
