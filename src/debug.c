@@ -72,8 +72,15 @@ char* unary_operation_to_string[] = {
     [ UNARYOPERATION_NOT ] = "NOT",
 };
 
+char* type_kind_to_string[] = {
+    [ TYPEKIND_TOINFER ] = "TOINFER",
+    [ TYPEKIND_INT ] = "INT",
+    [ TYPEKIND_CHAR ] = "CHAR",
+    [ TYPEKIND_STRING ] = "STRING",
+};
 
 static int depth = 0;
+
 void expression_print( Expression* expression )
 {
     printf( "%s", expression_kind_to_string[ expression->kind ] );
@@ -197,8 +204,8 @@ void expression_print( Expression* expression )
             printf( "identifier = %s\n", expression->variable_declaration.identifier );
 
             // TODO: fix this
-            /* INDENT(); */
-            /* printf( "type = %s\n", expression->variable_declaration.type ); */
+            INDENT();
+            printf( "type = %s\n", type_kind_to_string[ expression->variable_declaration.type.kind ] );
 
             INDENT();
             printf( "value = " );
