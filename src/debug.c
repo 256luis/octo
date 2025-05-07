@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "lvec.h"
 #include "parser.h"
 #include <stdbool.h>
 
@@ -224,11 +225,12 @@ void expression_print( Expression* expression )
             printf( " {\n" );
             depth++;
 
-            for( size_t i = 0; i < expression->compound.expressions.list.length; i++ )
+
+            for( size_t i = 0; i < lvec_get_length( expression->compound.expressions ); i++ )
             {
                 INDENT();
                 printf( "[%lld] = ", i );
-                Expression s = expression_list_get( expression->compound.expressions, i );
+                Expression s = expression->compound.expressions[ i ];
                 expression_print( &s );
             }
 

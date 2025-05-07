@@ -4,7 +4,6 @@
 #include "error.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include "array_list.h"
 
 typedef enum TokenKind
 {
@@ -69,14 +68,6 @@ typedef struct Token
 /*     struct TokenNode* next; */
 /* } TokenNode; */
 
-typedef struct TokenList
-{
-    ArrayList list;
-    /* TokenNode* head; */
-    /* TokenNode* tail; */
-    /* int length; */
-} TokenList;
-
 typedef enum TokenizerState
 {
     TOKENIZERSTATE_START     = 0x00,
@@ -107,11 +98,6 @@ typedef struct Tokenizer
 
 Tokenizer* tokenizer_new( SourceCode source_code );
 void tokenizer_free( Tokenizer* tokenizer );
-TokenList tokenizer_tokenize( Tokenizer* tokenizer );
-
-TokenList token_list_new();
-void token_list_free( TokenList tokens );
-void token_list_append( TokenList* tokens, Token value );
-Token token_list_get( TokenList tokens, int index );
+Token* tokenizer_tokenize( Tokenizer* tokenizer );
 
 #endif
