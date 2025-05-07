@@ -466,12 +466,6 @@ Token* tokenizer_tokenize( Tokenizer* tokenizer )
         tokenizer_finalize_symbol( tokenizer, tokens );
     }
 
-    /* if( tokenizer->error_found ) */
-    /* { */
-    /*     token_list_free( tokens ); */
-    /*     // return NULL; */
-    /* } */
-
     // eof token
     Token eof = {
         .kind = TOKENKIND_EOF,

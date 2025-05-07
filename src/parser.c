@@ -456,7 +456,6 @@ Expression* parse_compound( Parser* parser )
 
             // technically we are leaking memory here but it should be okay since *expression
             // has to live for the rest of the program anyway
-            // expression_list_append( &compound_expression->compound.expressions, *expression);
             lvec_append_aggregate( compound_expression->compound.expressions, *expression );
             advance( parser );
         }

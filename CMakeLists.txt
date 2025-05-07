@@ -19,13 +19,11 @@ unset(HAS_TYPEOF CACHE)
 add_subdirectory(lvec.c)
 add_executable(${PROJECT_NAME}
                src/main.c
-               src/array_list.c
                src/debug.c
                src/parser.c
                src/tokenizer.c
                src/error.c
 
-               include/array_list.h
                include/debug.h
                include/parser.h
                include/tokenizer.h

@@ -46,23 +46,6 @@ typedef struct Error
 SourceCode source_code_load( char* path );
 void source_code_print_line( SourceCode source_code, int line );
 
-/* typedef struct ErrorNode */
-/* { */
-/*     Error error; */
-/*     struct ErrorNode* next; */
-/* } ErrorNode; */
-
-/* typedef struct ErrorList */
-/* { */
-/*     ErrorNode* head; */
-/*     ErrorNode* tail; */
-/*     int length; */
-/* } ErrorList; */
-
-/* ErrorList error_list_new(); */
-/* void error_list_free( ErrorList* list ); */
-/* void error_list_append( ErrorList* list, Error value ); */
-
 void report_error( Error error );
 
 #endif
