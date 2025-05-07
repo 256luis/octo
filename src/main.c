@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "tokenizer.h"
 #include "debug.h"
+#include "lvec.h"
 
 int main( int argc, char* argv[] )
 {
@@ -24,16 +25,16 @@ int main( int argc, char* argv[] )
         ALLOC_ERROR();
     }
 
-    TokenList tokens = tokenizer_tokenize( tokenizer );
+    Token* tokens = tokenizer_tokenize( tokenizer );
 
     if( tokenizer->error_found ) return -1;
     // tokenizer_free( tokenizer );
 
     // iterate over list
     printf( "====== TOKENS FOUND ======\n" );
-    for( size_t i = 0; i < tokens.list.length; i++ )
+    for( size_t i = 0; i < lvec_get_length( tokens ); i++ )
     {
-        Token token = token_list_get( tokens, i );
+        Token token = tokens[ i ];
         printf("%s", token_kind_to_string[ token.kind ]);
         switch( token.kind )
         {

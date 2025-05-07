@@ -43,11 +43,6 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_ASSIGNMENT,
 } ExpressionKind;
 
-typedef struct ExpressionList
-{
-    ArrayList list;
-} ExpressionList;
-
 typedef struct Expression
 {
     ExpressionKind kind;
@@ -89,7 +84,7 @@ typedef struct Expression
 
         struct
         {
-            ExpressionList expressions;
+            struct Expression* expressions;
             int statement_count;
         } compound;
 
@@ -122,21 +117,16 @@ typedef struct Expression
 typedef struct Parser
 {
     SourceCode source_code;
-    TokenList tokens;
+    Token* tokens;
     int current_token_index;
     Token current_token;
     Token next_token;
 } Parser;
 
-Parser* parser_new( TokenList token_list, SourceCode source_code );
+Parser* parser_new( Token* token_list, SourceCode source_code );
 void parser_free( Parser* parser );
 Expression* parser_parse( Parser* parser );
 
 void expression_print( Expression* expression );
-
-ExpressionList expression_list_new();
-void expression_list_free( ExpressionList expressions );
-void expression_list_append( ExpressionList* expressions, Expression value );
-Expression expression_list_get( ExpressionList expressions, int index );
 
 #endif

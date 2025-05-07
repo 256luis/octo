@@ -2,10 +2,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include "array_list.h"
 #include "debug.h"
 #include "tokenizer.h"
 #include "error.h"
+#include "lvec.h"
 
 #define MAX_SYMBOL_LENGTH 512
 
@@ -16,57 +16,6 @@ typedef enum CharacterType
     CHARACTERTYPE_SPECIAL  = 0x02,
     CHARACTERTYPE_WORD    = 0x03,
 } CharacterType;
-
-TokenList token_list_new()
-{
-    TokenList tokens = {
-        .list = array_list_new( sizeof( Token ) ),
-    };
-
-    return tokens;
-}
-
-void token_list_free( TokenList tokens )
-{
-    /* TokenNode* current = list->head; */
-    /* while( current != NULL ) */
-    /* { */
-    /*     TokenNode* tmp = current; */
-    /*     current = current->next; */
-    /*     free( tmp ); */
-    /* } */
-
-    array_list_free( tokens.list );
-}
-
-void token_list_append( TokenList* tokens, Token token )
-{
-    array_list_append( &tokens->list , &token );
-
-    /* TokenNode* new_node = calloc( 1, sizeof( TokenNode ) ); */
-    /* if( new_node == NULL ) ALLOC_ERROR(); */
-
-    /* new_node->token = value; */
-    /* new_node->next = NULL; */
-
-    /* if( list->length == 0 ) */
-    /* { */
-    /*     list->head = new_node; */
-    /*     list->tail = new_node; */
-    /* } */
-    /* else */
-    /* { */
-    /*     list->tail->next = new_node; */
-    /*     list->tail = list->tail->next; */
-    /* } */
-
-    /* list->length++; */
-}
-
-Token token_list_get( TokenList tokens, int index )
-{
-    return *( Token* )array_list_get( tokens.list, index );
-}
 
 static CharacterType get_character_type(char c)
 {
@@ -183,7 +132,7 @@ static void tokenizer_append_to_symbol( Tokenizer* tokenizer )
     tokenizer->symbol_last_index++;
 }
 
-static void tokenizer_finalize_symbol( Tokenizer* tokenizer, TokenList* tokens )
+static void tokenizer_finalize_symbol( Tokenizer* tokenizer, Token* tokens )
 {
     int symbol_start_column = tokenizer->column - strlen( tokenizer->symbol );
     Token token = {
@@ -297,13 +246,13 @@ static void tokenizer_finalize_symbol( Tokenizer* tokenizer, TokenList* tokens )
     memset( tokenizer->symbol, 0, sizeof( char ) * MAX_SYMBOL_LENGTH );
     if( !tokenizer->error_found )
     {
-        token_list_append( tokens, token );
+        lvec_append_aggregate( tokens, token );
     }
 }
 
-TokenList tokenizer_tokenize( Tokenizer* tokenizer )
+Token* tokenizer_tokenize( Tokenizer* tokenizer )
 {
-    TokenList tokens = token_list_new();
+    Token* tokens = lvec_new( Token );
 
     tokenizer->in_string = false;
     tokenizer->in_character = false;
@@ -317,7 +266,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             if( tokenizer->state != TOKENIZERSTATE_START )
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
             }
 
             // if exiting string
@@ -345,7 +294,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             if( tokenizer->state != TOKENIZERSTATE_START )
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
             }
 
             // if exiting character
@@ -397,7 +346,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_SPACE:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer->state = TOKENIZERSTATE_START;
                 break;
             }
@@ -411,7 +360,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_SPECIAL:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer_append_to_symbol( tokenizer );
                 tokenizer->state = TOKENIZERSTATE_SPECIAL;
                 break;
@@ -419,7 +368,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_WORD:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer_append_to_symbol( tokenizer );
                 tokenizer->state = TOKENIZERSTATE_WORD;
 
@@ -428,14 +377,14 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_SPACE:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer->state = TOKENIZERSTATE_START;
                 break;
             }
 
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_NUMBER:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer_append_to_symbol( tokenizer );
                 tokenizer->state = TOKENIZERSTATE_NUMBER;
                 break;
@@ -464,7 +413,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
                 }
                 else
                 {
-                    tokenizer_finalize_symbol( tokenizer, &tokens );
+                    tokenizer_finalize_symbol( tokenizer, tokens );
                     tokenizer_append_to_symbol( tokenizer );
                 }
                 tokenizer->state = TOKENIZERSTATE_SPECIAL;
@@ -474,7 +423,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_WORD:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer_append_to_symbol( tokenizer );
                 tokenizer->state = TOKENIZERSTATE_WORD;
 
@@ -483,7 +432,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_WORD | CHARACTERTYPE_SPACE:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer->state = TOKENIZERSTATE_START;
                 break;
             }
@@ -497,7 +446,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
             case TOKENIZERSTATE_WORD | CHARACTERTYPE_SPECIAL:
             {
-                tokenizer_finalize_symbol( tokenizer, &tokens );
+                tokenizer_finalize_symbol( tokenizer, tokens );
                 tokenizer_append_to_symbol( tokenizer );
                 tokenizer->state = TOKENIZERSTATE_SPECIAL;
                 break;
@@ -514,7 +463,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
 
     if( strlen( tokenizer->symbol ) > 0 )
     {
-        tokenizer_finalize_symbol( tokenizer, &tokens );
+        tokenizer_finalize_symbol( tokenizer, tokens );
     }
 
     /* if( tokenizer->error_found ) */
@@ -530,7 +479,7 @@ TokenList tokenizer_tokenize( Tokenizer* tokenizer )
         .column = tokenizer->column,
     };
 
-    token_list_append( &tokens, eof );
+    lvec_append_aggregate( tokens, eof );
 
     return tokens;
 }

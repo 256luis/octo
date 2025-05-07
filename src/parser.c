@@ -4,10 +4,10 @@
 #include <string.h>
 #include <stdarg.h>
 #include "parser.h"
-#include "array_list.h"
 #include "tokenizer.h"
 #include "debug.h"
 #include "error.h"
+#include "lvec.h"
 
 #define EXPECT( parser_ptr, ... )                                       \
     {                                                                   \
@@ -128,45 +128,21 @@ static UnaryOperation token_kind_to_unary_operation( TokenKind token_kind )
     }
 }
 
-ExpressionList expression_list_new()
-{
-    ExpressionList expressions = {
-        .list = array_list_new( sizeof( Expression ) ),
-    };
-
-    return expressions;
-}
-
-void expression_list_free( ExpressionList expressions )
-{
-    array_list_free( expressions.list );
-}
-
-void expression_list_append( ExpressionList* expressions, Expression expression )
-{
-    array_list_append( &expressions->list, &expression );
-}
-
-Expression expression_list_get( ExpressionList expressions, int index )
-{
-    return *( Expression* )array_list_get( expressions.list, index );
-}
-
 static void advance( Parser* parser )
 {
-    parser->current_token = token_list_get( parser->tokens, parser->current_token_index );
+    parser->current_token = parser->tokens[ parser->current_token_index ];
 
     if( parser->current_token.kind != TOKENKIND_EOF )
     {
         parser->current_token_index++;
     }
 
-    parser->next_token = token_list_get( parser->tokens, parser->current_token_index );
+    parser->next_token = parser->tokens[ parser->current_token_index ];
 
     // printf( "current tokenkind: %s\n", token_kind_to_string[ parser->current_token.kind ] );
 }
 
-Parser* parser_new( TokenList token_list, SourceCode source_code )
+Parser* parser_new( Token* token_list, SourceCode source_code )
 {
     Parser* parser = calloc( 1, sizeof( Parser ) );
     if( parser == NULL ) ALLOC_ERROR();
@@ -464,7 +440,7 @@ Expression* parse_compound( Parser* parser )
     Expression* compound_expression = calloc( 1, sizeof( Expression ) );
     if( compound_expression == NULL ) ALLOC_ERROR();
 
-    compound_expression->compound.expressions = expression_list_new();
+    compound_expression->compound.expressions = lvec_new( Expression );
     compound_expression->kind = EXPRESSIONKIND_COMPOUND;
 
     advance( parser );
@@ -480,7 +456,8 @@ Expression* parse_compound( Parser* parser )
 
             // technically we are leaking memory here but it should be okay since *expression
             // has to live for the rest of the program anyway
-            expression_list_append( &compound_expression->compound.expressions, *expression);
+            // expression_list_append( &compound_expression->compound.expressions, *expression);
+            lvec_append_aggregate( compound_expression->compound.expressions, *expression );
             advance( parser );
         }
 
