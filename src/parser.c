@@ -62,7 +62,7 @@
     } ( ( void )0 )
 
 #define TOKENKIND_EXPRESSION_BASES                                      \
-    TOKENKIND_NUMBER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER
+    TOKENKIND_INTEGER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER
 
 #define TOKENKIND_UNARY_OPERATORS               \
     TOKENKIND_MINUS, TOKENKIND_BANG
@@ -159,7 +159,7 @@ void parser_free( Parser* parser )
     free( parser );
 }
 
-static Expression* parse_number( Parser* parser )
+static Expression* parse_integer( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
@@ -208,7 +208,7 @@ static Expression* parse_base_expression( Parser* parser )
 {
     switch( parser->current_token.kind )
     {
-        case TOKENKIND_NUMBER:     return parse_number( parser );
+        case TOKENKIND_INTEGER:     return parse_integer( parser );
         case TOKENKIND_IDENTIFIER: return parse_identifier( parser );
         case TOKENKIND_STRING:     return parse_string( parser );
         case TOKENKIND_CHARACTER:  return parse_character( parser );
@@ -338,7 +338,7 @@ static Expression* parse_expression( Parser* parser )
 
             // if not function call, fallthrough
         }
-        case TOKENKIND_NUMBER:
+        case TOKENKIND_INTEGER:
         case TOKENKIND_STRING:
         case TOKENKIND_CHARACTER:
         {

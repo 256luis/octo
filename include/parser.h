@@ -75,7 +75,7 @@ typedef struct Expression
             size_t arg_count;
         } function_call;
 
-                struct
+        struct
         {
             char* identifier;
             char* type;

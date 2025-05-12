@@ -7,6 +7,12 @@
 #include "debug.h"
 #include "lvec.h"
 
+typedef struct Person
+{
+    int age;
+    int height;
+} Person;
+
 int main( int argc, char* argv[] )
 {
     if( argc < 2 )
@@ -37,7 +43,7 @@ int main( int argc, char* argv[] )
         printf("%s", token_kind_to_string[ token.kind ]);
         switch( token.kind )
         {
-            case TOKENKIND_NUMBER:
+            case TOKENKIND_INTEGER:
             {
                 printf( "(%d)", token.number );
                 break;

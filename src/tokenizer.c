@@ -178,7 +178,7 @@ static void tokenizer_finalize_symbol( Tokenizer* tokenizer, Token* tokens )
         {
             case CHARACTERTYPE_NUMBER:
             {
-                token.kind = TOKENKIND_NUMBER;
+                token.kind = TOKENKIND_INTEGER;
                 token.number = strtoull( tokenizer->symbol, NULL, 10 );
                 break;
             }
