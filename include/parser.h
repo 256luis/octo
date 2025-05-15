@@ -4,6 +4,28 @@
 #include "error.h"
 #include "tokenizer.h"
 
+typedef enum TypeKind
+{
+    TYPEKIND_VOID,
+    TYPEKIND_INTEGER,
+    TYPEKIND_FLOAT, // not yet parsed
+    TYPEKIND_CHARACTER,
+    TYPEKIND_BOOLEAN,
+    TYPEKIND_STRING,
+    TYPEKIND_CUSTOM,
+    TYPEKIND_TOINFER,
+} TypeKind;
+
+typedef struct Type
+{
+    TypeKind kind;
+
+    union
+    {
+        char* custom_identifier;
+    };
+} Type;
+
 typedef enum BinaryOperation
 {
     // arithmetic
@@ -13,9 +35,9 @@ typedef enum BinaryOperation
     BINARYOPERATION_DIVIDE,
 
     // boolean
+    BINARYOPERATION_EQUAL,
     BINARYOPERATION_GREATER,
     BINARYOPERATION_LESS,
-    BINARYOPERATION_EQUAL,
     BINARYOPERATION_NOTEQUAL,
     BINARYOPERATION_GREATEREQUAL,
     BINARYOPERATION_LESSEQUAL,
@@ -29,13 +51,17 @@ typedef enum UnaryOperation
 
 typedef enum ExpressionKind
 {
-    EXPRESSIONKIND_NUMBER,
+    // rvalues
+    EXPRESSIONKIND_INTEGER,
+    // EXPRESSIONKIND_FLOAT, // unimplemented
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_STRING,
     EXPRESSIONKIND_CHARACTER,
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_UNARY,
     EXPRESSIONKIND_FUNCTIONCALL,
+
+    // not rvalues
     EXPRESSIONKIND_VARIABLEDECLARATION,
     EXPRESSIONKIND_FUNCTIONDECLARATION,
     EXPRESSIONKIND_COMPOUND,
@@ -78,7 +104,7 @@ typedef struct Expression
         struct
         {
             char* identifier;
-            char* type;
+            Type type;
             struct Expression* value;
         } variable_declaration;
 
@@ -91,11 +117,11 @@ typedef struct Expression
         struct
         {
             char* identifier;
-            char* return_type;
+            Type return_type;
 
             // arrays to hold params info
             char** param_identifiers;
-            char** param_types;
+            Type* param_types;
             int param_count;
 
             struct Expression* body;

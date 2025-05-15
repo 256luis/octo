@@ -77,6 +77,10 @@
     TOKENKIND_GREATER, TOKENKIND_LESS, TOKENKIND_DOUBLEEQUAL, TOKENKIND_NOTEQUAL, \
     TOKENKIND_GREATEREQUAL, TOKENKIND_LESSEQUAL
 
+#define TOKENKIND_EXPRESSION_STATEMENT_STARTERS\
+    TOKENKIND_LET, TOKENKIND_LEFTBRACE, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, \
+    TOKENKIND_RETURN
+
 #define GET_TOKENKIND_GROUP_COUNT( ... )                                \
     ( sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
 
@@ -138,8 +142,6 @@ static void advance( Parser* parser )
     }
 
     parser->next_token = parser->tokens[ parser->current_token_index ];
-
-    // printf( "current tokenkind: %s\n", token_kind_to_string[ parser->current_token.kind ] );
 }
 
 Parser* parser_new( Token* token_list, SourceCode source_code )
@@ -164,7 +166,7 @@ static Expression* parse_integer( Parser* parser )
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
 
-    expression->kind = EXPRESSIONKIND_NUMBER;
+    expression->kind = EXPRESSIONKIND_INTEGER;
     expression->number = parser->current_token.number;
 
     return expression;
@@ -288,15 +290,16 @@ static Expression* parse_function_call( Parser* parser )
     }
     else
     {
-        // TODO: make this use the new token list
-
-        // array to hold function call args
-        // max number of args is 100
-        Expression* args[ MAX_FUNCTION_PARAM_COUNT ];
-
+        Expression** args = lvec_new( Expression* );
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
         {
-            args[ expression->function_call.arg_count ] = parse_expression( parser );
+            Expression* e = parse_expression( parser );
+            if( e == NULL )
+            {
+                return NULL;
+            }
+            lvec_append( args, e );
+
             expression->function_call.arg_count++;
 
             advance( parser );
@@ -310,12 +313,7 @@ static Expression* parse_function_call( Parser* parser )
             }
         }
 
-        // after getting all the args, copy to expression->function_call.args array
-        size_t size = sizeof( Expression* ) * expression->function_call.arg_count;
-        expression->function_call.args = malloc( size );
-        if( expression->function_call.args == NULL ) ALLOC_ERROR();
-
-        memcpy( expression->function_call.args, args, size );
+        expression->function_call.args = args;
     }
 
     return expression;
@@ -366,6 +364,11 @@ static Expression* parse_expression( Parser* parser )
         }
     }
 
+    if( expression == NULL )
+    {
+        return NULL;
+    }
+
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
     if( is_next_token_kind_binary_operator )
     {
@@ -385,9 +388,49 @@ static Expression* parse_expression( Parser* parser )
         EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
         expression->binary.right = parse_expression( parser );
+        if( expression->binary.right == NULL )
+        {
+            return NULL;
+        }
     }
 
     return expression;
+}
+
+// todo HASHMAP!!!
+static Type parse_type( Parser* parser )
+{
+    Type result;
+
+    char* type_identifier = parser->current_token.identifier;
+
+    if( strcmp( type_identifier, "int" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+    }
+    else if( strcmp( type_identifier, "float" ) == 0 )
+    {
+        result.kind = TYPEKIND_FLOAT;
+    }
+    else if( strcmp( type_identifier, "char" ) == 0 )
+    {
+        result.kind = TYPEKIND_CHARACTER;
+    }
+    else if( strcmp( type_identifier, "string" ) == 0 )
+    {
+        result.kind = TYPEKIND_STRING;
+    }
+    else if( strcmp( type_identifier, "void" ) == 0 )
+    {
+        result.kind = TYPEKIND_VOID;
+    }
+    else // custom type
+    {
+        result.kind = TYPEKIND_CUSTOM;
+        result.custom_identifier = type_identifier;
+    }
+
+    return result;
 }
 
 static Expression* parse_variable_declaration( Parser* parser )
@@ -407,12 +450,13 @@ static Expression* parse_variable_declaration( Parser* parser )
             TOKENKIND_COLON,
             TOKENKIND_EQUAL );
 
+    expression->variable_declaration.type = ( Type ){ .kind = TYPEKIND_TOINFER };
     if( parser->current_token.kind == TOKENKIND_COLON )
     {
         advance( parser );
         EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-        expression->variable_declaration.type = parser->current_token.identifier;
+        expression->variable_declaration.type = parse_type( parser );
 
         advance( parser );
         EXPECT( parser,
@@ -428,6 +472,10 @@ static Expression* parse_variable_declaration( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
     expression->variable_declaration.value = parse_expression( parser );
+    if( expression->variable_declaration.value == NULL )
+    {
+        return NULL;
+    }
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
@@ -453,6 +501,10 @@ Expression* parse_compound( Parser* parser )
         while( IS_TOKENKIND_IN_GROUP( parser->current_token.kind, TOKENKIND_EXPRESSION_STARTERS ) )
         {
             Expression* expression = parser_parse( parser );
+            if( expression == NULL )
+            {
+                return NULL;
+            }
 
             // technically we are leaking memory here but it should be okay since *expression
             // has to live for the rest of the program anyway
@@ -490,12 +542,13 @@ Expression* parse_function_declaration( Parser* parser )
 
     if( parser->current_token.kind == TOKENKIND_IDENTIFIER )
     {
-        char* param_identifiers[ MAX_FUNCTION_PARAM_COUNT ];
-        char* param_types[ MAX_FUNCTION_PARAM_COUNT ];
+        char** param_identifiers = lvec_new( char* );
+        Type* param_types = lvec_new( Type );
 
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
         {
-            param_identifiers[ expression->function_declaration.param_count ] = parser->current_token.identifier;
+            char* param_identifier = parser->current_token.identifier;
+            lvec_append( param_identifiers, param_identifier );
 
             advance( parser );
             EXPECT( parser, TOKENKIND_COLON );
@@ -503,7 +556,9 @@ Expression* parse_function_declaration( Parser* parser )
             advance( parser );
             EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-            param_types[ expression->function_declaration.param_count ] = parser->current_token.identifier;
+            Type param_type = parse_type( parser );
+            lvec_append_aggregate( param_types, param_type );
+
             expression->function_declaration.param_count++;
 
             advance( parser );
@@ -517,18 +572,8 @@ Expression* parse_function_declaration( Parser* parser )
             }
         }
 
-        // after getting all the params, copy to expression->function_declaration.param_identifiers
-        // and expression->function_declaration.param_types
-        size_t size = sizeof( char* ) * expression->function_declaration.param_count;
-
-        expression->function_declaration.param_identifiers = malloc( size );
-        if( expression->function_declaration.param_identifiers == NULL ) ALLOC_ERROR();
-
-        expression->function_declaration.param_types = malloc( size );
-        if( expression->function_declaration.param_types == NULL ) ALLOC_ERROR();
-
-        memcpy( expression->function_declaration.param_identifiers, param_identifiers, size );
-        memcpy( expression->function_declaration.param_types, param_types, size );
+        expression->function_declaration.param_identifiers = param_identifiers;
+        expression->function_declaration.param_types = param_types;
     }
 
     // current token is right paren
@@ -539,12 +584,16 @@ Expression* parse_function_declaration( Parser* parser )
     advance( parser );
     EXPECT( parser, TOKENKIND_IDENTIFIER );
 
-    expression->function_declaration.return_type = parser->current_token.identifier;
+    expression->function_declaration.return_type = parse_type( parser );
 
     advance( parser );
     EXPECT( parser, TOKENKIND_LEFTBRACE );
 
     expression->function_declaration.body = parse_compound( parser );
+    if( expression->function_declaration.body == NULL )
+    {
+        return NULL;
+    }
 
     return expression;
 }
@@ -560,6 +609,10 @@ Expression* parse_return( Parser* parser )
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
     expression->return_expression.value = parse_expression( parser );
+    if( expression->return_expression.value == NULL )
+    {
+        return NULL;
+    }
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
@@ -583,6 +636,10 @@ Expression* parse_assignment( Parser* parser )
     EXPECT( parser, TOKENKIND_EXPRESSION_STARTERS );
 
     expression->assignment.value = parse_expression( parser );
+    if( expression->assignment.value == NULL )
+    {
+        return NULL;
+    }
 
     advance( parser );
     EXPECT( parser, TOKENKIND_SEMICOLON );
@@ -590,10 +647,14 @@ Expression* parse_assignment( Parser* parser )
     return expression;
 }
 
+
+
 Expression* parser_parse( Parser* parser )
 {
     Expression* expression;
     printf( "PARSING: %s\n", token_kind_to_string[ parser->current_token.kind ] );
+
+    EXPECT( parser, TOKENKIND_EXPRESSION_STATEMENT_STARTERS );
 
     switch( parser->current_token.kind )
     {

@@ -1,0 +1,274 @@
+#include <string.h>
+#include "debug.h"
+#include "parser.h"
+#include "lvec.h"
+
+#define TYPEKINDPAIR_TERMINATOR (( TypeKindPair ){ -1, -1 })
+
+typedef struct SymbolTable
+{
+    char** identifiers;
+    Type* types;
+    int length;
+} SymbolTable;
+
+typedef struct TypeKindPair
+{
+    TypeKind tk1;
+    TypeKind tk2;
+} TypeKindPair;
+
+Type* symbol_table_lookup( SymbolTable* symbol_table, char* identifier )
+{
+    // size_t asd = sizeof( valid_binary_operations[0] );
+
+    for( int i = 0; i < symbol_table->length; i++ )
+    {
+        // if identifier matches entry in symbol table
+        if( strcmp( identifier, symbol_table->identifiers[ i ] ) == 0 )
+        {
+            return &symbol_table->types[ i ];
+        }
+    }
+
+    return NULL;
+}
+
+void symbol_table_add( SymbolTable* symbol_table, char* identifier, Type type )
+{
+    lvec_append( symbol_table->identifiers, identifier );
+    lvec_append_aggregate( symbol_table->types, type );
+    symbol_table->length++;
+}
+
+bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
+{
+    TypeKindPair* valid_binary_operations[] = {
+        [ BINARYOPERATION_ADD ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+
+            // this is needed because we do not know the length of each entry in the
+            // valid_binary_operation array. this would kinda act like the null
+            // terminator in strings.
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_SUBTRACT ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_MULTIPLY ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_DIVIDE ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_EQUAL ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_BOOLEAN, TYPEKIND_BOOLEAN },
+            ( TypeKindPair ){ TYPEKIND_STRING,  TYPEKIND_STRING },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_NOTEQUAL ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_BOOLEAN, TYPEKIND_BOOLEAN },
+            ( TypeKindPair ){ TYPEKIND_STRING,  TYPEKIND_STRING },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_GREATER ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_GREATEREQUAL ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_LESS ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_LESSEQUAL ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+    };
+    TypeKindPair* pairs = valid_binary_operations[ operation ];
+
+    bool is_valid = false;
+
+    // iterate over all valid pairs
+    for( TypeKindPair pair = *pairs; pair.tk1 != -1; pairs++, pair = *pairs )
+    {
+        TypeKind pair_left = pair.tk1;
+        TypeKind pair_right = pair.tk2;
+
+        if( pair_left == left_type.kind && pair_right == right_type.kind )
+        {
+            is_valid = true;
+            break;
+        }
+    }
+
+    return is_valid;
+}
+
+bool check_expression_rvalue( Expression* expression, Type* inferred_type )
+{
+    switch( expression->kind )
+    {
+        case EXPRESSIONKIND_INTEGER:   inferred_type->kind = TYPEKIND_INTEGER;   break;
+        case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
+        case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
+        // case EXPRESSIONKIND_FLOAT:  type.kind  = TYPEKIND_FLOAT;     break;
+
+        case EXPRESSIONKIND_IDENTIFIER:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+
+        case EXPRESSIONKIND_BINARY:
+        {
+            Expression* left_expression = expression->binary.left;
+            Expression* right_expression = expression->binary.right;
+
+            Type left_type;
+            Type right_type;
+
+            bool is_left_valid = check_expression_rvalue( left_expression, &left_type );
+            bool is_right_valid = check_expression_rvalue( right_expression, &right_type );
+
+            if( !is_left_valid || !is_right_valid )
+            {
+                return false;
+            }
+
+            BinaryOperation operation = expression->binary.operation;
+            bool is_operation_valid = is_binary_operation_valid( operation, left_type, right_type );
+
+            if( !is_operation_valid )
+            {
+                return false;
+            }
+
+            break;
+        }
+
+        case EXPRESSIONKIND_UNARY:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+
+        case EXPRESSIONKIND_FUNCTIONCALL:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+
+        default:
+        {
+            // report error
+            UNIMPLEMENTED();
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool check_variable_declaration( SymbolTable* symbol_table, Expression* expression )
+{
+    char* identifier = expression->variable_declaration.identifier;
+
+    // check if identifier already in symbol table
+    if( symbol_table_lookup( symbol_table, identifier ) != NULL )
+    {
+        return false;
+    }
+
+    Type type = expression->variable_declaration.type;
+    if( type.kind == TYPEKIND_TOINFER )
+    {
+        // infer type from value
+        bool is_valid = check_expression_rvalue( expression->variable_declaration.value, &type );
+        if( !is_valid )
+        {
+            return false;
+        }
+
+        expression->variable_declaration.type = type;
+    }
+
+    // add to symbol table
+    symbol_table_add( symbol_table, identifier, type );
+
+    return true;
+}
+
+bool semantic_analyze( Expression* expression )
+{
+    // initialize symbol_table;
+    SymbolTable symbol_table = {
+        .identifiers = lvec_new( char* ),
+        .types = lvec_new( Type )
+    };
+
+    bool is_valid;
+
+    switch( expression->kind )
+    {
+        case EXPRESSIONKIND_VARIABLEDECLARATION:
+        {
+            is_valid = check_variable_declaration( &symbol_table, expression );
+            break;
+        }
+
+        default:
+        {
+            UNIMPLEMENTED();
+        }
+    }
+
+    return is_valid;
+}

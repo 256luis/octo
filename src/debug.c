@@ -41,7 +41,7 @@ char* token_kind_to_string[] = {
 };
 
 char* expression_kind_to_string[] = {
-    [ EXPRESSIONKIND_NUMBER ]              = "NUMBER",
+    [ EXPRESSIONKIND_INTEGER ]              = "INTEGER",
     [ EXPRESSIONKIND_IDENTIFIER ]          = "IDENTIFIER",
     [ EXPRESSIONKIND_STRING ]              = "STRING",
     [ EXPRESSIONKIND_CHARACTER ]           = "CHARACTER",
@@ -73,6 +73,25 @@ char* unary_operation_to_string[] = {
     [ UNARYOPERATION_NOT ] = "NOT",
 };
 
+char* type_kind_to_string[] = {
+    [ TYPEKIND_VOID ]      = "void",
+    [ TYPEKIND_INTEGER ]   = "int",
+    [ TYPEKIND_FLOAT ]     = "float",
+    [ TYPEKIND_CHARACTER ] = "char",
+    [ TYPEKIND_BOOLEAN ]   = "bool",
+    [ TYPEKIND_STRING ]    = "string",
+    [ TYPEKIND_CUSTOM ]    = "CUSTOM",
+    [ TYPEKIND_TOINFER ]   = "TOINFER",
+};
+
+void type_print( Type type )
+{
+    printf( "%s", type_kind_to_string[ type.kind ] );
+    if( type.kind == TYPEKIND_CUSTOM )
+    {
+        printf( "(%s)", type.custom_identifier );
+    }
+}
 
 static int depth = 0;
 void expression_print( Expression* expression )
@@ -81,7 +100,7 @@ void expression_print( Expression* expression )
     bool should_newline = true;
     switch( expression->kind )
     {
-        case EXPRESSIONKIND_NUMBER:
+        case EXPRESSIONKIND_INTEGER:
         {
             printf( "(%d)", expression->number );
             should_newline = false;
@@ -198,7 +217,9 @@ void expression_print( Expression* expression )
             printf( "identifier = %s\n", expression->variable_declaration.identifier );
 
             INDENT();
-            printf( "type = %s\n", expression->variable_declaration.type );
+            printf( "type = " );
+            type_print( expression->variable_declaration.type );
+            putchar( '\n' );
 
             INDENT();
             printf( "value = " );
@@ -250,15 +271,20 @@ void expression_print( Expression* expression )
             printf( "identifier = %s\n", expression->function_declaration.identifier );
 
             INDENT();
-            printf( "return type = %s\n", expression->function_declaration.return_type );
+            printf( "return type = " );
+            type_print( expression->function_declaration.return_type );
+            putchar( '\n' );
 
             for( int i = 0; i < expression->function_declaration.param_count; i++ )
             {
                 char* param_identifier = expression->function_declaration.param_identifiers[ i ];
-                char* param_type = expression->function_declaration.param_types[ i ];
+                Type param_type = expression->function_declaration.param_types[ i ];
 
                 INDENT();
-                printf( "param[%d] = %s: %s\n", i, param_identifier, param_type );
+                // printf( "param[%d] = %s: %d\n", i, param_identifier, param_type.kind );
+                printf( "param[%d] = %s: ", i, param_identifier );
+                type_print( param_type );
+                putchar( '\n' );
             }
 
             INDENT();

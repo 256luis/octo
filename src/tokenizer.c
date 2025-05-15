@@ -100,8 +100,8 @@ static TokenKind special_symbol_to_token_kind( const char* special_symbol )
 // TODO: hashmap
 static TokenKind word_symbol_to_token_kind( const char* word_symbol )
 {
-    if( strcmp( word_symbol, "let" ) == 0 )  return TOKENKIND_LET;
-    if( strcmp( word_symbol, "func" ) == 0 ) return TOKENKIND_FUNC;
+    if( strcmp( word_symbol, "let" ) == 0 )    return TOKENKIND_LET;
+    if( strcmp( word_symbol, "func" ) == 0 )   return TOKENKIND_FUNC;
     if( strcmp( word_symbol, "return" ) == 0 ) return TOKENKIND_RETURN;
 
     return TOKENKIND_IDENTIFIER;
