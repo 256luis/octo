@@ -29,11 +29,6 @@ static CharacterType get_character_type(char c)
     return CHARACTERTYPE_SPECIAL;
 }
 
-void tokenizer_free( Tokenizer* tokenizer )
-{
-    free( tokenizer );
-}
-
 static char* valid_special_symbols[] = {
     ";", ":", "::", ".", ",",
     "+", "-", "*", "/", "=", "->",
@@ -101,20 +96,20 @@ static bool advance()
     if( tokenizer.character == '\n' )
     {
         tokenizer.line++;
-        tokenizer.column = 1;
+        tokenizer.column = 0;
     }
 
     return tokenizer.current_character_index <= g_source_code.length;
 }
 
-static void tokenizer_append_to_symbol()
+static void append_to_symbol()
 {
     tokenizer.symbol[ tokenizer.symbol_last_index ] = tokenizer.character;
     tokenizer.symbol[ tokenizer.symbol_last_index + 1 ] = 0;
     tokenizer.symbol_last_index++;
 }
 
-static void tokenizer_finalize_symbol( Token** tokens )
+static void finalize_symbol( Token** tokens )
 {
     int symbol_start_column = tokenizer.column - strlen( tokenizer.symbol );
     Token token = {
@@ -226,7 +221,7 @@ static void tokenizer_finalize_symbol( Token** tokens )
     }
 }
 
-Token* tokenizer_tokenize()
+Token* tokenize()
 {
     // initialize tokenizer
     tokenizer.line = 1;
@@ -248,7 +243,7 @@ Token* tokenizer_tokenize()
 
             if( tokenizer.state != TOKENIZERSTATE_START )
             {
-                tokenizer_finalize_symbol( &tokens );
+                finalize_symbol( &tokens );
             }
 
             // if exiting string
@@ -263,7 +258,7 @@ Token* tokenizer_tokenize()
 
         if( tokenizer.in_string )
         {
-            tokenizer_append_to_symbol();
+            append_to_symbol();
             tokenizer.state = TOKENIZERSTATE_STRING;
             continue;
         }
@@ -276,7 +271,7 @@ Token* tokenizer_tokenize()
 
             if( tokenizer.state != TOKENIZERSTATE_START )
             {
-                tokenizer_finalize_symbol( &tokens );
+                finalize_symbol( &tokens );
             }
 
             // if exiting character
@@ -290,7 +285,7 @@ Token* tokenizer_tokenize()
 
         if( tokenizer.in_character )
         {
-            tokenizer_append_to_symbol();
+            append_to_symbol();
             tokenizer.state = TOKENIZERSTATE_CHARACTER;
             continue;
         }
@@ -306,21 +301,21 @@ Token* tokenizer_tokenize()
 
             case TOKENIZERSTATE_START | CHARACTERTYPE_NUMBER:
             {
-                tokenizer_append_to_symbol();
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_NUMBER;
                 break;
             }
 
             case TOKENIZERSTATE_START | CHARACTERTYPE_SPECIAL:
             {
-                tokenizer_append_to_symbol();
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_SPECIAL;
                 break;
             }
 
             case TOKENIZERSTATE_START | CHARACTERTYPE_WORD:
             {
-                tokenizer_append_to_symbol();
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_WORD;
 
                 break;
@@ -328,30 +323,30 @@ Token* tokenizer_tokenize()
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_SPACE:
             {
-                tokenizer_finalize_symbol( &tokens );
+                finalize_symbol( &tokens );
                 tokenizer.state = TOKENIZERSTATE_START;
                 break;
             }
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_NUMBER:
             {
-                tokenizer_append_to_symbol();
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_NUMBER;
                 break;
             }
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_SPECIAL:
             {
-                tokenizer_finalize_symbol( &tokens );
-                tokenizer_append_to_symbol();
+                finalize_symbol( &tokens );
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_SPECIAL;
                 break;
             }
 
             case TOKENIZERSTATE_NUMBER | CHARACTERTYPE_WORD:
             {
-                tokenizer_finalize_symbol( &tokens );
-                tokenizer_append_to_symbol();
+                finalize_symbol( &tokens );
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_WORD;
 
                 break;
@@ -359,15 +354,15 @@ Token* tokenizer_tokenize()
 
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_SPACE:
             {
-                tokenizer_finalize_symbol( &tokens );
+                finalize_symbol( &tokens );
                 tokenizer.state = TOKENIZERSTATE_START;
                 break;
             }
 
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_NUMBER:
             {
-                tokenizer_finalize_symbol( &tokens );
-                tokenizer_append_to_symbol();
+                finalize_symbol( &tokens );
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_NUMBER;
                 break;
             }
@@ -391,12 +386,12 @@ Token* tokenizer_tokenize()
 
                 if( new_symbol_is_valid )
                 {
-                    tokenizer_append_to_symbol();
+                    append_to_symbol();
                 }
                 else
                 {
-                    tokenizer_finalize_symbol( &tokens );
-                    tokenizer_append_to_symbol();
+                    finalize_symbol( &tokens );
+                    append_to_symbol();
                 }
                 tokenizer.state = TOKENIZERSTATE_SPECIAL;
 
@@ -405,8 +400,8 @@ Token* tokenizer_tokenize()
 
             case TOKENIZERSTATE_SPECIAL | CHARACTERTYPE_WORD:
             {
-                tokenizer_finalize_symbol( &tokens );
-                tokenizer_append_to_symbol();
+                finalize_symbol( &tokens );
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_WORD;
 
                 break;
@@ -414,29 +409,29 @@ Token* tokenizer_tokenize()
 
             case TOKENIZERSTATE_WORD | CHARACTERTYPE_SPACE:
             {
-                tokenizer_finalize_symbol( &tokens );
+                finalize_symbol( &tokens );
                 tokenizer.state = TOKENIZERSTATE_START;
                 break;
             }
 
             case TOKENIZERSTATE_WORD | CHARACTERTYPE_NUMBER:
             {
-                tokenizer_append_to_symbol();
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_WORD;
                 break;
             }
 
             case TOKENIZERSTATE_WORD | CHARACTERTYPE_SPECIAL:
             {
-                tokenizer_finalize_symbol( &tokens );
-                tokenizer_append_to_symbol();
+                finalize_symbol( &tokens );
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_SPECIAL;
                 break;
             }
 
             case TOKENIZERSTATE_WORD | CHARACTERTYPE_WORD:
             {
-                tokenizer_append_to_symbol();
+                append_to_symbol();
                 tokenizer.state = TOKENIZERSTATE_WORD;
                 break;
             }
@@ -445,7 +440,7 @@ Token* tokenizer_tokenize()
 
     if( strlen( tokenizer.symbol ) > 0 )
     {
-        tokenizer_finalize_symbol( &tokens );
+        finalize_symbol( &tokens );
     }
 
     // eof token
@@ -456,6 +451,11 @@ Token* tokenizer_tokenize()
     };
 
     lvec_append_aggregate( tokens, eof );
+
+    if( tokenizer.error_found )
+    {
+        return NULL;
+    }
 
     return tokens;
 }

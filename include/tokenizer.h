@@ -94,6 +94,6 @@ typedef struct Tokenizer
 
 // Tokenizer* tokenizer_new();
 void tokenizer_free( Tokenizer* tokenizer );
-Token* tokenizer_tokenize();
+Token* tokenize();
 
 #endif

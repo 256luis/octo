@@ -21,16 +21,11 @@ int main( int argc, char* argv[] )
     char* source_file_path = argv[ 1 ];
     g_source_code = source_code_load( source_file_path );
 
-    // Tokenizer* tokenizer = tokenizer_new();
-    /* if( tokenizer == NULL ) */
-    /* { */
-    /*     ALLOC_ERROR(); */
-    /* } */
-
-    Token* tokens = tokenizer_tokenize();
-
-    // if( tokenizer->error_found ) return -1;
-    // tokenizer_free( tokenizer );
+    Token* tokens = tokenize();
+    if( tokens == NULL )
+    {
+        return 1;
+    }
 
     // iterate over list
     printf( "====== TOKENS FOUND ======\n" );
