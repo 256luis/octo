@@ -420,6 +420,10 @@ static Type parse_type( Parser* parser )
     {
         result.kind = TYPEKIND_STRING;
     }
+    else if( strcmp( type_identifier, "bool" ) == 0 )
+    {
+        result.kind = TYPEKIND_BOOLEAN;
+    }
     else if( strcmp( type_identifier, "void" ) == 0 )
     {
         result.kind = TYPEKIND_VOID;

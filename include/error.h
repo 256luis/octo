@@ -12,6 +12,9 @@ typedef enum ErrorKind
     // parser error
     ERRORKIND_UNEXPECTEDSYMBOL,
     // ERRORKIND_UNEXPECTEDEOF,
+
+    // semantic errors
+    ERRORKIND_SYMBOLREDECLARATION,
 } ErrorKind;
 
 typedef struct SourceCode

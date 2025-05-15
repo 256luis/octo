@@ -8,12 +8,6 @@
 #include "lvec.h"
 #include "semantic.h"
 
-typedef struct Person
-{
-    int age;
-    int height;
-} Person;
-
 int main( int argc, char* argv[] )
 {
     if( argc < 2 )
@@ -81,10 +75,8 @@ int main( int argc, char* argv[] )
     Parser* parser = parser_new( tokens, source_code );
     Expression* program = parser_parse( parser );
 
-    // printf("")
     bool is_valid = semantic_analyze( program );
     printf( "%d\n", is_valid );
-
 
     putchar( '\n' );
     printf( "====== SYNTAX TREE ======\n" );

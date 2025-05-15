@@ -1,5 +1,6 @@
 #include <string.h>
 #include "debug.h"
+#include "error.h"
 #include "parser.h"
 #include "lvec.h"
 
@@ -17,6 +18,28 @@ typedef struct TypeKindPair
     TypeKind tk1;
     TypeKind tk2;
 } TypeKindPair;
+
+bool type_equals( Type t1, Type t2 )
+{
+    bool are_kinds_equal = t1.kind == t2.kind;
+    if( !are_kinds_equal )
+    {
+        return false;
+    }
+
+    bool are_custom_identifiers_equal = true;
+    if( t1.kind == TYPEKIND_CUSTOM )
+    {
+        are_custom_identifiers_equal = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
+    }
+
+    if( !are_custom_identifiers_equal )
+    {
+        return false;
+    }
+
+    return true;
+}
 
 Type* symbol_table_lookup( SymbolTable* symbol_table, char* identifier )
 {
@@ -132,6 +155,7 @@ bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type 
             TYPEKINDPAIR_TERMINATOR,
         },
     };
+
     TypeKindPair* pairs = valid_binary_operations[ operation ];
 
     bool is_valid = false;
@@ -191,6 +215,24 @@ bool check_expression_rvalue( Expression* expression, Type* inferred_type )
                 return false;
             }
 
+            // if operation is one of the boolean operators
+            if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
+            {
+                inferred_type->kind = TYPEKIND_BOOLEAN;
+            }
+            else
+            {
+                // if left_type or right_type is float, then float. otherwise its int
+                if( left_type.kind == TYPEKIND_FLOAT || right_type.kind == TYPEKIND_FLOAT )
+                {
+                    inferred_type->kind = TYPEKIND_FLOAT;
+                }
+                else
+                {
+                    inferred_type->kind = TYPEKIND_INTEGER;
+                }
+            }
+
             break;
         }
 
@@ -227,21 +269,32 @@ bool check_variable_declaration( SymbolTable* symbol_table, Expression* expressi
         return false;
     }
 
-    Type type = expression->variable_declaration.type;
-    if( type.kind == TYPEKIND_TOINFER )
+    Type declared_type = expression->variable_declaration.type;
+    Type inferred_type;
+    Expression* value = expression->variable_declaration.value;
+    if( value != NULL )
     {
         // infer type from value
-        bool is_valid = check_expression_rvalue( expression->variable_declaration.value, &type );
+        bool is_valid = check_expression_rvalue( value, &inferred_type );
         if( !is_valid )
         {
             return false;
         }
 
-        expression->variable_declaration.type = type;
+        if( declared_type.kind == TYPEKIND_TOINFER )
+        {
+            declared_type = inferred_type;
+        }
+        else if( !type_equals( declared_type, inferred_type ) )
+        {
+            return false;
+        }
     }
 
+    expression->variable_declaration.type = declared_type;
+
     // add to symbol table
-    symbol_table_add( symbol_table, identifier, type );
+    symbol_table_add( symbol_table, identifier, declared_type );
 
     return true;
 }
