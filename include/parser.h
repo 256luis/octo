@@ -146,14 +146,13 @@ typedef struct Expression
 
 typedef struct Parser
 {
-    SourceCode source_code;
     Token* tokens;
     int current_token_index;
     Token current_token;
     Token next_token;
 } Parser;
 
-Parser* parser_new( Token* token_list, SourceCode source_code );
+Parser* parser_new( Token* token_list );
 void parser_free( Parser* parser );
 Expression* parser_parse( Parser* parser );
 

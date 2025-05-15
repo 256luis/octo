@@ -30,7 +30,7 @@ typedef struct SourceCode
 typedef struct Error
 {
     ErrorKind kind;
-    SourceCode source_code;
+    // SourceCode source_code;
     int line;
     int column;
 

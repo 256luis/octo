@@ -80,10 +80,6 @@ typedef enum TokenizerState
 
 typedef struct Tokenizer
 {
-    // FILE* source_file;
-    // char* source_code;
-    SourceCode source_code;
-    // int source_code_length;
     int current_character_index;
     char character;
     char symbol[512];
@@ -96,8 +92,8 @@ typedef struct Tokenizer
     bool in_character;
 } Tokenizer;
 
-Tokenizer* tokenizer_new( SourceCode source_code );
+// Tokenizer* tokenizer_new();
 void tokenizer_free( Tokenizer* tokenizer );
-Token* tokenizer_tokenize( Tokenizer* tokenizer );
+Token* tokenizer_tokenize();
 
 #endif

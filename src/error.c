@@ -1,7 +1,8 @@
-#include "error.h"
-#include "debug.h"
 #include <stdio.h>
 #include <string.h>
+#include "error.h"
+#include "debug.h"
+#include "globals.h"
 
 static char* file_to_string( const char* filename, int* length )
 {
@@ -106,7 +107,7 @@ void source_code_print_line( SourceCode source_code, int line )
 
 void report_error( Error error )
 {
-    printf( "%s:%d:%d: error: ", error.source_code.path, error.line, error.column );
+    printf( "%s:%d:%d: error: ", g_source_code.path, error.line, error.column );
     switch( error.kind )
     {
         case ERRORKIND_INVALIDSYMBOL:
@@ -146,6 +147,6 @@ void report_error( Error error )
         }
     }
 
-    source_code_print_line( error.source_code, error.line );
+    source_code_print_line( g_source_code, error.line );
     printf( "\n        %*c\n", error.column, '^' );
 }

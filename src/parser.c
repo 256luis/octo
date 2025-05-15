@@ -28,7 +28,6 @@
                 .kind = ERRORKIND_UNEXPECTEDSYMBOL,                     \
                 .line = parser->current_token.line,                     \
                 .column = parser->current_token.column,                 \
-                .source_code = parser_ptr->source_code,                 \
             };                                                          \
             report_error( error );                                      \
             return NULL;                                                \
@@ -54,7 +53,6 @@
                 .kind = ERRORKIND_UNEXPECTEDSYMBOL,                     \
                 .line = parser->next_token.line,                        \
                 .column = parser->next_token.column,                    \
-                .source_code = parser_ptr->source_code,                 \
             };                                                          \
             report_error( error );                                      \
             return NULL;                                                \
@@ -144,12 +142,11 @@ static void advance( Parser* parser )
     parser->next_token = parser->tokens[ parser->current_token_index ];
 }
 
-Parser* parser_new( Token* token_list, SourceCode source_code )
+Parser* parser_new( Token* token_list )
 {
     Parser* parser = calloc( 1, sizeof( Parser ) );
     if( parser == NULL ) ALLOC_ERROR();
 
-    parser->source_code = source_code;
     parser->tokens = token_list;
     advance( parser );
 
@@ -650,8 +647,6 @@ Expression* parse_assignment( Parser* parser )
 
     return expression;
 }
-
-
 
 Expression* parser_parse( Parser* parser )
 {

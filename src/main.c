@@ -8,6 +8,8 @@
 #include "lvec.h"
 #include "semantic.h"
 
+SourceCode g_source_code;
+
 int main( int argc, char* argv[] )
 {
     if( argc < 2 )
@@ -17,17 +19,17 @@ int main( int argc, char* argv[] )
     }
 
     char* source_file_path = argv[ 1 ];
-    SourceCode source_code = source_code_load( source_file_path );
+    g_source_code = source_code_load( source_file_path );
 
-    Tokenizer* tokenizer = tokenizer_new( source_code );
-    if( tokenizer == NULL )
-    {
-        ALLOC_ERROR();
-    }
+    // Tokenizer* tokenizer = tokenizer_new();
+    /* if( tokenizer == NULL ) */
+    /* { */
+    /*     ALLOC_ERROR(); */
+    /* } */
 
-    Token* tokens = tokenizer_tokenize( tokenizer );
+    Token* tokens = tokenizer_tokenize();
 
-    if( tokenizer->error_found ) return -1;
+    // if( tokenizer->error_found ) return -1;
     // tokenizer_free( tokenizer );
 
     // iterate over list
@@ -72,7 +74,7 @@ int main( int argc, char* argv[] )
         putchar( '\n' );
     }
 
-    Parser* parser = parser_new( tokens, source_code );
+    Parser* parser = parser_new( tokens );
     Expression* program = parser_parse( parser );
 
     bool is_valid = semantic_analyze( program );
