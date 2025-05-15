@@ -3,6 +3,7 @@
 #include "error.h"
 #include "parser.h"
 #include "lvec.h"
+#include "semantic.h"
 
 #define TYPEKINDPAIR_TERMINATOR (( TypeKindPair ){ -1, -1 })
 
@@ -18,6 +19,8 @@ typedef struct TypeKindPair
     TypeKind tk1;
     TypeKind tk2;
 } TypeKindPair;
+
+static SymbolTable symbol_table;
 
 bool type_equals( Type t1, Type t2 )
 {
@@ -43,8 +46,6 @@ bool type_equals( Type t1, Type t2 )
 
 Type* symbol_table_lookup( SymbolTable* symbol_table, char* identifier )
 {
-    // size_t asd = sizeof( valid_binary_operations[0] );
-
     for( int i = 0; i < symbol_table->length; i++ )
     {
         // if identifier matches entry in symbol table
@@ -64,7 +65,7 @@ void symbol_table_add( SymbolTable* symbol_table, char* identifier, Type type )
     symbol_table->length++;
 }
 
-bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
+static bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
 {
     TypeKindPair* valid_binary_operations[] = {
         [ BINARYOPERATION_ADD ] = ( TypeKindPair[] ){
@@ -176,7 +177,7 @@ bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type 
     return is_valid;
 }
 
-bool check_expression_rvalue( Expression* expression, Type* inferred_type )
+static bool check_expression_rvalue( Expression* expression, Type* inferred_type )
 {
     switch( expression->kind )
     {
@@ -259,12 +260,12 @@ bool check_expression_rvalue( Expression* expression, Type* inferred_type )
     return true;
 }
 
-bool check_variable_declaration( SymbolTable* symbol_table, Expression* expression )
+static bool check_variable_declaration( Expression* expression )
 {
     char* identifier = expression->variable_declaration.identifier;
 
     // check if identifier already in symbol table
-    if( symbol_table_lookup( symbol_table, identifier ) != NULL )
+    if( symbol_table_lookup( &symbol_table, identifier ) != NULL )
     {
         return false;
     }
@@ -294,18 +295,42 @@ bool check_variable_declaration( SymbolTable* symbol_table, Expression* expressi
     expression->variable_declaration.type = declared_type;
 
     // add to symbol table
-    symbol_table_add( symbol_table, identifier, declared_type );
+    symbol_table_add( &symbol_table, identifier, declared_type );
 
     return true;
 }
 
-bool semantic_analyze( Expression* expression )
+static bool check_compound( Expression* expression )
+{
+    bool is_valid = true;
+
+    size_t length = lvec_get_length( expression->compound.expressions );
+    for( size_t i = 0; i < length; i++ )
+    {
+        Expression* e = expression->compound.expressions[ i ];
+        bool _is_valid = check_semantics( e );
+
+        if( !_is_valid )
+        {
+            is_valid = false;
+        }
+    }
+
+    return is_valid;
+}
+
+bool check_semantics( Expression* expression )
 {
     // initialize symbol_table;
-    SymbolTable symbol_table = {
-        .identifiers = lvec_new( char* ),
-        .types = lvec_new( Type )
-    };
+    static bool is_symbol_table_initialized = false;
+    if( !is_symbol_table_initialized )
+    {
+        is_symbol_table_initialized = true;
+        symbol_table = ( SymbolTable ){
+            .identifiers = lvec_new( char* ),
+            .types = lvec_new( Type )
+        };
+    }
 
     bool is_valid;
 
@@ -313,7 +338,13 @@ bool semantic_analyze( Expression* expression )
     {
         case EXPRESSIONKIND_VARIABLEDECLARATION:
         {
-            is_valid = check_variable_declaration( &symbol_table, expression );
+            is_valid = check_variable_declaration( expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_COMPOUND:
+        {
+            is_valid = check_compound( expression );
             break;
         }
 

@@ -251,8 +251,8 @@ void expression_print( Expression* expression )
             {
                 INDENT();
                 printf( "[%lld] = ", i );
-                Expression s = expression->compound.expressions[ i ];
-                expression_print( &s );
+                Expression* s = expression->compound.expressions[ i ];
+                expression_print( s );
             }
 
             depth--;

@@ -1,7 +1,6 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "error.h"
 #include "tokenizer.h"
 
 typedef enum TypeKind
@@ -114,7 +113,7 @@ typedef struct Expression
 
         struct
         {
-            struct Expression* expressions;
+            struct Expression** expressions;
             int statement_count;
         } compound;
 
@@ -146,15 +145,13 @@ typedef struct Expression
 
 typedef struct Parser
 {
-    Token* tokens;
+    // Token* tokens;
     int current_token_index;
     Token current_token;
     Token next_token;
 } Parser;
 
-Parser* parser_new( Token* token_list );
-void parser_free( Parser* parser );
-Expression* parser_parse( Parser* parser );
+Expression* parse( Token* tokens );
 
 void expression_print( Expression* expression );
 

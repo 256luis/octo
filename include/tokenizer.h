@@ -1,7 +1,6 @@
 #ifndef TOKENIZER_H
 #define TOKENIZER_H
 
-#include "error.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -62,12 +61,6 @@ typedef struct Token
     };
 } Token;
 
-/* typedef struct TokenNode */
-/* { */
-/*     Token token; */
-/*     struct TokenNode* next; */
-/* } TokenNode; */
-
 typedef enum TokenizerState
 {
     TOKENIZERSTATE_START     = 0x00,
@@ -92,8 +85,6 @@ typedef struct Tokenizer
     bool in_character;
 } Tokenizer;
 
-// Tokenizer* tokenizer_new();
-void tokenizer_free( Tokenizer* tokenizer );
 Token* tokenize();
 
 #endif

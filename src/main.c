@@ -1,11 +1,8 @@
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include "error.h"
 #include "parser.h"
 #include "tokenizer.h"
-#include "debug.h"
-#include "lvec.h"
 #include "semantic.h"
 
 SourceCode g_source_code;
@@ -27,59 +24,17 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    // iterate over list
-    printf( "====== TOKENS FOUND ======\n" );
-    for( size_t i = 0; i < lvec_get_length( tokens ); i++ )
+    Expression* program = parse( tokens );
+    if( program == NULL )
     {
-        Token token = tokens[ i ];
-        printf("%s", token_kind_to_string[ token.kind ]);
-        switch( token.kind )
-        {
-            case TOKENKIND_INTEGER:
-            {
-                printf( "(%d)", token.number );
-                break;
-            }
-
-            case TOKENKIND_IDENTIFIER:
-            {
-                printf( "(%s)", token.identifier );
-                break;
-            }
-
-            case TOKENKIND_STRING:
-            {
-                printf( "(\"%s\")", token.string );
-                break;
-            }
-
-            case TOKENKIND_CHARACTER:
-            {
-                printf( "(\'%c\')", token.character );
-                break;
-            }
-
-            default:
-            {
-                // do nothing
-                break;
-            }
-        }
-
-        putchar( '\n' );
+        return 1;
     }
 
-    Parser* parser = parser_new( tokens );
-    Expression* program = parser_parse( parser );
-
-    bool is_valid = semantic_analyze( program );
-    printf( "%d\n", is_valid );
-
-    putchar( '\n' );
-    printf( "====== SYNTAX TREE ======\n" );
-    if( program != NULL )
+    bool is_valid = check_semantics( program );
+    if( !is_valid )
     {
-        expression_print( program );
+        return 1;
     }
 
+    expression_print( program );
 }

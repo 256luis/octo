@@ -3,6 +3,6 @@
 
 #include "parser.h"
 
-bool semantic_analyze( Expression* expression );
+bool check_semantics( Expression* expression );
 
 #endif
