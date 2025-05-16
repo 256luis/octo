@@ -3,14 +3,20 @@
 #include "error.h"
 #include "parser.h"
 #include "lvec.h"
+#include "tokenizer.h"
 #include "semantic.h"
 
 #define TYPEKINDPAIR_TERMINATOR (( TypeKindPair ){ -1, -1 })
 
+typedef struct Symbol
+{
+    Token token;
+    Type type;
+} Symbol;
+
 typedef struct SymbolTable
 {
-    char** identifiers;
-    Type* types;
+    Symbol* symbols;
     int length;
 } SymbolTable;
 
@@ -44,24 +50,25 @@ bool type_equals( Type t1, Type t2 )
     return true;
 }
 
-Type* symbol_table_lookup( SymbolTable* symbol_table, char* identifier )
+Symbol* symbol_table_lookup( SymbolTable* symbol_table, char* identifier )
 {
     for( int i = 0; i < symbol_table->length; i++ )
     {
+        Symbol* symbol = &symbol_table->symbols[ i ];
+
         // if identifier matches entry in symbol table
-        if( strcmp( identifier, symbol_table->identifiers[ i ] ) == 0 )
+        if( strcmp( identifier, symbol->token.identifier ) == 0 )
         {
-            return &symbol_table->types[ i ];
+            return symbol;
         }
     }
 
     return NULL;
 }
 
-void symbol_table_add( SymbolTable* symbol_table, char* identifier, Type type )
+void symbol_table_add( SymbolTable* symbol_table, Symbol symbol )
 {
-    lvec_append( symbol_table->identifiers, identifier );
-    lvec_append_aggregate( symbol_table->types, type );
+    lvec_append_aggregate( symbol_table->symbols, symbol );
     symbol_table->length++;
 }
 
@@ -213,6 +220,14 @@ static bool check_expression_rvalue( Expression* expression, Type* inferred_type
 
             if( !is_operation_valid )
             {
+                Error error = {
+                    .kind = ERRORKIND_INVALIDOPERATION,
+
+                    // the associated token is the operation token
+                    .line = expression->associated_tokens[ 1 ].line,
+                    .column = expression->associated_tokens[ 1 ].column,
+                };
+                report_error( error );
                 return false;
             }
 
@@ -262,11 +277,22 @@ static bool check_expression_rvalue( Expression* expression, Type* inferred_type
 
 static bool check_variable_declaration( Expression* expression )
 {
-    char* identifier = expression->variable_declaration.identifier;
+    Token identifier_token = expression->associated_tokens[ 1 ];
 
     // check if identifier already in symbol table
-    if( symbol_table_lookup( &symbol_table, identifier ) != NULL )
+    Symbol* original_declaration = symbol_table_lookup( &symbol_table, identifier_token.identifier );
+    if( original_declaration != NULL )
     {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+
+            // expression->associated_tokens[ 1 ] is the identifier token
+            .line = identifier_token.line,
+            .column = identifier_token.column,
+            .symbol_redeclaration.original_declaration_token = original_declaration->token,
+        };
+
+        report_error( error );
         return false;
     }
 
@@ -295,7 +321,11 @@ static bool check_variable_declaration( Expression* expression )
     expression->variable_declaration.type = declared_type;
 
     // add to symbol table
-    symbol_table_add( &symbol_table, identifier, declared_type );
+    Symbol symbol = {
+        .token = identifier_token,
+        .type = declared_type,
+    };
+    symbol_table_add( &symbol_table, symbol );
 
     return true;
 }
@@ -327,8 +357,8 @@ bool check_semantics( Expression* expression )
     {
         is_symbol_table_initialized = true;
         symbol_table = ( SymbolTable ){
-            .identifiers = lvec_new( char* ),
-            .types = lvec_new( Type )
+            .symbols = lvec_new( Symbol ),
+            .length = 0,
         };
     }
 

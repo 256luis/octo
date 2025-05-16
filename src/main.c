@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdio.h>
+#include "debug.h"
 #include "error.h"
+#include "lvec.h"
 #include "parser.h"
 #include "tokenizer.h"
 #include "semantic.h"
@@ -36,5 +38,10 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    expression_print( program );
+    /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
+    /* { */
+    /*     printf("%s\n", token_kind_to_string[ program->associated_tokens[ i ].kind ]); */
+    /* } */
+
+    // expression_print( program );
 }

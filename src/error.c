@@ -113,30 +113,65 @@ void report_error( Error error )
         case ERRORKIND_INVALIDSYMBOL:
         {
             printf( "invalid symbol\n" );
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
             break;
         }
 
         case ERRORKIND_MISMATCHEDPARENS:
         {
             printf( "mismatched parentheses\n" );
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
             break;
         }
 
         case ERRORKIND_UNCLOSEDPARENS:
         {
             printf( "unclosed parentheses\n" );
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
             break;
         }
 
         case ERRORKIND_UNEXPECTEDSYMBOL:
         {
             printf( "unexpected symbol\n" );
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
             break;
         }
 
         case ERRORKIND_MULTICHARACTERCHARACTER:
         {
             printf( "use double quotes for strings\n" );
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_SYMBOLREDECLARATION:
+        {
+            Token original_declaration_token = error.symbol_redeclaration.original_declaration_token;
+
+            printf( "redeclaration of '%s'\n", original_declaration_token.identifier );
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
+
+            printf( "%s:%d:%d: note: ", g_source_code.path, original_declaration_token.line, original_declaration_token.column );
+            printf( "previous declaration here\n");
+            source_code_print_line( g_source_code, original_declaration_token.line );
+            printf( "\n        %*c\n", original_declaration_token.column, '^' );
+
+
+            break;
+        }
+
+        case ERRORKIND_INVALIDOPERATION:
+        {
+            printf( "invalid operation\n");
+            source_code_print_line( g_source_code, error.line );
+            printf( "\n        %*c\n", error.column, '^' );
             break;
         }
 
@@ -146,7 +181,4 @@ void report_error( Error error )
             break;
         }
     }
-
-    source_code_print_line( g_source_code, error.line );
-    printf( "\n        %*c\n", error.column, '^' );
 }

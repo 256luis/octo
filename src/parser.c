@@ -9,55 +9,55 @@
 #include "error.h"
 #include "lvec.h"
 
-#define EXPECT( ... )                                       \
-    {                                                                   \
-        TokenKind expecteds[] = { __VA_ARGS__ };                        \
-        bool is_valid = false;                                          \
-        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ ) \
-        {                                                               \
-            if( parser.current_token.kind == expecteds[ i ] )      \
-            {                                                           \
-                is_valid = true;                                        \
-                break;                                                  \
-            }                                                           \
-        }                                                               \
-        if( !is_valid )                                                 \
-        {                                                               \
-            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );          \
-            Error error = {                                             \
-                .kind = ERRORKIND_UNEXPECTEDSYMBOL,                     \
-                .line = parser.current_token.line,                     \
-                .column = parser.current_token.column,                 \
-            };                                                          \
-            report_error( error );                                      \
-            return NULL;                                                \
-        }                                                               \
-    } ( ( void )0 )
+#define EXPECT( ... )\
+    do {\
+        TokenKind expecteds[] = { __VA_ARGS__ };\
+        bool is_valid = false;\
+        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ )\
+        {\
+            if( parser.current_token.kind == expecteds[ i ] )\
+            {\
+                is_valid = true;\
+                break;\
+            }\
+        }\
+        if( !is_valid )\
+        {\
+            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );\
+            Error error = {\
+                .kind = ERRORKIND_UNEXPECTEDSYMBOL,\
+                .line = parser.current_token.line,\
+                .column = parser.current_token.column,\
+            };\
+            report_error( error );\
+            return NULL;\
+        }\
+    } while( 0 )
 
-#define EXPECT_NEXT( ... )                                  \
-    {                                                                   \
-        TokenKind expecteds[] = { __VA_ARGS__ };                        \
-        bool is_valid = false;                                          \
-        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ ) \
-        {                                                               \
-            if( parser.next_token.kind == expecteds[ i ] )         \
-            {                                                           \
-                is_valid = true;                                        \
-                break;                                                  \
-            }                                                           \
-        }                                                               \
-        if( !is_valid )                                                 \
-        {                                                               \
-            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );          \
-            Error error = {                                             \
-                .kind = ERRORKIND_UNEXPECTEDSYMBOL,                     \
-                .line = parser.next_token.line,                        \
-                .column = parser.next_token.column,                    \
-            };                                                          \
-            report_error( error );                                      \
-            return NULL;                                                \
-        }                                                               \
-    } ( ( void )0 )
+#define EXPECT_NEXT( ... )\
+    do {\
+        TokenKind expecteds[] = { __VA_ARGS__ };\
+        bool is_valid = false;\
+        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ )\
+        {\
+            if( parser.next_token.kind == expecteds[ i ] )\
+            {\
+                is_valid = true;\
+                break;\
+            }\
+        }\
+        if( !is_valid )\
+        {\
+            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );\
+            Error error = {\
+                .kind = ERRORKIND_UNEXPECTEDSYMBOL,\
+                .line = parser.next_token.line,\
+                .column = parser.next_token.column,\
+            };\
+            report_error( error );\
+            return NULL;\
+        }\
+    } while( 0 )
 
 #define TOKENKIND_EXPRESSION_BASES                                      \
     TOKENKIND_INTEGER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER
@@ -135,26 +135,14 @@ static UnaryOperation token_kind_to_unary_operation( TokenKind token_kind )
 
 static void advance()
 {
-    parser.current_token = tokens[ parser.current_token_index ];
-
     if( parser.current_token.kind != TOKENKIND_EOF )
     {
         parser.current_token_index++;
     }
 
-    parser.next_token = tokens[ parser.current_token_index ];
+    parser.current_token = tokens[ parser.current_token_index ];
+    parser.next_token = tokens[ parser.current_token_index + 1 ];
 }
-
-/* Parser* parser_new( Token* token_list ) */
-/* { */
-/*     Parser* parser = calloc( 1, sizeof( Parser ) ); */
-/*     if( parser == NULL ) ALLOC_ERROR(); */
-
-/*     parser.tokens = token_list; */
-/*     advance(); */
-
-/*     return parser; */
-/* } */
 
 static Expression* parse_integer()
 {
@@ -262,6 +250,8 @@ static Expression* parse_unary()
 
 static Expression* parse_function_call()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
 
@@ -283,6 +273,8 @@ static Expression* parse_function_call()
     else
     {
         Expression** args = lvec_new( Expression* );
+        if( args == NULL ) ALLOC_ERROR();
+
         while( parser.current_token.kind != TOKENKIND_RIGHTPAREN )
         {
             Expression* e = parse_expression();
@@ -306,11 +298,25 @@ static Expression* parse_function_call()
         expression->function_call.args = args;
     }
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+
     return expression;
 }
 
 static Expression* parse_expression()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression;
 
     switch( parser.current_token.kind )
@@ -384,6 +390,18 @@ static Expression* parse_expression()
         }
     }
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+
     return expression;
 }
 
@@ -429,6 +447,8 @@ static Type parse_type()
 
 static Expression* parse_variable_declaration()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -470,6 +490,18 @@ static Expression* parse_variable_declaration()
     advance();
     EXPECT( TOKENKIND_SEMICOLON );
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+
     return expression;
 }
 
@@ -479,7 +511,11 @@ Expression* parse_compound()
     if( compound_expression == NULL ) ALLOC_ERROR();
 
     compound_expression->compound.expressions = lvec_new( Expression* );
+    if( compound_expression->compound.expressions == NULL ) ALLOC_ERROR();
+
     compound_expression->kind = EXPRESSIONKIND_COMPOUND;
+
+    int token_start_index = parser.current_token_index;
 
     advance();
     EXPECT( TOKENKIND_EXPRESSION_STARTERS, TOKENKIND_RIGHTBRACE );
@@ -503,11 +539,25 @@ Expression* parse_compound()
         EXPECT( TOKENKIND_RIGHTBRACE );
     }
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    compound_expression->associated_tokens = lvec_new( Token );
+    if( compound_expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( compound_expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( compound_expression->associated_tokens, tokens[ i ] );
+    }
+
     return compound_expression;
 }
 
 Expression* parse_function_declaration()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -530,7 +580,10 @@ Expression* parse_function_declaration()
     if( parser.current_token.kind == TOKENKIND_IDENTIFIER )
     {
         char** param_identifiers = lvec_new( char* );
+        if( param_identifiers == NULL ) ALLOC_ERROR();
+
         Type* param_types = lvec_new( Type );
+        if( param_types == NULL ) ALLOC_ERROR();
 
         while( parser.current_token.kind != TOKENKIND_RIGHTPAREN )
         {
@@ -580,11 +633,25 @@ Expression* parse_function_declaration()
         return NULL;
     }
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+
     return expression;
 }
 
 Expression* parse_return()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -602,11 +669,25 @@ Expression* parse_return()
     advance();
     EXPECT( TOKENKIND_SEMICOLON );
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+
     return expression;
 }
 
 Expression* parse_assignment()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -628,6 +709,18 @@ Expression* parse_assignment()
     advance();
     EXPECT( TOKENKIND_SEMICOLON );
 
+    int token_end_index = parser.current_token_index;
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+
     return expression;
 }
 
@@ -639,6 +732,7 @@ Expression* parse( Token* _tokens )
     {
         is_parser_initialized = true;
         tokens = _tokens;
+        parser.current_token_index = -1;
         advance();
     }
 
@@ -646,6 +740,7 @@ Expression* parse( Token* _tokens )
 
     EXPECT( TOKENKIND_EXPRESSION_STATEMENT_STARTERS );
 
+    int token_start_index = parser.current_token_index;
     switch( parser.current_token.kind )
     {
         case TOKENKIND_LET:
@@ -707,6 +802,21 @@ Expression* parse( Token* _tokens )
         default:
         {
             UNIMPLEMENTED();
+        }
+    }
+
+    if( expression != NULL )
+    {
+        int token_end_index = parser.current_token_index;
+        int associated_tokens_length = token_end_index - token_start_index;
+
+        expression->associated_tokens = lvec_new( Token );
+        if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+        lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+        for( int i = token_start_index; i <= token_end_index; i++ )
+        {
+            lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
         }
     }
 

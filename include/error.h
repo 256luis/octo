@@ -1,6 +1,9 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include "parser.h"
+#include "tokenizer.h"
+
 typedef enum ErrorKind
 {
     // tokenizer errors
@@ -15,6 +18,7 @@ typedef enum ErrorKind
 
     // semantic errors
     ERRORKIND_SYMBOLREDECLARATION,
+    ERRORKIND_INVALIDOPERATION,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -38,11 +42,14 @@ typedef struct Error
     {
         struct
         {
-            char left_paren_mismatched;
-            char right_paren_mismatched;
-        };
+            Token original_declaration_token;
+        } symbol_redeclaration;
 
-        char unclosed_paren;
+        struct
+        {
+            Type left_type;
+            Type right_type;
+        } invalid_operation;
     };
 } Error;
 
