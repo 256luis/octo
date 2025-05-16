@@ -230,9 +230,9 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "value = " );
 
-            if( expression->variable_declaration.value != NULL )
+            if( expression->variable_declaration.rvalue != NULL )
             {
-                expression_print( expression->variable_declaration.value );
+                expression_print( expression->variable_declaration.rvalue );
             }
             else
             {
@@ -307,7 +307,7 @@ void expression_print( Expression* expression )
         case EXPRESSIONKIND_RETURN:
         {
             printf( "(");
-            expression_print( expression->return_expression.value );
+            expression_print( expression->return_expression.rvalue );
             printf( ")");
             break;
         }
@@ -323,7 +323,7 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "value = " );
 
-            expression_print( expression->assignment.value );
+            expression_print( expression->assignment.rvalue );
 
             putchar( '\n' );
             depth--;

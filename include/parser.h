@@ -115,7 +115,7 @@ typedef struct Expression
         {
             char* identifier;
             Type type;
-            struct Expression* value;
+            struct Expression* rvalue;
         } variable_declaration;
 
         struct
@@ -139,13 +139,13 @@ typedef struct Expression
 
         struct
         {
-            struct Expression* value;
+            struct Expression* rvalue;
         } return_expression;
 
         struct
         {
             char* identifier;
-            struct Expression* value;
+            struct Expression* rvalue;
         } assignment;
     };
 } Expression;

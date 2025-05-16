@@ -454,8 +454,8 @@ static Expression* parse_variable_declaration()
 
     advance();
     EXPECT( TOKENKIND_RVALUE_STARTERS );
-    expression->variable_declaration.value = parse_rvalue();
-    if( expression->variable_declaration.value == NULL )
+    expression->variable_declaration.rvalue = parse_rvalue();
+    if( expression->variable_declaration.rvalue == NULL )
     {
         return NULL;
     }
@@ -608,8 +608,8 @@ Expression* parse_return()
 
     if( parser.current_token.kind != TOKENKIND_SEMICOLON )
     {
-        expression->return_expression.value = parse_rvalue();
-        if( expression->return_expression.value == NULL )
+        expression->return_expression.rvalue = parse_rvalue();
+        if( expression->return_expression.rvalue == NULL )
         {
             return NULL;
         }
@@ -640,8 +640,8 @@ Expression* parse_assignment()
     advance();
     EXPECT( TOKENKIND_RVALUE_STARTERS );
 
-    expression->assignment.value = parse_rvalue();
-    if( expression->assignment.value == NULL )
+    expression->assignment.rvalue = parse_rvalue();
+    if( expression->assignment.rvalue == NULL )
     {
         return NULL;
     }

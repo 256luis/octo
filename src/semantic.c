@@ -230,7 +230,7 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
     return is_valid;
 }
 
-static bool check_expression_rvalue( Expression* expression, Type* inferred_type );
+static bool check_rvalue( Expression* expression, Type* inferred_type );
 static bool check_binary( Expression* expression, Type* inferred_type )
 {
     Expression* left_expression = expression->binary.left;
@@ -239,8 +239,8 @@ static bool check_binary( Expression* expression, Type* inferred_type )
     Type left_type;
     Type right_type;
 
-    bool is_left_valid = check_expression_rvalue( left_expression, &left_type );
-    bool is_right_valid = check_expression_rvalue( right_expression, &right_type );
+    bool is_left_valid = check_rvalue( left_expression, &left_type );
+    bool is_right_valid = check_rvalue( right_expression, &right_type );
 
     if( !is_left_valid || !is_right_valid )
     {
@@ -324,7 +324,7 @@ static bool check_binary( Expression* expression, Type* inferred_type )
     return true;
 }
 
-static bool check_expression_rvalue( Expression* expression, Type* inferred_type )
+static bool check_rvalue( Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
     bool is_valid = true;
@@ -394,11 +394,11 @@ static bool check_variable_declaration( Expression* expression )
 
     Type declared_type = expression->variable_declaration.type;
     Type inferred_type;
-    Expression* value = expression->variable_declaration.value;
+    Expression* value = expression->variable_declaration.rvalue;
     if( value != NULL )
     {
         // infer type from value
-        bool is_valid = check_expression_rvalue( value, &inferred_type );
+        bool is_valid = check_rvalue( value, &inferred_type );
         if( !is_valid )
         {
             return false;
@@ -412,7 +412,7 @@ static bool check_variable_declaration( Expression* expression )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = expression->variable_declaration.value->associated_tokens[ 0 ],
+                .offending_token = expression->variable_declaration.rvalue->associated_tokens[ 0 ],
                 .type_mismatch = {
                     .expected = declared_type,
                     .found = inferred_type,
@@ -532,9 +532,9 @@ static bool check_function_declaration( Expression* expression )
 bool check_return( Expression* expression )
 {
     Type found_return_type = ( Type ){ .kind = TYPEKIND_VOID };
-    if( expression->return_expression.value != NULL )
+    if( expression->return_expression.rvalue != NULL )
     {
-        bool is_return_value_valid = check_expression_rvalue( expression->return_expression.value, &found_return_type );
+        bool is_return_value_valid = check_rvalue( expression->return_expression.rvalue, &found_return_type );
 
         if( !is_return_value_valid )
         {
@@ -549,7 +549,7 @@ bool check_return( Expression* expression )
     {
         Error error = {
             .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->return_expression.value->associated_tokens[ 0 ],
+            .offending_token = expression->return_expression.rvalue->associated_tokens[ 0 ],
             .type_mismatch = {
                 .expected = expected_return_type,
                 .found = found_return_type,
@@ -580,7 +580,7 @@ bool check_assignment( Expression* expression )
 
     // check if rvalue is a valid rvalue
     Type found_type;
-    bool is_valid = check_expression_rvalue( expression->assignment.value, &found_type );
+    bool is_valid = check_rvalue( expression->assignment.rvalue, &found_type );
     if( !is_valid )
     {
         // no need for error reporting here because that was already handled by
@@ -594,7 +594,7 @@ bool check_assignment( Expression* expression )
     {
         Error error = {
             .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->assignment.value->associated_tokens[ 0 ],
+            .offending_token = expression->assignment.rvalue->associated_tokens[ 0 ],
             .type_mismatch = {
                 .expected = expected_type,
                 .found = found_type,
