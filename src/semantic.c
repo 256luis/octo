@@ -26,7 +26,59 @@ typedef struct TypeKindPair
     TypeKind tk2;
 } TypeKindPair;
 
-static SymbolTable symbol_table;
+typedef struct SemanticContext
+{
+    SymbolTable* symbol_table_stack;
+    Type* return_type_stack;
+} SemanticContext;
+
+static SemanticContext context;
+
+void push_scope()
+{
+    SymbolTable st = {
+        .symbols = lvec_new( Symbol ),
+        .length = 0,
+    };
+    lvec_append_aggregate( context.symbol_table_stack, st );
+}
+
+void pop_scope()
+{
+    lvec_remove_last( context.symbol_table_stack );
+}
+
+void add_symbol_to_scope( Symbol symbol )
+{
+    int symbol_table_stack_top_index = lvec_get_length( context.symbol_table_stack ) - 1;
+    SymbolTable* current_scope_table = &context.symbol_table_stack[ symbol_table_stack_top_index ];
+
+    lvec_append_aggregate( current_scope_table->symbols, symbol );
+    current_scope_table->length++;
+}
+
+// searches the entire symbol table stack backwards for identifier
+Symbol* symbol_lookup( char* identifier )
+{
+    int symbol_stack_length = lvec_get_length( context.symbol_table_stack );
+    for( int i = 0; i < symbol_stack_length ; i++ )
+    {
+        SymbolTable current_scope_table = context.symbol_table_stack[ i ];
+
+        for( int j = 0; j < current_scope_table.length; j++ )
+        {
+            Symbol* symbol = &current_scope_table.symbols[ j ];
+
+            // if identifier matches entry in symbol table
+            if( strcmp( identifier, symbol->token.identifier ) == 0 )
+            {
+                return symbol;
+            }
+        }
+    }
+
+    return NULL;
+}
 
 bool type_equals( Type t1, Type t2 )
 {
@@ -48,28 +100,6 @@ bool type_equals( Type t1, Type t2 )
     }
 
     return true;
-}
-
-Symbol* symbol_table_lookup( SymbolTable* symbol_table, char* identifier )
-{
-    for( int i = 0; i < symbol_table->length; i++ )
-    {
-        Symbol* symbol = &symbol_table->symbols[ i ];
-
-        // if identifier matches entry in symbol table
-        if( strcmp( identifier, symbol->token.identifier ) == 0 )
-        {
-            return symbol;
-        }
-    }
-
-    return NULL;
-}
-
-void symbol_table_add( SymbolTable* symbol_table, Symbol symbol )
-{
-    lvec_append_aggregate( symbol_table->symbols, symbol );
-    symbol_table->length++;
 }
 
 static bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
@@ -330,12 +360,11 @@ static bool check_variable_declaration( Expression* expression )
     Token identifier_token = expression->associated_tokens[ 1 ];
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_table_lookup( &symbol_table, identifier_token.identifier );
+    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
     if( original_declaration != NULL )
     {
         Error error = {
             .kind = ERRORKIND_SYMBOLREDECLARATION,
-
             .offending_token = identifier_token,
             .symbol_redeclaration.original_declaration_token = original_declaration->token,
         };
@@ -343,6 +372,9 @@ static bool check_variable_declaration( Expression* expression )
         report_error( error );
         return false;
     }
+
+    // check if the type at the left hand side matches the type on the right hand
+    // side (if not ommitted)
 
     Type declared_type = expression->variable_declaration.type;
     Type inferred_type;
@@ -373,7 +405,7 @@ static bool check_variable_declaration( Expression* expression )
         .token = identifier_token,
         .type = declared_type,
     };
-    symbol_table_add( &symbol_table, symbol );
+    add_symbol_to_scope( symbol );
 
     return true;
 }
@@ -381,6 +413,8 @@ static bool check_variable_declaration( Expression* expression )
 static bool check_compound( Expression* expression )
 {
     bool is_valid = true;
+
+    push_scope();
 
     size_t length = lvec_get_length( expression->compound.expressions );
     for( size_t i = 0; i < length; i++ )
@@ -394,20 +428,91 @@ static bool check_compound( Expression* expression )
         }
     }
 
+    pop_scope();
+
     return is_valid;
+}
+
+static bool check_function_declaration( Expression* expression )
+{
+    Token identifier_token = expression->associated_tokens[ 1 ];
+
+    // check if identifier already in symbol table
+    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    if( original_declaration != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+            .symbol_redeclaration.original_declaration_token = original_declaration->token,
+        };
+
+        report_error( error );
+        return false;
+    }
+
+    // add to symbol table
+    Symbol symbol = {
+        .token = identifier_token,
+        .type = ( Type ){ .kind = TYPEKIND_FUNCTION },
+    };
+    add_symbol_to_scope( symbol );
+
+    // check function params
+    push_scope();
+    for( int i = 0; i < expression->function_declaration.param_count; i++ )
+    {
+        int associated_token_index = 3 + ( i * 4 );
+        Token param_identifier_token = expression->associated_tokens[ associated_token_index ];
+        Type param_type = expression->function_declaration.param_types[ i ];
+
+        Symbol* declaration = symbol_lookup( param_identifier_token.identifier );
+        if( declaration != NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_SYMBOLREDECLARATION,
+                .offending_token = param_identifier_token,
+                .symbol_redeclaration.original_declaration_token = declaration->token,
+            };
+
+            report_error( error );
+            return false;
+        }
+
+        Symbol symbol = {
+            .token = param_identifier_token,
+            .type = param_type,
+        };
+        add_symbol_to_scope( symbol );
+    }
+
+    // check function body
+    Expression* function_body = expression->function_declaration.body;
+    bool is_body_valid = check_compound( function_body );
+    pop_scope();
+
+    if( !is_body_valid )
+    {
+        return false;
+    }
+
+    // todo: check return types
+
+    return true;
 }
 
 bool check_semantics( Expression* expression )
 {
-    // initialize symbol_table;
-    static bool is_symbol_table_initialized = false;
-    if( !is_symbol_table_initialized )
+    // initialize semantic_context;
+    static bool is_context_initialized = false;
+    if( !is_context_initialized )
     {
-        is_symbol_table_initialized = true;
-        symbol_table = ( SymbolTable ){
-            .symbols = lvec_new( Symbol ),
-            .length = 0,
-        };
+        is_context_initialized = true;
+
+        context.symbol_table_stack = lvec_new( SymbolTable );
+        context.return_type_stack = lvec_new( Type );
+
+        push_scope();
     }
 
     bool is_valid;
@@ -426,11 +531,18 @@ bool check_semantics( Expression* expression )
             break;
         }
 
+        case EXPRESSIONKIND_FUNCTIONDECLARATION:
+        {
+            is_valid = check_function_declaration( expression );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();
         }
     }
 
+    pop_scope();
     return is_valid;
 }

@@ -11,6 +11,7 @@ typedef enum TypeKind
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
     TYPEKIND_STRING,
+    TYPEKIND_FUNCTION,
     TYPEKIND_CUSTOM,
     TYPEKIND_TOINFER,
 } TypeKind;
@@ -22,6 +23,11 @@ typedef struct Type
     union
     {
         char* custom_identifier;
+        struct
+        {
+            struct Type* param_types;
+            struct Type* return_type;
+        } function;
     };
 } Type;
 

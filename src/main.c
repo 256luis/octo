@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <stdio.h>
-#include "debug.h"
 #include "error.h"
 #include "lvec.h"
 #include "parser.h"
