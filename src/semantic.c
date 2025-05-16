@@ -324,6 +324,28 @@ static bool check_binary( Expression* expression, Type* inferred_type )
     return true;
 }
 
+static bool check_rvalue_identifier( Expression* expression, Type* inferred_type )
+{
+    Token identifier_token = expression->associated_tokens[ 0 ];
+
+    // check if identifier already in symbol table
+    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    if( original_declaration == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = identifier_token,
+        };
+
+        report_error( error );
+        return false;
+    }
+
+    *inferred_type = original_declaration->type;
+
+    return true;
+}
+
 static bool check_rvalue( Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
@@ -338,7 +360,7 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            UNIMPLEMENTED();
+            is_valid = check_rvalue_identifier( expression, inferred_type );
             break;
         }
 
@@ -394,11 +416,11 @@ static bool check_variable_declaration( Expression* expression )
 
     Type declared_type = expression->variable_declaration.type;
     Type inferred_type;
-    Expression* value = expression->variable_declaration.rvalue;
-    if( value != NULL )
+    Expression* rvalue = expression->variable_declaration.rvalue;
+    if( rvalue != NULL )
     {
         // infer type from value
-        bool is_valid = check_rvalue( value, &inferred_type );
+        bool is_valid = check_rvalue( rvalue, &inferred_type );
         if( !is_valid )
         {
             return false;
