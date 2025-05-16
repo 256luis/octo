@@ -202,6 +202,19 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_TOOMANYARGUMENTS:
+        {
+            int expected_arg_count = error.too_many_arguments.expected;
+            int found_arg_count = error.too_many_arguments.found;
+
+            printf( "expected %d arguments, found %d\n",
+                    expected_arg_count,
+                    found_arg_count );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();
