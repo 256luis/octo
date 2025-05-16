@@ -9,14 +9,22 @@ func main() -> void
     std::println("Hello, Octo!");
 }
 ```
-
-Planned features:
-- Generics
-- Compile-time function execution
-- Closures
-- Interop with C
-- Rust-like tagged unions
-- If-expressions and switch-expressions
-- Type inference
-
-P.S. Octo is in the early stages of development. The parser isn't even done yet
+---
+### Development Progress
+| | Tokenizing + Parsing | Semantic Analysis | Code Generation |
+|-|-|-|-|
+| Function declaration | ✅ | ✅ | ❌ |
+| Function call | ✅| ✅ | ❌ |
+| Variable declaration | ✅ | ✅ | ❌ |
+| Variable reassignment | ✅ | ✅ | ❌ |
+| Type inference | ⬛ | ✅ | ❌ |
+| Modules | ❌| ❌ | ❌ |
+| If-statements | ❌| ❌ | ❌ |
+| If-expressions | ❌| ❌ | ❌ |
+| Switch-statements | ❌| ❌ | ❌ |
+| Switch-expressions | ❌| ❌ | ❌ |
+| Loops | ❌| ❌ | ❌ |
+| User-defined types | ❌| ❌ | ❌ |
+| Compile-time function execution | ❌| ❌ | ❌ |
+| Generics | ❌| ❌ | ❌ |
+| Closures | ❌| ❌ | ❌ |
