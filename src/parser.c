@@ -602,16 +602,19 @@ Expression* parse_return()
     expression->kind = EXPRESSIONKIND_RETURN;
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS );
+    EXPECT( TOKENKIND_EXPRESSION_STARTERS, TOKENKIND_SEMICOLON );
 
-    expression->return_expression.value = parse_expression();
-    if( expression->return_expression.value == NULL )
+    if( parser.current_token.kind != TOKENKIND_SEMICOLON )
     {
-        return NULL;
-    }
+        expression->return_expression.value = parse_expression();
+        if( expression->return_expression.value == NULL )
+        {
+            return NULL;
+        }
 
-    advance();
-    EXPECT( TOKENKIND_SEMICOLON );
+        advance();
+        EXPECT( TOKENKIND_SEMICOLON );
+    }
 
     int token_end_index = parser.current_token_index;
     add_associated_tokens( expression, token_start_index, token_end_index );

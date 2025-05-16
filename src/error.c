@@ -181,6 +181,19 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_TYPEMISMATCH:
+        {
+            Type expected_type = error.type_mismatch.expected;
+            Type found_type = error.type_mismatch.found;
+
+            printf( "expected type '%s', found '%s'\n",
+                    type_kind_to_string[ expected_type.kind ],
+                    type_kind_to_string[ found_type.kind ] );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();

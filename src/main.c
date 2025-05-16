@@ -37,4 +37,12 @@ int main( int argc, char* argv[] )
     {
         return 1;
     }
+
+    /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
+    /* { */
+    /*     Token token = program->associated_tokens[ i ]; */
+    /*     printf( "%s ", token_kind_to_string[ token.kind ] ); */
+    /* } */
+
+    /* expression_print( program ); */
 }

@@ -34,6 +34,22 @@ typedef struct SemanticContext
 
 static SemanticContext context;
 
+void push_return_type( Type type )
+{
+    lvec_append_aggregate( context.return_type_stack, type );
+}
+
+void pop_return_type()
+{
+    lvec_remove_last( context.return_type_stack );
+}
+
+Type get_top_return_type()
+{
+    int last_index = lvec_get_length( context.return_type_stack ) - 1;
+    return context.return_type_stack[ last_index ];
+}
+
 void push_scope()
 {
     SymbolTable st = {
@@ -394,6 +410,16 @@ static bool check_variable_declaration( Expression* expression )
         }
         else if( !type_equals( declared_type, inferred_type ) )
         {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = expression->variable_declaration.value->associated_tokens[ 0 ],
+                .type_mismatch = {
+                    .expected = declared_type,
+                    .found = inferred_type,
+                },
+            };
+            report_error( error );
+
             return false;
         }
     }
@@ -486,17 +512,52 @@ static bool check_function_declaration( Expression* expression )
         add_symbol_to_scope( symbol );
     }
 
+    push_return_type( expression->function_declaration.return_type );
+
     // check function body
     Expression* function_body = expression->function_declaration.body;
     bool is_body_valid = check_compound( function_body );
     pop_scope();
+
+    pop_return_type();
 
     if( !is_body_valid )
     {
         return false;
     }
 
-    // todo: check return types
+    return true;
+}
+
+bool check_return( Expression* expression )
+{
+    Type found_return_type = ( Type ){ .kind = TYPEKIND_VOID };
+    if( expression->return_expression.value != NULL )
+    {
+        bool is_return_value_valid = check_expression_rvalue( expression->return_expression.value, &found_return_type );
+
+        if( !is_return_value_valid )
+        {
+            // no need to report error here because error has already been reported
+            // from the check_expression_rvalue function
+            return false;
+        }
+    }
+
+    Type expected_return_type = get_top_return_type();
+    if( !type_equals( found_return_type, expected_return_type ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_TYPEMISMATCH,
+            .offending_token = expression->return_expression.value->associated_tokens[ 0 ],
+            .type_mismatch = {
+                .expected = expected_return_type,
+                .found = found_return_type,
+            },
+        };
+        report_error( error );
+        return false;
+    }
 
     return true;
 }
@@ -534,6 +595,12 @@ bool check_semantics( Expression* expression )
         case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
             is_valid = check_function_declaration( expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_RETURN:
+        {
+            is_valid = check_return( expression );
             break;
         }
 

@@ -19,6 +19,7 @@ typedef enum ErrorKind
     // semantic errors
     ERRORKIND_SYMBOLREDECLARATION,
     ERRORKIND_INVALIDOPERATION,
+    ERRORKIND_TYPEMISMATCH,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -52,6 +53,12 @@ typedef struct Error
             Type left_type;
             Type right_type;
         } invalid_operation;
+
+        struct
+        {
+            Type expected;
+            Type found;
+        } type_mismatch;
     };
 } Error;
 

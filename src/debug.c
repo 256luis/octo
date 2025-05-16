@@ -96,6 +96,12 @@ void type_print( Type type )
 static int depth = 0;
 void expression_print( Expression* expression )
 {
+    if( expression == NULL )
+    {
+        printf("NONE");
+        return;
+    }
+
     printf( "%s", expression_kind_to_string[ expression->kind ] );
     bool should_newline = true;
     switch( expression->kind )
