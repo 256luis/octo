@@ -21,6 +21,7 @@ typedef enum ErrorKind
     ERRORKIND_INVALIDOPERATION,
     ERRORKIND_TYPEMISMATCH,
     ERRORKIND_UNDECLAREDSYMBOL,
+    ERRORKIND_TOOMANYARGUMENTS,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -36,10 +37,6 @@ typedef struct SourceCode
 typedef struct Error
 {
     ErrorKind kind;
-    // SourceCode source_code;
-    /* int line; */
-    /* int column; */
-
     Token offending_token;
 
     union
@@ -60,6 +57,12 @@ typedef struct Error
             Type expected;
             Type found;
         } type_mismatch;
+
+        struct
+        {
+            int expected;
+            int found;
+        } too_many_arguments;
     };
 } Error;
 

@@ -346,6 +346,77 @@ static bool check_rvalue_identifier( Expression* expression, Type* inferred_type
     return true;
 }
 
+static bool check_function_call( Expression* expression, Type* inferred_type )
+{
+    Token identifier_token = expression->associated_tokens[ 0 ];
+    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    if( original_declaration == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = identifier_token,
+        };
+
+        report_error( error );
+        return false;
+    }
+
+    // check if args count match param count
+    Type* param_types = original_declaration->type.function.param_types;
+
+    int param_count = lvec_get_length( param_types );
+    int arg_count = expression->function_call.arg_count;
+    if( arg_count != param_count )
+    {
+        Error error = {
+            .kind = ERRORKIND_TOOMANYARGUMENTS,
+            .offending_token = identifier_token,
+            .too_many_arguments = {
+                .expected = param_count,
+                .found = arg_count,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    // check if arg types match param types
+    for( int i = 0; i < param_count; i++ )
+    {
+        Type param_type = param_types[ i ];
+        Expression* arg = expression->function_call.args[ i ];
+        Type arg_type;
+
+        bool is_arg_valid = check_rvalue( arg, &arg_type );
+        if( !is_arg_valid )
+        {
+            // no need to report error here because that is handled by check_rvalue
+            return false;
+        }
+
+        if( !type_equals( param_type, arg_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = arg->associated_tokens[ 0 ],
+                .type_mismatch = {
+                    .expected = param_type,
+                    .found = arg_type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
+
+    if( inferred_type != NULL )
+    {
+        *inferred_type = *original_declaration->type.function.return_type;
+    }
+
+    return true;
+}
+
 static bool check_rvalue( Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
@@ -378,7 +449,7 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            UNIMPLEMENTED();
+            is_valid = check_function_call( expression, inferred_type );
             break;
         }
 
@@ -499,10 +570,19 @@ static bool check_function_declaration( Expression* expression )
         return false;
     }
 
+    Type* param_types = expression->function_declaration.param_types;
+    Type* return_type = &expression->function_declaration.return_type;
+
     // add to symbol table
     Symbol symbol = {
         .token = identifier_token,
-        .type = ( Type ){ .kind = TYPEKIND_FUNCTION },
+        .type = ( Type ){
+            .kind = TYPEKIND_FUNCTION,
+            .function = {
+                .param_types = param_types,
+                .return_type = return_type
+            }
+        },
     };
     add_symbol_to_scope( symbol );
 
@@ -534,7 +614,7 @@ static bool check_function_declaration( Expression* expression )
         add_symbol_to_scope( symbol );
     }
 
-    push_return_type( expression->function_declaration.return_type );
+    push_return_type( *return_type );
 
     // check function body
     Expression* function_body = expression->function_declaration.body;
@@ -672,6 +752,12 @@ bool check_semantics( Expression* expression )
         case EXPRESSIONKIND_ASSIGNMENT:
         {
             is_valid = check_assignment( expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_FUNCTIONCALL:
+        {
+            is_valid = check_function_call( expression, NULL );
             break;
         }
 
