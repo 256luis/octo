@@ -224,8 +224,9 @@ static bool check_expression_rvalue( Expression* expression, Type* inferred_type
                     .kind = ERRORKIND_INVALIDOPERATION,
 
                     // the associated token is the operation token
-                    .line = expression->associated_tokens[ 1 ].line,
-                    .column = expression->associated_tokens[ 1 ].column,
+                    /* .line = expression->associated_tokens[ 1 ].line, */
+                    /* .column = expression->associated_tokens[ 1 ].column, */
+                    .offending_token = expression->associated_tokens[ 1 ],
                 };
                 report_error( error );
                 return false;
@@ -287,8 +288,9 @@ static bool check_variable_declaration( Expression* expression )
             .kind = ERRORKIND_SYMBOLREDECLARATION,
 
             // expression->associated_tokens[ 1 ] is the identifier token
-            .line = identifier_token.line,
-            .column = identifier_token.column,
+            /* .line = identifier_token.line, */
+            /* .column = identifier_token.column, */
+            .offending_token = identifier_token,
             .symbol_redeclaration.original_declaration_token = original_declaration->token,
         };
 

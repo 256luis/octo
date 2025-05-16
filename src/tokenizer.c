@@ -132,8 +132,10 @@ static void finalize_symbol( Token** tokens )
         {
             Error error = {
                 .kind = ERRORKIND_MULTICHARACTERCHARACTER,
-                .line = tokenizer.line,
-                .column = symbol_start_column,
+                /* .line = tokenizer.line, */
+                /* .column = symbol_start_column, */
+
+                .offending_token = token,
             };
 
             report_error( error );
@@ -179,8 +181,10 @@ static void finalize_symbol( Token** tokens )
                 {
                     Error error = {
                         .kind = ERRORKIND_INVALIDSYMBOL,
-                        .line = tokenizer.line,
-                        .column = symbol_start_column,
+                        /* .line = tokenizer.line, */
+                        /* .column = symbol_start_column, */
+
+                        .offending_token = token
                     };
 
                     report_error( error );

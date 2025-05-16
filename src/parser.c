@@ -26,8 +26,7 @@
             printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );\
             Error error = {\
                 .kind = ERRORKIND_UNEXPECTEDSYMBOL,\
-                .line = parser.current_token.line,\
-                .column = parser.current_token.column,\
+                .offending_token = parser.current_token,\
             };\
             report_error( error );\
             return NULL;\
@@ -51,8 +50,7 @@
             printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );\
             Error error = {\
                 .kind = ERRORKIND_UNEXPECTEDSYMBOL,\
-                .line = parser.next_token.line,\
-                .column = parser.next_token.column,\
+                .offending_token = parser.current_token,\
             };\
             report_error( error );\
             return NULL;\

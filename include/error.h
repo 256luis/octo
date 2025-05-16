@@ -35,8 +35,10 @@ typedef struct Error
 {
     ErrorKind kind;
     // SourceCode source_code;
-    int line;
-    int column;
+    /* int line; */
+    /* int column; */
+
+    Token offending_token;
 
     union
     {
