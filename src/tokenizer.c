@@ -20,6 +20,19 @@ typedef enum CharacterType
 
 static Tokenizer tokenizer;
 
+bool _is_token_kind_in_group( TokenKind kind, TokenKind* group, size_t count )
+{
+    for( size_t i = 0; i < count; i++ )
+    {
+        if( kind == group[ i ] )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static CharacterType get_character_type(char c)
 {
     if( isdigit( c ) )             return CHARACTERTYPE_NUMBER;
@@ -132,9 +145,6 @@ static void finalize_symbol( Token** tokens )
         {
             Error error = {
                 .kind = ERRORKIND_MULTICHARACTERCHARACTER,
-                /* .line = tokenizer.line, */
-                /* .column = symbol_start_column, */
-
                 .offending_token = token,
             };
 

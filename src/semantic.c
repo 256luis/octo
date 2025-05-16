@@ -184,8 +184,105 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
     return is_valid;
 }
 
+static bool check_expression_rvalue( Expression* expression, Type* inferred_type );
+static bool check_binary( Expression* expression, Type* inferred_type )
+{
+    Expression* left_expression = expression->binary.left;
+    Expression* right_expression = expression->binary.right;
+
+    Type left_type;
+    Type right_type;
+
+    bool is_left_valid = check_expression_rvalue( left_expression, &left_type );
+    bool is_right_valid = check_expression_rvalue( right_expression, &right_type );
+
+    if( !is_left_valid || !is_right_valid )
+    {
+        return false;
+    }
+
+    BinaryOperation operation = expression->binary.operation;
+    bool is_operation_valid = is_binary_operation_valid( operation, left_type, right_type );
+
+    if( !is_operation_valid )
+    {
+        // todo: clean this shit up
+
+        // find the token that corresponds with the operator
+        int depth = 0; // measures how deep we are in the expression
+                       // +1 for every left paren found
+                       // -1 for every right paren found
+        bool first = true;
+        int lowest_depth;
+        int operator_index_lowest_depth;
+        for( size_t i = 0; i < lvec_get_length( expression->associated_tokens ); i++ )
+        {
+            Token current_token = expression->associated_tokens[ i ];
+            if( current_token.kind == TOKENKIND_LEFTPAREN )
+            {
+                depth++;
+            }
+            else if( current_token.kind == TOKENKIND_RIGHTPAREN )
+            {
+                depth--;
+            }
+
+            if( IS_TOKENKIND_IN_GROUP( current_token.kind, TOKENKIND_BINARY_OPERATORS ) )
+            {
+                if( first )
+                {
+                    first = false;
+                    operator_index_lowest_depth = i;
+                    lowest_depth = depth;
+                    continue;
+                }
+
+                if( depth < lowest_depth )
+                {
+                    operator_index_lowest_depth = i;
+                }
+            }
+        }
+
+        Token operator_token = expression->associated_tokens[ operator_index_lowest_depth ];
+        Error error = {
+            .kind = ERRORKIND_INVALIDOPERATION,
+            .offending_token = operator_token,
+            .invalid_operation = {
+                .left_type = left_type,
+                .right_type = right_type,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    // if operation is one of the boolean operators
+    if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
+    {
+        inferred_type->kind = TYPEKIND_BOOLEAN;
+    }
+    else
+    {
+        // if left_type or right_type is float, then float. otherwise its int
+        if( left_type.kind == TYPEKIND_FLOAT || right_type.kind == TYPEKIND_FLOAT )
+        {
+            inferred_type->kind = TYPEKIND_FLOAT;
+        }
+        else
+        {
+            inferred_type->kind = TYPEKIND_INTEGER;
+        }
+    }
+
+    return true;
+}
+
 static bool check_expression_rvalue( Expression* expression, Type* inferred_type )
 {
+    // initialized to true for the base cases
+    bool is_valid = true;
+
     switch( expression->kind )
     {
         case EXPRESSIONKIND_INTEGER:   inferred_type->kind = TYPEKIND_INTEGER;   break;
@@ -201,55 +298,7 @@ static bool check_expression_rvalue( Expression* expression, Type* inferred_type
 
         case EXPRESSIONKIND_BINARY:
         {
-            Expression* left_expression = expression->binary.left;
-            Expression* right_expression = expression->binary.right;
-
-            Type left_type;
-            Type right_type;
-
-            bool is_left_valid = check_expression_rvalue( left_expression, &left_type );
-            bool is_right_valid = check_expression_rvalue( right_expression, &right_type );
-
-            if( !is_left_valid || !is_right_valid )
-            {
-                return false;
-            }
-
-            BinaryOperation operation = expression->binary.operation;
-            bool is_operation_valid = is_binary_operation_valid( operation, left_type, right_type );
-
-            if( !is_operation_valid )
-            {
-                Error error = {
-                    .kind = ERRORKIND_INVALIDOPERATION,
-
-                    // the associated token is the operation token
-                    /* .line = expression->associated_tokens[ 1 ].line, */
-                    /* .column = expression->associated_tokens[ 1 ].column, */
-                    .offending_token = expression->associated_tokens[ 1 ],
-                };
-                report_error( error );
-                return false;
-            }
-
-            // if operation is one of the boolean operators
-            if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
-            {
-                inferred_type->kind = TYPEKIND_BOOLEAN;
-            }
-            else
-            {
-                // if left_type or right_type is float, then float. otherwise its int
-                if( left_type.kind == TYPEKIND_FLOAT || right_type.kind == TYPEKIND_FLOAT )
-                {
-                    inferred_type->kind = TYPEKIND_FLOAT;
-                }
-                else
-                {
-                    inferred_type->kind = TYPEKIND_INTEGER;
-                }
-            }
-
+            is_valid = check_binary( expression, inferred_type );
             break;
         }
 
@@ -273,7 +322,7 @@ static bool check_expression_rvalue( Expression* expression, Type* inferred_type
         }
     }
 
-    return true;
+    return is_valid;
 }
 
 static bool check_variable_declaration( Expression* expression )
@@ -287,9 +336,6 @@ static bool check_variable_declaration( Expression* expression )
         Error error = {
             .kind = ERRORKIND_SYMBOLREDECLARATION,
 
-            // expression->associated_tokens[ 1 ] is the identifier token
-            /* .line = identifier_token.line, */
-            /* .column = identifier_token.column, */
             .offending_token = identifier_token,
             .symbol_redeclaration.original_declaration_token = original_declaration->token,
         };

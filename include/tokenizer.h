@@ -4,6 +4,34 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define GET_TOKENKIND_GROUP_COUNT( ... )                                \
+    ( sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
+
+#define IS_TOKENKIND_IN_GROUP( token_kind, ... )                        \
+    _is_token_kind_in_group( token_kind,                                \
+                             ( TokenKind[] ){ __VA_ARGS__ },            \
+                             GET_TOKENKIND_GROUP_COUNT( __VA_ARGS__ ) )
+
+#define TOKENKIND_BINARY_OPERATORS                                      \
+    TOKENKIND_PLUS, TOKENKIND_MINUS,TOKENKIND_STAR, TOKENKIND_FORWARDSLASH, \
+    TOKENKIND_GREATER, TOKENKIND_LESS, TOKENKIND_DOUBLEEQUAL, TOKENKIND_NOTEQUAL, \
+    TOKENKIND_GREATEREQUAL, TOKENKIND_LESSEQUAL
+
+#define TOKENKIND_EXPRESSION_BASES                                      \
+    TOKENKIND_INTEGER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER
+
+#define TOKENKIND_UNARY_OPERATORS               \
+    TOKENKIND_MINUS, TOKENKIND_BANG
+
+#define TOKENKIND_EXPRESSION_STARTERS                                   \
+    TOKENKIND_EXPRESSION_BASES, TOKENKIND_UNARY_OPERATORS, TOKENKIND_LEFTPAREN, \
+    TOKENKIND_LET, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, TOKENKIND_LEFTBRACE, \
+    TOKENKIND_RETURN
+
+#define TOKENKIND_EXPRESSION_STATEMENT_STARTERS\
+    TOKENKIND_LET, TOKENKIND_LEFTBRACE, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, \
+    TOKENKIND_RETURN
+
 typedef enum TokenKind
 {
     TOKENKIND_PLUS,
@@ -86,5 +114,8 @@ typedef struct Tokenizer
 } Tokenizer;
 
 Token* tokenize();
+
+// helper functions
+bool _is_token_kind_in_group( TokenKind kind, TokenKind* group, size_t count );
 
 #endif

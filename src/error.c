@@ -3,6 +3,7 @@
 #include "error.h"
 #include "debug.h"
 #include "globals.h"
+#include "parser.h"
 
 static char* file_to_string( const char* filename, int* length )
 {
@@ -169,7 +170,12 @@ void report_error( Error error )
 
         case ERRORKIND_INVALIDOPERATION:
         {
-            printf( "invalid operation\n");
+            Type left_type = error.invalid_operation.left_type;
+            Type right_type = error.invalid_operation.right_type;
+
+            printf( "invalid operation for types '%s' and '%s'\n",
+                    type_kind_to_string[ left_type.kind ],
+                    type_kind_to_string[ right_type.kind ] );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;

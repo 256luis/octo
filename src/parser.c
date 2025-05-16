@@ -57,51 +57,8 @@
         }\
     } while( 0 )
 
-#define TOKENKIND_EXPRESSION_BASES                                      \
-    TOKENKIND_INTEGER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER
-
-#define TOKENKIND_UNARY_OPERATORS               \
-    TOKENKIND_MINUS, TOKENKIND_BANG
-
-#define TOKENKIND_EXPRESSION_STARTERS                                   \
-    TOKENKIND_EXPRESSION_BASES, TOKENKIND_UNARY_OPERATORS, TOKENKIND_LEFTPAREN, \
-    TOKENKIND_LET, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, TOKENKIND_LEFTBRACE, \
-    TOKENKIND_RETURN
-
-#define TOKENKIND_BINARY_OPERATORS                                      \
-    TOKENKIND_PLUS, TOKENKIND_MINUS,TOKENKIND_STAR, TOKENKIND_FORWARDSLASH, \
-    TOKENKIND_GREATER, TOKENKIND_LESS, TOKENKIND_DOUBLEEQUAL, TOKENKIND_NOTEQUAL, \
-    TOKENKIND_GREATEREQUAL, TOKENKIND_LESSEQUAL
-
-#define TOKENKIND_EXPRESSION_STATEMENT_STARTERS\
-    TOKENKIND_LET, TOKENKIND_LEFTBRACE, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER, \
-    TOKENKIND_RETURN
-
-#define GET_TOKENKIND_GROUP_COUNT( ... )                                \
-    ( sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
-
-#define IS_TOKENKIND_IN_GROUP( token_kind, ... )                        \
-    _is_token_kind_in_group( token_kind,                                \
-                             ( TokenKind[] ){ __VA_ARGS__ },            \
-                             GET_TOKENKIND_GROUP_COUNT( __VA_ARGS__ ) )
-
-#define MAX_FUNCTION_PARAM_COUNT 100
-
 static Parser parser;
 static Token* tokens;
-
-static bool _is_token_kind_in_group( TokenKind kind, TokenKind* group, size_t count )
-{
-    for( size_t i = 0; i < count; i++ )
-    {
-        if( kind == group[ i ] )
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 static BinaryOperation token_kind_to_binary_operation( TokenKind token_kind )
 {
@@ -141,6 +98,21 @@ static void advance()
     parser.current_token = tokens[ parser.current_token_index ];
     parser.next_token = tokens[ parser.current_token_index + 1 ];
 }
+
+static void add_associated_tokens( Expression* expression, int token_start_index, int token_end_index )
+{
+    int associated_tokens_length = token_end_index - token_start_index;
+
+    expression->associated_tokens = lvec_new( Token );
+    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+
+    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
+    for( int i = token_start_index; i <= token_end_index; i++ )
+    {
+        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
+    }
+}
+
 
 static Expression* parse_integer()
 {
@@ -189,19 +161,35 @@ static Expression* parse_character()
 
 static Expression* parse_base_expression()
 {
+    int token_start_index = parser.current_token_index;
+
+    Expression* expression;
+
     switch( parser.current_token.kind )
     {
-        case TOKENKIND_INTEGER:     return parse_integer();
-        case TOKENKIND_IDENTIFIER: return parse_identifier();
-        case TOKENKIND_STRING:     return parse_string();
-        case TOKENKIND_CHARACTER:  return parse_character();
+        case TOKENKIND_INTEGER:    expression = parse_integer();    break;
+        case TOKENKIND_IDENTIFIER: expression = parse_identifier(); break;
+        case TOKENKIND_STRING:     expression = parse_string();     break;
+        case TOKENKIND_CHARACTER:  expression = parse_character();  break;
         default: UNREACHABLE();
     }
+
+    if( expression == NULL )
+    {
+        return NULL;
+    }
+
+    int token_end_index = parser.current_token_index;
+    add_associated_tokens( expression, token_start_index, token_end_index );
+
+    return expression;
 }
 
 static Expression* parse_expression();
 static Expression* parse_parentheses()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* expression;
 
     advance();
@@ -211,6 +199,9 @@ static Expression* parse_parentheses()
 
     advance();
     EXPECT( TOKENKIND_RIGHTPAREN );
+
+    int token_end_index = parser.current_token_index;
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
@@ -297,16 +288,7 @@ static Expression* parse_function_call()
     }
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
@@ -389,16 +371,7 @@ static Expression* parse_expression()
     }
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
@@ -489,22 +462,15 @@ static Expression* parse_variable_declaration()
     EXPECT( TOKENKIND_SEMICOLON );
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
 
 Expression* parse_compound()
 {
+    int token_start_index = parser.current_token_index;
+
     Expression* compound_expression = calloc( 1, sizeof( Expression ) );
     if( compound_expression == NULL ) ALLOC_ERROR();
 
@@ -512,8 +478,6 @@ Expression* parse_compound()
     if( compound_expression->compound.expressions == NULL ) ALLOC_ERROR();
 
     compound_expression->kind = EXPRESSIONKIND_COMPOUND;
-
-    int token_start_index = parser.current_token_index;
 
     advance();
     EXPECT( TOKENKIND_EXPRESSION_STARTERS, TOKENKIND_RIGHTBRACE );
@@ -538,16 +502,7 @@ Expression* parse_compound()
     }
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    compound_expression->associated_tokens = lvec_new( Token );
-    if( compound_expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( compound_expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( compound_expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( compound_expression, token_start_index, token_end_index );
 
     return compound_expression;
 }
@@ -632,16 +587,7 @@ Expression* parse_function_declaration()
     }
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
@@ -668,16 +614,7 @@ Expression* parse_return()
     EXPECT( TOKENKIND_SEMICOLON );
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
@@ -708,16 +645,7 @@ Expression* parse_assignment()
     EXPECT( TOKENKIND_SEMICOLON );
 
     int token_end_index = parser.current_token_index;
-    int associated_tokens_length = token_end_index - token_start_index;
-
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
+    add_associated_tokens( expression, token_start_index, token_end_index );
 
     return expression;
 }
@@ -806,16 +734,7 @@ Expression* parse( Token* _tokens )
     if( expression != NULL )
     {
         int token_end_index = parser.current_token_index;
-        int associated_tokens_length = token_end_index - token_start_index;
-
-        expression->associated_tokens = lvec_new( Token );
-        if( expression->associated_tokens == NULL ) ALLOC_ERROR();
-
-        lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-        for( int i = token_start_index; i <= token_end_index; i++ )
-        {
-            lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-        }
+        add_associated_tokens( expression, token_start_index, token_end_index );
     }
 
     return expression;

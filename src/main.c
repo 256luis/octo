@@ -31,17 +31,11 @@ int main( int argc, char* argv[] )
     {
         return 1;
     }
+    lvec_free( tokens );
 
     bool is_valid = check_semantics( program );
     if( !is_valid )
     {
         return 1;
     }
-
-    /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
-    /* { */
-    /*     printf("%s\n", token_kind_to_string[ program->associated_tokens[ i ].kind ]); */
-    /* } */
-
-    // expression_print( program );
 }
