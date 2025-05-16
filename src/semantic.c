@@ -562,6 +562,51 @@ bool check_return( Expression* expression )
     return true;
 }
 
+bool check_assignment( Expression* expression )
+{
+    // check if identifier exists;
+    Token identifier_token = expression->associated_tokens[ 0 ];
+    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    if( original_declaration == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = identifier_token,
+        };
+
+        report_error( error );
+        return false;
+    }
+
+    // check if rvalue is a valid rvalue
+    Type found_type;
+    bool is_valid = check_expression_rvalue( expression->assignment.value, &found_type );
+    if( !is_valid )
+    {
+        // no need for error reporting here because that was already handled by
+        // check_expression_rvalue
+        return false;
+    }
+
+    // check if types match with original declaration
+    Type expected_type = original_declaration->type;
+    if( !type_equals( expected_type, found_type ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_TYPEMISMATCH,
+            .offending_token = expression->assignment.value->associated_tokens[ 0 ],
+            .type_mismatch = {
+                .expected = expected_type,
+                .found = found_type,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    return true;
+}
+
 bool check_semantics( Expression* expression )
 {
     // initialize semantic_context;
@@ -599,6 +644,12 @@ bool check_semantics( Expression* expression )
         case EXPRESSIONKIND_RETURN:
         {
             is_valid = check_return( expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_ASSIGNMENT:
+        {
+            is_valid = check_assignment( expression );
             break;
         }
 
