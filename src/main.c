@@ -1,11 +1,12 @@
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include "error.h"
+#include "lvec.h"
 #include "parser.h"
 #include "tokenizer.h"
-#include "debug.h"
-#include "lvec.h"
+#include "semantic.h"
+
+SourceCode g_source_code;
 
 int main( int argc, char* argv[] )
 {
@@ -16,69 +17,32 @@ int main( int argc, char* argv[] )
     }
 
     char* source_file_path = argv[ 1 ];
-    SourceCode source_code = source_code_load( source_file_path );
+    g_source_code = source_code_load( source_file_path );
 
-    Tokenizer* tokenizer = tokenizer_new( source_code );
-    if( tokenizer == NULL )
+    Token* tokens = tokenize();
+    if( tokens == NULL )
     {
-        ALLOC_ERROR();
+        return 1;
     }
 
-    Token* tokens = tokenizer_tokenize( tokenizer );
-
-    if( tokenizer->error_found ) return -1;
-    // tokenizer_free( tokenizer );
-
-    // iterate over list
-    printf( "====== TOKENS FOUND ======\n" );
-    for( size_t i = 0; i < lvec_get_length( tokens ); i++ )
+    Expression* program = parse( tokens );
+    if( program == NULL )
     {
-        Token token = tokens[ i ];
-        printf("%s", token_kind_to_string[ token.kind ]);
-        switch( token.kind )
-        {
-            case TOKENKIND_NUMBER:
-            {
-                printf( "(%d)", token.number );
-                break;
-            }
+        return 1;
+    }
+    lvec_free( tokens );
 
-            case TOKENKIND_IDENTIFIER:
-            {
-                printf( "(%s)", token.identifier );
-                break;
-            }
-
-            case TOKENKIND_STRING:
-            {
-                printf( "(\"%s\")", token.string );
-                break;
-            }
-
-            case TOKENKIND_CHARACTER:
-            {
-                printf( "(\'%c\')", token.character );
-                break;
-            }
-
-            default:
-            {
-                // do nothing
-                break;
-            }
-        }
-
-        putchar( '\n' );
+    bool is_valid = check_semantics( program );
+    if( !is_valid )
+    {
+        return 1;
     }
 
-    Parser* parser = parser_new( tokens, source_code );
-    Expression* program = parser_parse( parser );
+    /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
+    /* { */
+    /*     Token token = program->associated_tokens[ i ]; */
+    /*     printf( "%s ", token_kind_to_string[ token.kind ] ); */
+    /* } */
 
-    putchar( '\n' );
-    printf( "====== SYNTAX TREE ======\n" );
-    if( program != NULL )
-    {
-        expression_print( program );
-    }
-
+    // expression_print( program );
 }

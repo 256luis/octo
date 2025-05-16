@@ -1,24 +1,55 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "error.h"
 #include "tokenizer.h"
+
+typedef enum TypeKind
+{
+    TYPEKIND_VOID,
+    TYPEKIND_INTEGER,
+    TYPEKIND_FLOAT, // not yet parsed
+    TYPEKIND_CHARACTER,
+    TYPEKIND_BOOLEAN,
+    TYPEKIND_STRING,
+    TYPEKIND_FUNCTION,
+    TYPEKIND_CUSTOM,
+    TYPEKIND_TOINFER,
+} TypeKind;
+
+typedef struct Type
+{
+    TypeKind kind;
+
+    union
+    {
+        char* custom_identifier;
+        struct
+        {
+            struct Type* param_types;
+            struct Type* return_type;
+        } function;
+    };
+} Type;
 
 typedef enum BinaryOperation
 {
     // arithmetic
+#define BINARYOPERATION_ARITHMETIC_START BINARYOPERATION_ADD
     BINARYOPERATION_ADD,
     BINARYOPERATION_SUBTRACT,
     BINARYOPERATION_MULTIPLY,
     BINARYOPERATION_DIVIDE,
+#define BINARYOPERATION_ARITHMETIC_END BINARYOPERATION_EQUAL
 
     // boolean
+#define BINARYOPERATION_BOOLEAN_START BINARYOPERATION_EQUAL
+    BINARYOPERATION_EQUAL,
     BINARYOPERATION_GREATER,
     BINARYOPERATION_LESS,
-    BINARYOPERATION_EQUAL,
     BINARYOPERATION_NOTEQUAL,
     BINARYOPERATION_GREATEREQUAL,
     BINARYOPERATION_LESSEQUAL,
+#define BINARYOPERATION_BOOLEAN_END ( BINARYOPERATION_LESSEQUAL + 1 )
 } BinaryOperation;
 
 typedef enum UnaryOperation
@@ -29,13 +60,17 @@ typedef enum UnaryOperation
 
 typedef enum ExpressionKind
 {
-    EXPRESSIONKIND_NUMBER,
+    // rvalues
+    EXPRESSIONKIND_INTEGER,
+    // EXPRESSIONKIND_FLOAT, // unimplemented
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_STRING,
     EXPRESSIONKIND_CHARACTER,
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_UNARY,
     EXPRESSIONKIND_FUNCTIONCALL,
+
+    // not rvalues
     EXPRESSIONKIND_VARIABLEDECLARATION,
     EXPRESSIONKIND_FUNCTIONDECLARATION,
     EXPRESSIONKIND_COMPOUND,
@@ -46,6 +81,7 @@ typedef enum ExpressionKind
 typedef struct Expression
 {
     ExpressionKind kind;
+    Token* associated_tokens;
     union
     {
         // base cases
@@ -75,27 +111,27 @@ typedef struct Expression
             size_t arg_count;
         } function_call;
 
-                struct
+        struct
         {
             char* identifier;
-            char* type;
-            struct Expression* value;
+            Type type;
+            struct Expression* rvalue;
         } variable_declaration;
 
         struct
         {
-            struct Expression* expressions;
+            struct Expression** expressions;
             int statement_count;
         } compound;
 
         struct
         {
             char* identifier;
-            char* return_type;
+            Type return_type;
 
             // arrays to hold params info
             char** param_identifiers;
-            char** param_types;
+            Type* param_types;
             int param_count;
 
             struct Expression* body;
@@ -103,29 +139,26 @@ typedef struct Expression
 
         struct
         {
-            struct Expression* value;
+            struct Expression* rvalue;
         } return_expression;
 
         struct
         {
             char* identifier;
-            struct Expression* value;
+            struct Expression* rvalue;
         } assignment;
     };
 } Expression;
 
 typedef struct Parser
 {
-    SourceCode source_code;
-    Token* tokens;
+    // Token* tokens;
     int current_token_index;
     Token current_token;
     Token next_token;
 } Parser;
 
-Parser* parser_new( Token* token_list, SourceCode source_code );
-void parser_free( Parser* parser );
-Expression* parser_parse( Parser* parser );
+Expression* parse( Token* tokens );
 
 void expression_print( Expression* expression );
 

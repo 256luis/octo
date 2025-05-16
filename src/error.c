@@ -1,7 +1,9 @@
-#include "error.h"
-#include "debug.h"
 #include <stdio.h>
 #include <string.h>
+#include "error.h"
+#include "debug.h"
+#include "globals.h"
+#include "parser.h"
 
 static char* file_to_string( const char* filename, int* length )
 {
@@ -106,36 +108,110 @@ void source_code_print_line( SourceCode source_code, int line )
 
 void report_error( Error error )
 {
-    printf( "%s:%d:%d: error: ", error.source_code.path, error.line, error.column );
+    Token offending_token = error.offending_token;
+    printf( "%s:%d:%d: error: ", g_source_code.path, offending_token.line, offending_token.column );
     switch( error.kind )
     {
         case ERRORKIND_INVALIDSYMBOL:
         {
             printf( "invalid symbol\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
             break;
         }
 
         case ERRORKIND_MISMATCHEDPARENS:
         {
             printf( "mismatched parentheses\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
             break;
         }
 
         case ERRORKIND_UNCLOSEDPARENS:
         {
             printf( "unclosed parentheses\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
             break;
         }
 
         case ERRORKIND_UNEXPECTEDSYMBOL:
         {
             printf( "unexpected symbol\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
             break;
         }
 
         case ERRORKIND_MULTICHARACTERCHARACTER:
         {
             printf( "use double quotes for strings\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_SYMBOLREDECLARATION:
+        {
+            Token original_declaration_token = error.symbol_redeclaration.original_declaration_token;
+
+            printf( "redeclaration of '%s'\n", original_declaration_token.identifier );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+
+            printf( "%s:%d:%d: note: ", g_source_code.path, original_declaration_token.line, original_declaration_token.column );
+            printf( "previous declaration here\n");
+            source_code_print_line( g_source_code, original_declaration_token.line );
+            printf( "\n        %*c\n", original_declaration_token.column, '^' );
+
+            break;
+        }
+
+        case ERRORKIND_INVALIDOPERATION:
+        {
+            Type left_type = error.invalid_operation.left_type;
+            Type right_type = error.invalid_operation.right_type;
+
+            printf( "invalid operation for types '%s' and '%s'\n",
+                    type_kind_to_string[ left_type.kind ],
+                    type_kind_to_string[ right_type.kind ] );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_TYPEMISMATCH:
+        {
+            Type expected_type = error.type_mismatch.expected;
+            Type found_type = error.type_mismatch.found;
+
+            printf( "expected type '%s', found '%s'\n",
+                    type_kind_to_string[ expected_type.kind ],
+                    type_kind_to_string[ found_type.kind ] );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_UNDECLAREDSYMBOL:
+        {
+            printf( "undeclared symbol\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_TOOMANYARGUMENTS:
+        {
+            int expected_arg_count = error.too_many_arguments.expected;
+            int found_arg_count = error.too_many_arguments.found;
+
+            printf( "expected %d arguments, found %d\n",
+                    expected_arg_count,
+                    found_arg_count );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
             break;
         }
 
@@ -145,7 +221,4 @@ void report_error( Error error )
             break;
         }
     }
-
-    source_code_print_line( error.source_code, error.line );
-    printf( "\n        %*c\n", error.column, '^' );
 }

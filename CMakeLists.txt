@@ -39,11 +39,13 @@ add_executable(${PROJECT_NAME}
                src/parser.c
                src/tokenizer.c
                src/error.c
+               src/semantic.c
 
                include/debug.h
                include/parser.h
                include/tokenizer.h
-               include/error.h)
+               include/error.h
+               include/semantic.h)
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PUBLIC lvec)

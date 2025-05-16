@@ -13,5 +13,6 @@ extern char* token_kind_to_string[];
 extern char* expression_kind_to_string[];
 extern char* binary_operation_to_string[];
 extern char* expression_kind_to_string[];
+extern char* type_kind_to_string[];
 
 #endif

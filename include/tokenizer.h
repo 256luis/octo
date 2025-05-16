@@ -1,9 +1,36 @@
 #ifndef TOKENIZER_H
 #define TOKENIZER_H
 
-#include "error.h"
 #include <stdbool.h>
 #include <stdint.h>
+
+#define GET_TOKENKIND_GROUP_COUNT( ... )\
+    ( sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
+
+#define IS_TOKENKIND_IN_GROUP( token_kind, ... )\
+    _is_token_kind_in_group( token_kind,\
+                             ( TokenKind[] ){ __VA_ARGS__ },\
+                             GET_TOKENKIND_GROUP_COUNT( __VA_ARGS__ ) )
+
+#define TOKENKIND_BINARY_OPERATORS\
+    TOKENKIND_PLUS, TOKENKIND_MINUS,TOKENKIND_STAR, TOKENKIND_FORWARDSLASH,\
+    TOKENKIND_GREATER, TOKENKIND_LESS, TOKENKIND_DOUBLEEQUAL, TOKENKIND_NOTEQUAL,\
+    TOKENKIND_GREATEREQUAL, TOKENKIND_LESSEQUAL
+
+#define TOKENKIND_RVALUE_BASES\
+    TOKENKIND_INTEGER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER,\
+    TOKENKIND_TRUE, TOKENKIND_FALSE
+
+#define TOKENKIND_UNARY_OPERATORS\
+    TOKENKIND_MINUS, TOKENKIND_BANG
+
+#define TOKENKIND_RVALUE_STARTERS\
+    TOKENKIND_RVALUE_BASES, TOKENKIND_UNARY_OPERATORS, TOKENKIND_LEFTPAREN,\
+    TOKENKIND_IDENTIFIER
+
+#define TOKENKIND_EXPRESSION_STARTERS\
+    TOKENKIND_LET, TOKENKIND_LEFTBRACE, TOKENKIND_FUNC, TOKENKIND_IDENTIFIER,\
+    TOKENKIND_RETURN
 
 typedef enum TokenKind
 {
@@ -21,10 +48,13 @@ typedef enum TokenKind
     TOKENKIND_LET,
     TOKENKIND_RETURN,
     TOKENKIND_FUNC,
-    TOKENKIND_NUMBER,
+    TOKENKIND_INTEGER,
     TOKENKIND_IDENTIFIER,
     TOKENKIND_STRING,
     TOKENKIND_CHARACTER,
+
+    TOKENKIND_TRUE,
+    TOKENKIND_FALSE,
 
     TOKENKIND_SEMICOLON,
     TOKENKIND_COLON,
@@ -62,12 +92,6 @@ typedef struct Token
     };
 } Token;
 
-/* typedef struct TokenNode */
-/* { */
-/*     Token token; */
-/*     struct TokenNode* next; */
-/* } TokenNode; */
-
 typedef enum TokenizerState
 {
     TOKENIZERSTATE_START     = 0x00,
@@ -80,10 +104,6 @@ typedef enum TokenizerState
 
 typedef struct Tokenizer
 {
-    // FILE* source_file;
-    // char* source_code;
-    SourceCode source_code;
-    // int source_code_length;
     int current_character_index;
     char character;
     char symbol[512];
@@ -96,8 +116,9 @@ typedef struct Tokenizer
     bool in_character;
 } Tokenizer;
 
-Tokenizer* tokenizer_new( SourceCode source_code );
-void tokenizer_free( Tokenizer* tokenizer );
-Token* tokenizer_tokenize( Tokenizer* tokenizer );
+Token* tokenize();
+
+// helper functions
+bool _is_token_kind_in_group( TokenKind kind, TokenKind* group, size_t count );
 
 #endif
