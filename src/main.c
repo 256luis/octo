@@ -32,11 +32,11 @@ int main( int argc, char* argv[] )
     }
     lvec_free( tokens );
 
-    bool is_valid = check_semantics( program );
-    if( !is_valid )
-    {
-        return 1;
-    }
+    /* bool is_valid = check_semantics( program ); */
+    /* if( !is_valid ) */
+    /* { */
+    /*     return 1; */
+    /* } */
 
     /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
     /* { */
@@ -44,5 +44,5 @@ int main( int argc, char* argv[] )
     /*     printf( "%s ", token_kind_to_string[ token.kind ] ); */
     /* } */
 
-    /* expression_print( program ); */
+    expression_print( program );
 }

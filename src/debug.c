@@ -41,7 +41,7 @@ char* token_kind_to_string[] = {
 };
 
 char* expression_kind_to_string[] = {
-    [ EXPRESSIONKIND_INTEGER ]              = "INTEGER",
+    [ EXPRESSIONKIND_INTEGER ]             = "INTEGER",
     [ EXPRESSIONKIND_IDENTIFIER ]          = "IDENTIFIER",
     [ EXPRESSIONKIND_STRING ]              = "STRING",
     [ EXPRESSIONKIND_CHARACTER ]           = "CHARACTER",

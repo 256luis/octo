@@ -572,8 +572,6 @@ bool check_semantics( Expression* expression )
 
         context.symbol_table_stack = lvec_new( SymbolTable );
         context.return_type_stack = lvec_new( Type );
-
-        push_scope();
     }
 
     bool is_valid;
@@ -609,7 +607,5 @@ bool check_semantics( Expression* expression )
             UNIMPLEMENTED();
         }
     }
-
-    pop_scope();
     return is_valid;
 }

@@ -185,7 +185,7 @@ static Expression* parse_base_expression()
     return expression;
 }
 
-static Expression* parse_expression();
+static Expression* parse_rvalue();
 static Expression* parse_parentheses()
 {
     int token_start_index = parser.current_token_index;
@@ -193,9 +193,9 @@ static Expression* parse_parentheses()
     Expression* expression;
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS );
+    EXPECT( TOKENKIND_RVALUE_STARTERS );
 
-    expression = parse_expression();
+    expression = parse_rvalue();
 
     advance();
     EXPECT( TOKENKIND_RIGHTPAREN );
@@ -215,13 +215,15 @@ static Expression* parse_unary()
     expression->unary.operation = token_kind_to_unary_operation( parser.current_token.kind );
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_BASES,
-            TOKENKIND_UNARY_OPERATORS,
-            TOKENKIND_LEFTPAREN );
+    /* EXPECT( TOKENKIND_RVALUE_BASES, */
+    /*         TOKENKIND_UNARY_OPERATORS, */
+    /*         TOKENKIND_LEFTPAREN ); */
 
-    bool is_current_token_expression_base = IS_TOKENKIND_IN_GROUP( parser.current_token.kind, TOKENKIND_EXPRESSION_BASES );
+    EXPECT( TOKENKIND_RVALUE_STARTERS );
+
+    bool is_current_token_rvalue_base = IS_TOKENKIND_IN_GROUP( parser.current_token.kind, TOKENKIND_RVALUE_BASES );
     bool is_current_token_unary_operator  = IS_TOKENKIND_IN_GROUP( parser.current_token.kind, TOKENKIND_UNARY_OPERATORS );
-    if( is_current_token_expression_base )
+    if( is_current_token_rvalue_base )
     {
         expression->unary.operand = parse_base_expression();
     }
@@ -251,7 +253,7 @@ static Expression* parse_function_call()
     // parser.current_token == TOKENKIND_LEFTPAREN
 
     advance();
-    EXPECT( TOKENKIND_RIGHTPAREN, TOKENKIND_EXPRESSION_STARTERS );
+    EXPECT( TOKENKIND_RIGHTPAREN, TOKENKIND_RVALUE_STARTERS );
 
     // if current token is right paren, there are no args to the function call
     if( parser.current_token.kind == TOKENKIND_RIGHTPAREN )
@@ -266,7 +268,7 @@ static Expression* parse_function_call()
 
         while( parser.current_token.kind != TOKENKIND_RIGHTPAREN )
         {
-            Expression* e = parse_expression();
+            Expression* e = parse_rvalue();
             if( e == NULL )
             {
                 return NULL;
@@ -293,7 +295,7 @@ static Expression* parse_function_call()
     return expression;
 }
 
-static Expression* parse_expression()
+static Expression* parse_rvalue()
 {
     int token_start_index = parser.current_token_index;
 
@@ -361,9 +363,9 @@ static Expression* parse_expression()
         expression->binary.left = left;
 
         advance();
-        EXPECT( TOKENKIND_EXPRESSION_STARTERS );
+        EXPECT( TOKENKIND_RVALUE_STARTERS );
 
-        expression->binary.right = parse_expression();
+        expression->binary.right = parse_rvalue();
         if( expression->binary.right == NULL )
         {
             return NULL;
@@ -451,8 +453,8 @@ static Expression* parse_variable_declaration()
     }
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS );
-    expression->variable_declaration.value = parse_expression();
+    EXPECT( TOKENKIND_RVALUE_STARTERS );
+    expression->variable_declaration.value = parse_rvalue();
     if( expression->variable_declaration.value == NULL )
     {
         return NULL;
@@ -602,11 +604,11 @@ Expression* parse_return()
     expression->kind = EXPRESSIONKIND_RETURN;
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS, TOKENKIND_SEMICOLON );
+    EXPECT( TOKENKIND_RVALUE_STARTERS, TOKENKIND_SEMICOLON );
 
     if( parser.current_token.kind != TOKENKIND_SEMICOLON )
     {
-        expression->return_expression.value = parse_expression();
+        expression->return_expression.value = parse_rvalue();
         if( expression->return_expression.value == NULL )
         {
             return NULL;
@@ -636,9 +638,9 @@ Expression* parse_assignment()
     EXPECT( TOKENKIND_EQUAL );
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS );
+    EXPECT( TOKENKIND_RVALUE_STARTERS );
 
-    expression->assignment.value = parse_expression();
+    expression->assignment.value = parse_rvalue();
     if( expression->assignment.value == NULL )
     {
         return NULL;
@@ -667,7 +669,7 @@ Expression* parse( Token* _tokens )
 
     Expression* expression;
 
-    EXPECT( TOKENKIND_EXPRESSION_STATEMENT_STARTERS );
+    EXPECT( TOKENKIND_EXPRESSION_STARTERS );
 
     int token_start_index = parser.current_token_index;
     switch( parser.current_token.kind )
