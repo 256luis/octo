@@ -34,19 +34,19 @@ unset(HAS_TYPEOF CACHE)
 
 add_subdirectory(lvec.c)
 add_executable(${PROJECT_NAME}
-               src/main.c
-               src/debug.c
-               src/parser.c
-               src/tokenizer.c
-               src/error.c
-               src/semantic.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/main.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/debug.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/parser.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/tokenizer.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/error.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/semantic.c
 
-               include/debug.h
-               include/parser.h
-               include/tokenizer.h
-               include/error.h
-               include/semantic.h)
+               ${CMAKE_CURRENT_LIST_DIR}/include/debug.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/parser.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/tokenizer.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/error.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/semantic.h)
 
-target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(${PROJECT_NAME} PUBLIC lvec)
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
