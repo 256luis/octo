@@ -168,14 +168,25 @@ void report_error( Error error )
             break;
         }
 
-        case ERRORKIND_INVALIDOPERATION:
+        case ERRORKIND_INVALIDBINARYOPERATION:
         {
-            Type left_type = error.invalid_operation.left_type;
-            Type right_type = error.invalid_operation.right_type;
+            Type left_type = error.invalid_binary_operation.left_type;
+            Type right_type = error.invalid_binary_operation.right_type;
 
             printf( "invalid operation for types '%s' and '%s'\n",
                     type_kind_to_string[ left_type.kind ],
                     type_kind_to_string[ right_type.kind ] );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_INVALIDUNARYOPERATION:
+        {
+            Type operand_type = error.invalid_binary_operation.left_type;
+
+            printf( "invalid operation for type '%s'\n",
+                    type_kind_to_string[ operand_type.kind ] );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;

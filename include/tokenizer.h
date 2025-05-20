@@ -82,10 +82,11 @@ typedef struct Token
     TokenKind kind;
     int line;
     int column;
+    char* as_string;
 
     union
     {
-        int number;
+        int integer;
         char character;
         char* string;
         char* identifier;

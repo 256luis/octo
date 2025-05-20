@@ -292,9 +292,9 @@ static bool check_binary( Expression* expression, Type* inferred_type )
 
         Token operator_token = expression->associated_tokens[ operator_index_lowest_depth ];
         Error error = {
-            .kind = ERRORKIND_INVALIDOPERATION,
+            .kind = ERRORKIND_INVALIDBINARYOPERATION,
             .offending_token = operator_token,
-            .invalid_operation = {
+            .invalid_binary_operation = {
                 .left_type = left_type,
                 .right_type = right_type,
             },
@@ -417,6 +417,64 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
     return true;
 }
 
+static bool is_unary_operation_valid( UnaryOperation operation, Type type )
+{
+    TypeKind* valid_unary_operation[] = {
+        [ UNARYOPERATION_NEGATIVE ] = ( TypeKind[] ) {
+            TYPEKIND_INTEGER, TYPEKIND_FLOAT, -1,
+            // the -1 kinda acts like a null terminator
+        },
+
+        [ UNARYOPERATION_NOT ] = ( TypeKind[] ) {
+            TYPEKIND_BOOLEAN, -1,
+        },
+    };
+
+    TypeKind* valid_type_kind = valid_unary_operation[ operation ];
+    bool is_valid = false;
+    for( TypeKind tk = *valid_type_kind; tk != -1; valid_type_kind++, tk = *valid_type_kind )
+    {
+        if( tk == type.kind )
+        {
+            is_valid = true;
+            break;
+        }
+    }
+
+    return is_valid;
+}
+
+static bool check_unary( Expression* expression, Type* inferred_type )
+{
+    Expression* operand = expression->unary.operand;
+    Type operand_type;
+    bool is_operand_valid = check_rvalue( operand, &operand_type );
+    if( !is_operand_valid )
+    {
+        return false;
+    }
+
+    UnaryOperation operation = expression->unary.operation;
+    bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
+    if( !is_operation_valid )
+    {
+        Token operator_token = expression->associated_tokens[ 0 ];
+        Error error = {
+            .kind = ERRORKIND_INVALIDUNARYOPERATION,
+            .offending_token = operator_token,
+            .invalid_unary_operation = {
+                .operand_type = operand_type
+            }
+        };
+        report_error( error );
+        return false;
+    }
+
+    *inferred_type = operand_type;
+
+    return true;
+}
+
 static bool check_rvalue( Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
@@ -443,7 +501,7 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
         case EXPRESSIONKIND_UNARY:
         {
-            UNIMPLEMENTED();
+            is_valid = check_unary( expression, inferred_type );
             break;
         }
 
@@ -649,9 +707,19 @@ bool check_return( Expression* expression )
     Type expected_return_type = get_top_return_type();
     if( !type_equals( found_return_type, expected_return_type ) )
     {
+        Token associated_token;
+        if( found_return_type.kind == TYPEKIND_VOID )
+        {
+            associated_token = expression->associated_tokens[ 0 ];
+        }
+        else
+        {
+            associated_token = expression->return_expression.rvalue->associated_tokens[ 0 ];
+        }
+
         Error error = {
             .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->return_expression.rvalue->associated_tokens[ 0 ],
+            .offending_token = associated_token,
             .type_mismatch = {
                 .expected = expected_return_type,
                 .found = found_return_type,
@@ -763,7 +831,7 @@ bool check_semantics( Expression* expression )
 
         default:
         {
-            UNIMPLEMENTED();
+            UNREACHABLE();
         }
     }
     return is_valid;

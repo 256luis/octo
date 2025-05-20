@@ -108,7 +108,7 @@ void expression_print( Expression* expression )
     {
         case EXPRESSIONKIND_INTEGER:
         {
-            printf( "(%d)", expression->number );
+            printf( "(%d)", expression->integer );
             should_newline = false;
             break;
         }

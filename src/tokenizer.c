@@ -127,8 +127,10 @@ static void finalize_symbol( Token** tokens )
     int symbol_start_column = tokenizer.column - strlen( tokenizer.symbol );
     Token token = {
         .line = tokenizer.line,
-        .column = symbol_start_column
+        .column = symbol_start_column,
+        .as_string = malloc( strlen( tokenizer.symbol ) + 1 ),
     };
+    strcpy( token.as_string, tokenizer.symbol );
 
     if( tokenizer.state == TOKENIZERSTATE_STRING )
     {
@@ -165,7 +167,7 @@ static void finalize_symbol( Token** tokens )
             case CHARACTERTYPE_NUMBER:
             {
                 token.kind = TOKENKIND_INTEGER;
-                token.number = strtoull( tokenizer.symbol, NULL, 10 );
+                token.integer = strtoull( tokenizer.symbol, NULL, 10 );
                 break;
             }
 

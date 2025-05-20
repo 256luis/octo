@@ -40,12 +40,14 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/src/tokenizer.c
                ${CMAKE_CURRENT_LIST_DIR}/src/error.c
                ${CMAKE_CURRENT_LIST_DIR}/src/semantic.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/codegen.c
 
                ${CMAKE_CURRENT_LIST_DIR}/include/debug.h
                ${CMAKE_CURRENT_LIST_DIR}/include/parser.h
                ${CMAKE_CURRENT_LIST_DIR}/include/tokenizer.h
                ${CMAKE_CURRENT_LIST_DIR}/include/error.h
-               ${CMAKE_CURRENT_LIST_DIR}/include/semantic.h)
+               ${CMAKE_CURRENT_LIST_DIR}/include/semantic.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/codegen.h)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(${PROJECT_NAME} PUBLIC lvec)
