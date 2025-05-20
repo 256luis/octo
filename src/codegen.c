@@ -63,7 +63,7 @@ static void generate_type( Type type )
         }
     }
 }
-
+static void generate_function_call( Expression* expression );
 static void generate_rvalue( Expression* expression )
 {
     switch( expression->kind )
@@ -117,8 +117,16 @@ static void generate_rvalue( Expression* expression )
         }
 
         case EXPRESSIONKIND_UNARY:
-        case EXPRESSIONKIND_FUNCTIONCALL:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
 
+        case EXPRESSIONKIND_FUNCTIONCALL:
+        {
+            generate_function_call( expression );
+            break;
+        }
     }
 }
 
@@ -171,6 +179,25 @@ static void generate_assignment( Expression* expression )
     fprintf( file, ";\n" );
 }
 
+static void generate_function_call( Expression* expression )
+{
+    fprintf( file, "%s ( ", expression->function_call.identifier );
+
+    for( size_t i = 0; i < expression->function_call.arg_count; i++ )
+    {
+        Expression* arg = expression->function_call.args[ i ];
+        generate_rvalue( arg );
+        /* generate_type( param_type ); */
+        /* fprintf( file, "%s ", param_identifier ); */
+        if( i < expression->function_call.arg_count - 1 )
+        {
+            fprintf( file, ", " );
+        }
+    }
+    fprintf( file, ") "  );
+
+}
+
 FILE* generate_code( Expression* expression )
 {
     static bool is_file_initialized = false;
@@ -211,6 +238,17 @@ FILE* generate_code( Expression* expression )
         {
             generate_assignment( expression );
             break;
+        }
+
+        case EXPRESSIONKIND_FUNCTIONCALL:
+        {
+            generate_function_call( expression );
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
         }
     }
 

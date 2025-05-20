@@ -773,7 +773,7 @@ bool check_semantics( Expression* expression )
 
         default:
         {
-            UNIMPLEMENTED();
+            UNREACHABLE();
         }
     }
     return is_valid;
