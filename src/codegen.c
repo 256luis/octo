@@ -166,7 +166,9 @@ static void generate_return( Expression* expression )
 
 static void generate_assignment( Expression* expression )
 {
-    // todo
+    fprintf( file, "%s = ", expression->assignment.identifier );
+    generate_rvalue( expression->assignment.rvalue );
+    fprintf( file, ";\n" );
 }
 
 FILE* generate_code( Expression* expression )
@@ -175,8 +177,8 @@ FILE* generate_code( Expression* expression )
     if( !is_file_initialized )
     {
         is_file_initialized = true;
-        // file = fopen( "generated.c", "w+" );
-        file = stdout;
+        file = fopen( "generated.c", "w+" );
+        // file = stdout;
     }
 
     switch( expression->kind )

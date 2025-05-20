@@ -45,8 +45,8 @@ int main( int argc, char* argv[] )
     /*     printf( "%s ", token.as_string ); */
     /* } */
 
-    generate_code( program );
-    // fclose( file );
+    FILE* generated_c = generate_code( program );
+    fclose( generated_c );
 
     // expression_print( program );
 }
