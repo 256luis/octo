@@ -13,11 +13,11 @@ func main() -> void
 ## Development Progress
 | | Tokenizing + Parsing | Semantic Analysis | Code Generation |
 |-|:-:|:-:|:-:|
-| Function declaration | ✅ | ✅ | ❌ |
-| Function call | ✅ | ✅ | ❌ |
-| Variable declaration | ✅ | ✅ | ❌ |
-| Variable reassignment | ✅ | ✅ | ❌ |
-| Type inference | ⬛ | ✅ | ❌ |
+| Function declaration | ✅ | ✅ | ✅ |
+| Function call | ✅ | ✅ | ✅ |
+| Variable declaration | ✅ | ✅ | ✅ |
+| Variable reassignment | ✅ | ✅ | ✅ |
+| Type inference | ⬛ | ✅ | ✅ |
 | Modules | ❌| ❌ | ❌ |
 | If-statements | ❌ | ❌ | ❌ |
 | If-expressions | ❌ | ❌ | ❌ |
