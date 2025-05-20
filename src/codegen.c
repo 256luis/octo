@@ -1,17 +1,28 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include "codegen.h"
 #include "debug.h"
 #include "parser.h"
 #include "lvec.h"
 
+#define INDENTATION_WIDTH 4
+
 FILE* file;
+
+static int depth = 0;
+static void append( const char* format, ... )
+{
+    va_list args;
+    va_start( args, format );
+    vfprintf( file, format, args );
+    va_end( args );
+}
 
 static void generate_compound( Expression* expression )
 {
-    static int depth = 0;
     if( depth != 0 )
     {
-        fprintf( file, "{\n" );
+        append( "{\n" );
     }
     depth++;
 
@@ -25,7 +36,7 @@ static void generate_compound( Expression* expression )
     depth--;
     if( depth != 0)
     {
-        fprintf( file, "}\n" );
+        append( "}\n\n" );
     }
 }
 
@@ -40,13 +51,13 @@ static void generate_type( Type type )
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
         {
-            fprintf( file, "%s ", type_kind_to_string[ type.kind ] );
+            append( "%s ", type_kind_to_string[ type.kind ] );
             break;
         }
 
         case TYPEKIND_CUSTOM:
         {
-            fprintf( file, "%s ", type.custom_identifier );
+            append( "%s ", type.custom_identifier );
             break;
         }
 
@@ -71,48 +82,48 @@ static void generate_rvalue( Expression* expression )
     {
         case EXPRESSIONKIND_INTEGER:
         {
-            fprintf( file, "%d ", expression->integer );
+            append( "%d", expression->integer );
             break;
         }
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            fprintf( file, "%s ", expression->identifier );
+            append( "%s", expression->identifier );
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
-            fprintf( file, "\"%s\" ", expression->string );
+            append( "\"%s\"", expression->string );
             break;
         }
 
         case EXPRESSIONKIND_CHARACTER:
         {
-            fprintf( file, "%c ", expression->character );
+            append( "%c", expression->character );
             break;
         }
 
         case EXPRESSIONKIND_BINARY:
         {
-            fprintf( file, "( " );
+            append( "(" );
             generate_rvalue( expression->binary.left );
             switch( expression->binary.operation )
             {
-                case BINARYOPERATION_ADD:          fprintf( file, "+ " ); break;
-                case BINARYOPERATION_SUBTRACT:     fprintf( file, "- " ); break;
-                case BINARYOPERATION_MULTIPLY:     fprintf( file, "* " ); break;
-                case BINARYOPERATION_DIVIDE:       fprintf( file, "/ " ); break;
-                case BINARYOPERATION_EQUAL:        fprintf( file, "== " ); break;
-                case BINARYOPERATION_GREATER:      fprintf( file, "> " ); break;
-                case BINARYOPERATION_LESS:         fprintf( file, "< " ); break;
-                case BINARYOPERATION_NOTEQUAL:     fprintf( file, "!= " ); break;
-                case BINARYOPERATION_GREATEREQUAL: fprintf( file, ">= " ); break;
-                case BINARYOPERATION_LESSEQUAL:    fprintf( file, "<= " ); break;
+                case BINARYOPERATION_ADD:          append( " + " ); break;
+                case BINARYOPERATION_SUBTRACT:     append( " - " ); break;
+                case BINARYOPERATION_MULTIPLY:     append( " * " ); break;
+                case BINARYOPERATION_DIVIDE:       append( " / " ); break;
+                case BINARYOPERATION_EQUAL:        append( " == " ); break;
+                case BINARYOPERATION_GREATER:      append( " > " ); break;
+                case BINARYOPERATION_LESS:         append( " < " ); break;
+                case BINARYOPERATION_NOTEQUAL:     append( " != " ); break;
+                case BINARYOPERATION_GREATEREQUAL: append( " >= " ); break;
+                case BINARYOPERATION_LESSEQUAL:    append( " <= " ); break;
             }
 
             generate_rvalue( expression->binary.right );
-            fprintf( file, ") " );
+            append( ")" );
 
             break;
         }
@@ -121,8 +132,8 @@ static void generate_rvalue( Expression* expression )
         {
             switch( expression->unary.operation )
             {
-                case UNARYOPERATION_NEGATIVE: fprintf( file, "-" ); break;
-                case UNARYOPERATION_NOT:      fprintf( file, "!" ); break;
+                case UNARYOPERATION_NEGATIVE: append( "-" ); break;
+                case UNARYOPERATION_NOT:      append( "!" ); break;
             }
             generate_rvalue( expression->unary.operand );
 
@@ -140,35 +151,35 @@ static void generate_rvalue( Expression* expression )
 static void generate_variable_declaration( Expression* expression )
 {
     generate_type( expression->variable_declaration.type );
-    fprintf( file, "%s = ", expression->variable_declaration.identifier );
+    append( "%s = ", expression->variable_declaration.identifier );
     generate_rvalue( expression->variable_declaration.rvalue );
-    fprintf( file, ";\n" );
+    append( ";\n" );
 }
 
 static void generate_function_declaration( Expression* expression )
 {
     generate_type( expression->function_declaration.return_type );
-    fprintf( file, "%s ( ", expression->function_declaration.identifier );
+    append( "%s(", expression->function_declaration.identifier );
 
     for( int i = 0; i < expression->function_declaration.param_count; i++ )
     {
         Type param_type = expression->function_declaration.param_types[ i ];
         char* param_identifier = expression->function_declaration.param_identifiers[ i ];
         generate_type( param_type );
-        fprintf( file, "%s ", param_identifier );
+        append( "%s", param_identifier );
         if( i < expression->function_declaration.param_count - 1 )
         {
-            fprintf( file, ", " );
+            append( ", " );
         }
     }
-    fprintf( file, ") "  );
+    append( ")\n"  );
 
     generate_compound( expression->function_declaration.body );
 }
 
 static void generate_return( Expression* expression )
 {
-    fprintf( file, "return " );
+    append( "return " );
 
     Expression* rvalue = expression->return_expression.rvalue;
     if ( rvalue != NULL )
@@ -176,32 +187,32 @@ static void generate_return( Expression* expression )
         generate_rvalue( rvalue );
     }
 
-    fprintf( file, ";\n" );
+    append( ";\n" );
 }
 
 static void generate_assignment( Expression* expression )
 {
-    fprintf( file, "%s = ", expression->assignment.identifier );
+    append( "%s = ", expression->assignment.identifier );
     generate_rvalue( expression->assignment.rvalue );
-    fprintf( file, ";\n" );
+    append( ";\n" );
 }
 
 static void generate_function_call( Expression* expression )
 {
-    fprintf( file, "%s ( ", expression->function_call.identifier );
+    append( "%s(", expression->function_call.identifier );
 
     for( size_t i = 0; i < expression->function_call.arg_count; i++ )
     {
         Expression* arg = expression->function_call.args[ i ];
         generate_rvalue( arg );
         /* generate_type( param_type ); */
-        /* fprintf( file, "%s ", param_identifier ); */
+        /* append( "%s ", param_identifier ); */
         if( i < expression->function_call.arg_count - 1 )
         {
-            fprintf( file, ", " );
+            append( ", " );
         }
     }
-    fprintf( file, ") "  );
+    append( ")" );
 
 }
 
