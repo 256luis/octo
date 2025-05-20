@@ -18,7 +18,8 @@ typedef enum ErrorKind
 
     // semantic errors
     ERRORKIND_SYMBOLREDECLARATION,
-    ERRORKIND_INVALIDOPERATION,
+    ERRORKIND_INVALIDBINARYOPERATION,
+    ERRORKIND_INVALIDUNARYOPERATION,
     ERRORKIND_TYPEMISMATCH,
     ERRORKIND_UNDECLAREDSYMBOL,
     ERRORKIND_TOOMANYARGUMENTS,
@@ -50,7 +51,12 @@ typedef struct Error
         {
             Type left_type;
             Type right_type;
-        } invalid_operation;
+        } invalid_binary_operation;
+
+        struct
+        {
+            Type operand_type;
+        } invalid_unary_operation;
 
         struct
         {
