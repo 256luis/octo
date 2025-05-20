@@ -125,6 +125,17 @@ static Expression* parse_integer()
     return expression;
 }
 
+static Expression* parse_float()
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression ==  NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_FLOAT;
+    expression->float_ = parser.current_token.float_;
+
+    return expression;
+}
+
 static Expression* parse_identifier()
 {
 
@@ -168,6 +179,7 @@ static Expression* parse_base_expression()
     switch( parser.current_token.kind )
     {
         case TOKENKIND_INTEGER:    expression = parse_integer();    break;
+        case TOKENKIND_FLOAT:    expression = parse_float();    break;
         case TOKENKIND_IDENTIFIER: expression = parse_identifier(); break;
         case TOKENKIND_STRING:     expression = parse_string();     break;
         case TOKENKIND_CHARACTER:  expression = parse_character();  break;
@@ -298,6 +310,7 @@ static Expression* parse_rvalue()
             // if not function call, fallthrough
         }
         case TOKENKIND_INTEGER:
+        case TOKENKIND_FLOAT:
         case TOKENKIND_STRING:
         case TOKENKIND_CHARACTER:
         {

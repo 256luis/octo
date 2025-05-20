@@ -10,6 +10,7 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_RETURN ]       = "return",
     [ TOKENKIND_FUNC ]         = "func",
     [ TOKENKIND_INTEGER ]      = "INTEGER",
+    [ TOKENKIND_FLOAT ]        = "FLOAT",
     [ TOKENKIND_IDENTIFIER ]   = "IDENTIFIER",
     [ TOKENKIND_STRING ]       = "STRING",
     [ TOKENKIND_CHARACTER ]    = "CHARACTER",
@@ -42,6 +43,7 @@ char* token_kind_to_string[] = {
 
 char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_INTEGER ]             = "INTEGER",
+    [ EXPRESSIONKIND_FLOAT ]               = "FLOAT",
     [ EXPRESSIONKIND_IDENTIFIER ]          = "IDENTIFIER",
     [ EXPRESSIONKIND_STRING ]              = "STRING",
     [ EXPRESSIONKIND_CHARACTER ]           = "CHARACTER",
@@ -108,7 +110,7 @@ void expression_print( Expression* expression )
     {
         case EXPRESSIONKIND_INTEGER:
         {
-            printf( "(%d)", expression->integer );
+            printf( "(%lld)", expression->integer );
             should_newline = false;
             break;
         }

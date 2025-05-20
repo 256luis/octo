@@ -86,6 +86,12 @@ static void generate_rvalue( Expression* expression )
             break;
         }
 
+        case EXPRESSIONKIND_FLOAT:
+        {
+            append( "%lf", expression->float_ );
+            break;
+        }
+
         case EXPRESSIONKIND_IDENTIFIER:
         {
             append( "%s", expression->identifier );

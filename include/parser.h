@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "tokenizer.h"
+#include <stdint.h>
 
 typedef enum TypeKind
 {
@@ -63,7 +64,7 @@ typedef enum ExpressionKind
 {
     // rvalues
     EXPRESSIONKIND_INTEGER,
-    // EXPRESSIONKIND_FLOAT, // unimplemented
+    EXPRESSIONKIND_FLOAT, // unimplemented
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_STRING,
     EXPRESSIONKIND_CHARACTER,
@@ -86,7 +87,8 @@ typedef struct Expression
     union
     {
         // base cases
-        int integer;
+        uint64_t integer;
+        double float_;
         char* identifier;
         char* string;
         char character;

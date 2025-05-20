@@ -483,6 +483,7 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
     switch( expression->kind )
     {
         case EXPRESSIONKIND_INTEGER:   inferred_type->kind = TYPEKIND_INTEGER;   break;
+        case EXPRESSIONKIND_FLOAT:     inferred_type->kind = TYPEKIND_FLOAT;     break;
         case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
         // case EXPRESSIONKIND_FLOAT:  type.kind  = TYPEKIND_FLOAT;     break;

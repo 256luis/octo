@@ -19,7 +19,7 @@
 
 #define TOKENKIND_RVALUE_BASES\
     TOKENKIND_INTEGER, TOKENKIND_IDENTIFIER, TOKENKIND_STRING, TOKENKIND_CHARACTER,\
-    TOKENKIND_TRUE, TOKENKIND_FALSE
+    TOKENKIND_TRUE, TOKENKIND_FALSE, TOKENKIND_FLOAT
 
 #define TOKENKIND_UNARY_OPERATORS\
     TOKENKIND_MINUS, TOKENKIND_BANG
@@ -49,6 +49,7 @@ typedef enum TokenKind
     TOKENKIND_RETURN,
     TOKENKIND_FUNC,
     TOKENKIND_INTEGER,
+    TOKENKIND_FLOAT,
     TOKENKIND_IDENTIFIER,
     TOKENKIND_STRING,
     TOKENKIND_CHARACTER,
@@ -86,7 +87,8 @@ typedef struct Token
 
     union
     {
-        int integer;
+        uint16_t integer;
+        double float_;
         char character;
         char* string;
         char* identifier;
@@ -96,17 +98,19 @@ typedef struct Token
 typedef enum TokenizerState
 {
     TOKENIZERSTATE_START     = 0x00,
-    TOKENIZERSTATE_NUMBER    = 0x10,
+    TOKENIZERSTATE_INTEGER   = 0x10,
     TOKENIZERSTATE_SPECIAL   = 0x20,
     TOKENIZERSTATE_WORD      = 0x30,
     TOKENIZERSTATE_STRING    = 0x40,
     TOKENIZERSTATE_CHARACTER = 0x50,
+    TOKENIZERSTATE_FLOAT     = 0x60,
 } TokenizerState;
 
 typedef struct Tokenizer
 {
     int current_character_index;
     char character;
+    char next_character;
     char symbol[512];
     int symbol_last_index;
     TokenizerState state;
