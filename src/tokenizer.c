@@ -49,6 +49,7 @@ static char* valid_special_symbols[] = {
     "(", ")",
     "{", "}",
     "[", "]",
+    "&",
 };
 
 // temporary function
@@ -84,6 +85,7 @@ static TokenKind special_symbol_to_token_kind( const char* special_symbol )
 
     if( strcmp( special_symbol, "{" ) == 0 )  return TOKENKIND_LEFTBRACKET;
     if( strcmp( special_symbol, "}" ) == 0 )  return TOKENKIND_RIGHTBRACKET;
+    if( strcmp( special_symbol, "&" ) == 0 )  return TOKENKIND_AMPERSAND;
 
     UNREACHABLE();
 }

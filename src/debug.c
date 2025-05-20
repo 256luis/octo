@@ -1,6 +1,7 @@
 #include "debug.h"
 #include "lvec.h"
 #include "parser.h"
+#include "tokenizer.h"
 #include <stdbool.h>
 
 #define INDENT() for( int i = 0; i < depth; i++ ) printf( "    " )
@@ -38,6 +39,7 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_RIGHTBRACE ]   = "}",
     [ TOKENKIND_LEFTBRACKET ]  = "[",
     [ TOKENKIND_RIGHTBRACKET ] = "]",
+    [ TOKENKIND_AMPERSAND ]    = "&",
     [ TOKENKIND_EOF ]          = "EOF",
 };
 
@@ -111,6 +113,13 @@ void expression_print( Expression* expression )
         case EXPRESSIONKIND_INTEGER:
         {
             printf( "(%lld)", expression->integer );
+            should_newline = false;
+            break;
+        }
+
+        case EXPRESSIONKIND_FLOAT:
+        {
+            printf( "(%lf)", expression->float_ );
             should_newline = false;
             break;
         }

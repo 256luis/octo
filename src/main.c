@@ -49,5 +49,5 @@ int main( int argc, char* argv[] )
     FILE* generated_c = generate_code( program );
     fclose( generated_c );
 
-    // expression_print( program );
+    expression_print( program );
 }

@@ -10,55 +10,63 @@
 #include "lvec.h"
 
 #define EXPECT( ... )\
-    do {\
-        TokenKind expecteds[] = { __VA_ARGS__ };\
-        bool is_valid = false;\
-        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ )\
-        {\
-            if( parser.current_token.kind == expecteds[ i ] )\
-            {\
-                is_valid = true;\
-                break;\
-            }\
-        }\
-        if( !is_valid )\
-        {\
-            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );\
-            Error error = {\
-                .kind = ERRORKIND_UNEXPECTEDSYMBOL,\
-                .offending_token = parser.current_token,\
-            };\
-            report_error( error );\
-            return NULL;\
-        }\
-    } while( 0 )
+    _expect( ( TokenKind[] ){ __VA_ARGS__ },\
+             sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
 
 #define EXPECT_NEXT( ... )\
-    do {\
-        TokenKind expecteds[] = { __VA_ARGS__ };\
-        bool is_valid = false;\
-        for( size_t i = 0; i < sizeof( expecteds ) / sizeof( *expecteds ); i++ )\
-        {\
-            if( parser.next_token.kind == expecteds[ i ] )\
-            {\
-                is_valid = true;\
-                break;\
-            }\
-        }\
-        if( !is_valid )\
-        {\
-            printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );\
-            Error error = {\
-                .kind = ERRORKIND_UNEXPECTEDSYMBOL,\
-                .offending_token = parser.current_token,\
-            };\
-            report_error( error );\
-            return NULL;\
-        }\
-    } while( 0 )
+    _expect_next( ( TokenKind[] ){ __VA_ARGS__ },\
+             sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
 
 static Parser parser;
 static Token* tokens;
+
+static bool _expect( TokenKind* expected_token_kinds, size_t length )
+{
+    bool is_valid = false;
+    for( size_t i = 0; i < length; i++ )
+    {
+        if( parser.current_token.kind == expected_token_kinds[ i ] )
+        {
+            is_valid = true;
+            break;
+        }
+    }
+    if( !is_valid )
+    {
+        printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );
+        Error error = {
+            .kind = ERRORKIND_UNEXPECTEDSYMBOL,
+            .offending_token = parser.current_token,
+        };
+        report_error( error );
+    }
+
+    return is_valid;
+}
+
+static bool _expect_next( TokenKind* expected_token_kinds, size_t length )
+{
+    bool is_valid = false;
+    for( size_t i = 0; i < length; i++ )
+    {
+        if( parser.next_token.kind == expected_token_kinds[ i ] )
+        {
+            is_valid = true;
+            break;
+        }
+    }
+    if( !is_valid )
+    {
+        printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );
+        Error error = {
+            .kind = ERRORKIND_UNEXPECTEDSYMBOL,
+            .offending_token = parser.current_token,
+        };
+        report_error( error );
+    }
+
+    return is_valid;
+}
 
 static BinaryOperation token_kind_to_binary_operation( TokenKind token_kind )
 {
@@ -205,12 +213,18 @@ static Expression* parse_parentheses()
     Expression* expression;
 
     advance();
-    EXPECT( TOKENKIND_RVALUE_STARTERS );
+    if ( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
 
     expression = parse_rvalue();
 
     advance();
-    EXPECT( TOKENKIND_RIGHTPAREN );
+    if( !EXPECT( TOKENKIND_RIGHTPAREN ) )
+    {
+        return NULL;
+    }
 
     int token_end_index = parser.current_token_index;
     add_associated_tokens( expression, token_start_index, token_end_index );
@@ -227,7 +241,10 @@ static Expression* parse_unary()
     expression->unary.operation = token_kind_to_unary_operation( parser.current_token.kind );
 
     advance();
-    EXPECT( TOKENKIND_RVALUE_STARTERS );
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
 
     expression->unary.operand = parse_rvalue();
 
@@ -248,7 +265,10 @@ static Expression* parse_function_call()
     // parser.current_token == TOKENKIND_LEFTPAREN
 
     advance();
-    EXPECT( TOKENKIND_RIGHTPAREN, TOKENKIND_RVALUE_STARTERS );
+    if( !EXPECT( TOKENKIND_RIGHTPAREN, TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
 
     // if current token is right paren, there are no args to the function call
     if( parser.current_token.kind == TOKENKIND_RIGHTPAREN )
@@ -273,7 +293,10 @@ static Expression* parse_function_call()
             expression->function_call.arg_count++;
 
             advance();
-            EXPECT( TOKENKIND_RIGHTPAREN, TOKENKIND_COMMA );
+            if( !EXPECT( TOKENKIND_RIGHTPAREN, TOKENKIND_COMMA ) )
+            {
+                return NULL;
+            }
 
             if( parser.current_token.kind == TOKENKIND_COMMA )
             {
@@ -359,7 +382,10 @@ static Expression* parse_rvalue()
         expression->binary.left = left;
 
         advance();
-        EXPECT( TOKENKIND_RVALUE_STARTERS );
+        if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+        {
+            return NULL;
+        }
 
         expression->binary.right = parse_rvalue();
         if( expression->binary.right == NULL )
@@ -378,37 +404,53 @@ static Expression* parse_rvalue()
 static Type parse_type()
 {
     Type result;
+    if( parser.current_token.kind == TOKENKIND_IDENTIFIER )
+    {
+        char* type_identifier = parser.current_token.identifier;
 
-    char* type_identifier = parser.current_token.identifier;
+        if( strcmp( type_identifier, "int" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+        }
+        else if( strcmp( type_identifier, "float" ) == 0 )
+        {
+            result.kind = TYPEKIND_FLOAT;
+        }
+        else if( strcmp( type_identifier, "char" ) == 0 )
+        {
+            result.kind = TYPEKIND_CHARACTER;
+        }
+        else if( strcmp( type_identifier, "string" ) == 0 )
+        {
+            result.kind = TYPEKIND_STRING;
+        }
+        else if( strcmp( type_identifier, "bool" ) == 0 )
+        {
+            result.kind = TYPEKIND_BOOLEAN;
+        }
+        else if( strcmp( type_identifier, "void" ) == 0 )
+        {
+            result.kind = TYPEKIND_VOID;
+        }
+        else // custom type
+        {
+            result.kind = TYPEKIND_CUSTOM;
+            result.custom_identifier = type_identifier;
+        }
+    }
+    else // ampersand
+    {
+        result.kind = TYPEKIND_POINTER;
+        advance();
+        if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+        {
+            result.kind = TYPEKIND_INVALID;
+            return result;
+        }
 
-    if( strcmp( type_identifier, "int" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-    }
-    else if( strcmp( type_identifier, "float" ) == 0 )
-    {
-        result.kind = TYPEKIND_FLOAT;
-    }
-    else if( strcmp( type_identifier, "char" ) == 0 )
-    {
-        result.kind = TYPEKIND_CHARACTER;
-    }
-    else if( strcmp( type_identifier, "string" ) == 0 )
-    {
-        result.kind = TYPEKIND_STRING;
-    }
-    else if( strcmp( type_identifier, "bool" ) == 0 )
-    {
-        result.kind = TYPEKIND_BOOLEAN;
-    }
-    else if( strcmp( type_identifier, "void" ) == 0 )
-    {
-        result.kind = TYPEKIND_VOID;
-    }
-    else // custom type
-    {
-        result.kind = TYPEKIND_CUSTOM;
-        result.custom_identifier = type_identifier;
+        // i have to allocate here... SO ANNOYING!!!
+        result.pointer.type = malloc( sizeof( Type ) );
+        *result.pointer.type = parse_type();
     }
 
     return result;
@@ -424,23 +466,35 @@ static Expression* parse_variable_declaration()
     expression->kind = EXPRESSIONKIND_VARIABLEDECLARATION;
 
     advance();
-    EXPECT( TOKENKIND_IDENTIFIER );
+    if( !EXPECT( TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
 
     expression->variable_declaration.identifier = parser.current_token.identifier;
 
     advance();
-    EXPECT( TOKENKIND_COLON, TOKENKIND_EQUAL );
+    if( !EXPECT( TOKENKIND_COLON, TOKENKIND_EQUAL ) )
+    {
+        return NULL;
+    }
 
     expression->variable_declaration.type = ( Type ){ .kind = TYPEKIND_TOINFER };
     if( parser.current_token.kind == TOKENKIND_COLON )
     {
         advance();
-        EXPECT( TOKENKIND_IDENTIFIER );
+        if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+        {
+            return NULL;
+        }
 
         expression->variable_declaration.type = parse_type();
 
         advance();
-        EXPECT( TOKENKIND_SEMICOLON, TOKENKIND_EQUAL );
+        if( !EXPECT( TOKENKIND_SEMICOLON, TOKENKIND_EQUAL ) )
+        {
+            return NULL;
+        }
 
         if( parser.current_token.kind == TOKENKIND_SEMICOLON )
         {
@@ -449,7 +503,10 @@ static Expression* parse_variable_declaration()
     }
 
     advance();
-    EXPECT( TOKENKIND_RVALUE_STARTERS );
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
     expression->variable_declaration.rvalue = parse_rvalue();
     if( expression->variable_declaration.rvalue == NULL )
     {
@@ -457,7 +514,10 @@ static Expression* parse_variable_declaration()
     }
 
     advance();
-    EXPECT( TOKENKIND_SEMICOLON );
+    if( !EXPECT( TOKENKIND_SEMICOLON ) )
+    {
+        return NULL;
+    }
 
     int token_end_index = parser.current_token_index;
     add_associated_tokens( expression, token_start_index, token_end_index );
@@ -478,7 +538,10 @@ Expression* parse_compound()
     compound_expression->kind = EXPRESSIONKIND_COMPOUND;
 
     advance();
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS, TOKENKIND_RIGHTBRACE );
+    if ( !EXPECT( TOKENKIND_EXPRESSION_STARTERS, TOKENKIND_RIGHTBRACE ) )
+    {
+        return NULL;
+    }
 
     if( parser.current_token.kind != TOKENKIND_RIGHTBRACE )
     {
@@ -496,7 +559,10 @@ Expression* parse_compound()
             advance();
         }
 
-        EXPECT( TOKENKIND_RIGHTBRACE );
+        if( !EXPECT( TOKENKIND_RIGHTBRACE ) )
+        {
+            return NULL;
+        }
     }
 
     int token_end_index = parser.current_token_index;
@@ -515,16 +581,25 @@ Expression* parse_function_declaration()
     expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
 
     advance();
-    EXPECT( TOKENKIND_IDENTIFIER );
+    if( !EXPECT( TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
 
     expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
     expression->function_declaration.identifier = parser.current_token.identifier;
 
     advance();
-    EXPECT( TOKENKIND_LEFTPAREN );
+    if( !EXPECT( TOKENKIND_LEFTPAREN ) )
+    {
+        return NULL;
+    }
 
     advance();
-    EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTPAREN );
+    if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTPAREN ) )
+    {
+        return NULL;
+    }
 
     expression->function_declaration.param_count = 0;
 
@@ -542,10 +617,16 @@ Expression* parse_function_declaration()
             lvec_append( param_identifiers, param_identifier );
 
             advance();
-            EXPECT( TOKENKIND_COLON );
+            if( !EXPECT( TOKENKIND_COLON ) )
+            {
+                return NULL;
+            }
 
             advance();
-            EXPECT( TOKENKIND_IDENTIFIER );
+            if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+            {
+                return NULL;
+            }
 
             Type param_type = parse_type();
             lvec_append_aggregate( param_types, param_type );
@@ -553,7 +634,10 @@ Expression* parse_function_declaration()
             expression->function_declaration.param_count++;
 
             advance();
-            EXPECT( TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN );
+            if( !EXPECT( TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN ) )
+            {
+                return NULL;
+            }
 
             if( parser.current_token.kind == TOKENKIND_COMMA )
             {
@@ -568,15 +652,24 @@ Expression* parse_function_declaration()
     // current token is right paren
 
     advance();
-    EXPECT( TOKENKIND_ARROW );
+    if( !EXPECT( TOKENKIND_ARROW ) )
+    {
+        return NULL;
+    }
 
     advance();
-    EXPECT( TOKENKIND_IDENTIFIER );
+    if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+    {
+        return NULL;
+    }
 
     expression->function_declaration.return_type = parse_type();
 
     advance();
-    EXPECT( TOKENKIND_LEFTBRACE );
+    if( !EXPECT( TOKENKIND_LEFTBRACE ) )
+    {
+        return NULL;
+    }
 
     expression->function_declaration.body = parse_compound();
     if( expression->function_declaration.body == NULL )
@@ -600,7 +693,10 @@ Expression* parse_return()
     expression->kind = EXPRESSIONKIND_RETURN;
 
     advance();
-    EXPECT( TOKENKIND_RVALUE_STARTERS, TOKENKIND_SEMICOLON );
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS, TOKENKIND_SEMICOLON ) )
+    {
+        return NULL;
+    }
 
     if( parser.current_token.kind != TOKENKIND_SEMICOLON )
     {
@@ -611,7 +707,11 @@ Expression* parse_return()
         }
 
         advance();
-        EXPECT( TOKENKIND_SEMICOLON );
+        if( !EXPECT( TOKENKIND_SEMICOLON ) )
+        {
+            return NULL;
+        }
+
     }
 
     int token_end_index = parser.current_token_index;
@@ -631,10 +731,16 @@ Expression* parse_assignment()
     expression->assignment.identifier = parser.current_token.identifier;
 
     advance();
-    EXPECT( TOKENKIND_EQUAL );
+    if( !EXPECT( TOKENKIND_EQUAL ) )
+    {
+        return NULL;
+    }
 
     advance();
-    EXPECT( TOKENKIND_RVALUE_STARTERS );
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
 
     expression->assignment.rvalue = parse_rvalue();
     if( expression->assignment.rvalue == NULL )
@@ -643,7 +749,10 @@ Expression* parse_assignment()
     }
 
     advance();
-    EXPECT( TOKENKIND_SEMICOLON );
+    if( !EXPECT( TOKENKIND_SEMICOLON ) )
+    {
+        return NULL;
+    }
 
     int token_end_index = parser.current_token_index;
     add_associated_tokens( expression, token_start_index, token_end_index );
@@ -665,7 +774,10 @@ Expression* parse( Token* _tokens )
 
     Expression* expression;
 
-    EXPECT( TOKENKIND_EXPRESSION_STARTERS );
+    if( !EXPECT( TOKENKIND_EXPRESSION_STARTERS ) )
+    {
+        return NULL;
+    }
 
     int token_start_index = parser.current_token_index;
     switch( parser.current_token.kind )
@@ -690,7 +802,10 @@ Expression* parse( Token* _tokens )
 
         case TOKENKIND_IDENTIFIER:
         {
-            EXPECT_NEXT( TOKENKIND_LEFTPAREN, TOKENKIND_EQUAL);
+            if ( !EXPECT_NEXT( TOKENKIND_LEFTPAREN, TOKENKIND_EQUAL ) )
+            {
+                return NULL;
+            }
 
             switch( parser.next_token.kind )
             {
@@ -699,7 +814,10 @@ Expression* parse( Token* _tokens )
                     // function call
                     expression = parse_function_call();
                     advance();
-                    EXPECT( TOKENKIND_SEMICOLON );
+                    if ( !EXPECT( TOKENKIND_SEMICOLON ) )
+                    {
+                        return NULL;
+                    }
                     break;
                 }
 

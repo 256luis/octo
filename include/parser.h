@@ -13,8 +13,10 @@ typedef enum TypeKind
     TYPEKIND_BOOLEAN,
     TYPEKIND_STRING,
     TYPEKIND_FUNCTION,
+    TYPEKIND_POINTER,
     TYPEKIND_CUSTOM,
     TYPEKIND_TOINFER,
+    TYPEKIND_INVALID,
 } TypeKind;
 
 typedef struct Type
@@ -30,6 +32,11 @@ typedef struct Type
             struct Type* param_types;
             struct Type* return_type;
         } function;
+
+        struct
+        {
+            struct Type* type;
+        } pointer;
     };
 } Type;
 

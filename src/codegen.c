@@ -67,6 +67,14 @@ static void generate_type( Type type )
             break;
         }
 
+        case TYPEKIND_POINTER:
+        {
+            // UNIMPLEMENTED();
+            generate_type( *type.pointer.type );
+            append( "*" );
+            break;
+        }
+
         case TYPEKIND_TOINFER:
         {
             UNREACHABLE();
