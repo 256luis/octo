@@ -120,7 +120,7 @@ static Expression* parse_integer()
     if( expression ==  NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_INTEGER;
-    expression->number = parser.current_token.number;
+    expression->integer = parser.current_token.integer;
 
     return expression;
 }

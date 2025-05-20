@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include "codegen.h"
 #include "error.h"
 #include "lvec.h"
 #include "parser.h"
@@ -41,8 +42,11 @@ int main( int argc, char* argv[] )
     /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
     /* { */
     /*     Token token = program->associated_tokens[ i ]; */
-    /*     printf( "%s ", token_kind_to_string[ token.kind ] ); */
+    /*     printf( "%s ", token.as_string ); */
     /* } */
+
+    generate_code( program );
+    // fclose( file );
 
     // expression_print( program );
 }

@@ -19,6 +19,7 @@ typedef enum TypeKind
 typedef struct Type
 {
     TypeKind kind;
+    // Token associated_token;
 
     union
     {
@@ -85,7 +86,7 @@ typedef struct Expression
     union
     {
         // base cases
-        int number;
+        int integer;
         char* identifier;
         char* string;
         char character;

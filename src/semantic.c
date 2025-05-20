@@ -649,9 +649,19 @@ bool check_return( Expression* expression )
     Type expected_return_type = get_top_return_type();
     if( !type_equals( found_return_type, expected_return_type ) )
     {
+        Token associated_token;
+        if( found_return_type.kind == TYPEKIND_VOID )
+        {
+            associated_token = expression->associated_tokens[ 0 ];
+        }
+        else
+        {
+            associated_token = expression->return_expression.rvalue->associated_tokens[ 0 ];
+        }
+
         Error error = {
             .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->return_expression.rvalue->associated_tokens[ 0 ],
+            .offending_token = associated_token,
             .type_mismatch = {
                 .expected = expected_return_type,
                 .found = found_return_type,
