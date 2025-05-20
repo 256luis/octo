@@ -252,45 +252,8 @@ static bool check_binary( Expression* expression, Type* inferred_type )
 
     if( !is_operation_valid )
     {
-        // todo: clean this shit up
-
-        // find the token that corresponds with the operator
-        int depth = 0; // measures how deep we are in the expression
-                       // +1 for every left paren found
-                       // -1 for every right paren found
-        bool first = true;
-        int lowest_depth;
-        int operator_index_lowest_depth;
-        for( size_t i = 0; i < lvec_get_length( expression->associated_tokens ); i++ )
-        {
-            Token current_token = expression->associated_tokens[ i ];
-            if( current_token.kind == TOKENKIND_LEFTPAREN )
-            {
-                depth++;
-            }
-            else if( current_token.kind == TOKENKIND_RIGHTPAREN )
-            {
-                depth--;
-            }
-
-            if( IS_TOKENKIND_IN_GROUP( current_token.kind, TOKENKIND_BINARY_OPERATORS ) )
-            {
-                if( first )
-                {
-                    first = false;
-                    operator_index_lowest_depth = i;
-                    lowest_depth = depth;
-                    continue;
-                }
-
-                if( depth < lowest_depth )
-                {
-                    operator_index_lowest_depth = i;
-                }
-            }
-        }
-
-        Token operator_token = expression->associated_tokens[ operator_index_lowest_depth ];
+        Token operator_token = expression->binary.operator_token;
+        printf("%d\n", operator_token.kind );
         Error error = {
             .kind = ERRORKIND_INVALIDBINARYOPERATION,
             .offending_token = operator_token,
@@ -326,7 +289,7 @@ static bool check_binary( Expression* expression, Type* inferred_type )
 
 static bool check_rvalue_identifier( Expression* expression, Type* inferred_type )
 {
-    Token identifier_token = expression->associated_tokens[ 0 ];
+    Token identifier_token = expression->associated_token;
 
     // check if identifier already in symbol table
     Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
@@ -348,7 +311,7 @@ static bool check_rvalue_identifier( Expression* expression, Type* inferred_type
 
 static bool check_function_call( Expression* expression, Type* inferred_type )
 {
-    Token identifier_token = expression->associated_tokens[ 0 ];
+    Token identifier_token = expression->function_call.identifier_token;
     Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
     if( original_declaration == NULL )
     {
@@ -398,7 +361,7 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = arg->associated_tokens[ 0 ],
+                .offending_token = arg->associated_token,
                 .type_mismatch = {
                     .expected = param_type,
                     .found = arg_type,
@@ -458,7 +421,7 @@ static bool check_unary( Expression* expression, Type* inferred_type )
     bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
     if( !is_operation_valid )
     {
-        Token operator_token = expression->associated_tokens[ 0 ];
+        Token operator_token = expression->unary.operator_token;
         Error error = {
             .kind = ERRORKIND_INVALIDUNARYOPERATION,
             .offending_token = operator_token,
@@ -486,7 +449,6 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
         case EXPRESSIONKIND_FLOAT:     inferred_type->kind = TYPEKIND_FLOAT;     break;
         case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
-        // case EXPRESSIONKIND_FLOAT:  type.kind  = TYPEKIND_FLOAT;     break;
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
@@ -525,7 +487,7 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
 static bool check_variable_declaration( Expression* expression )
 {
-    Token identifier_token = expression->associated_tokens[ 1 ];
+    Token identifier_token = expression->variable_declaration.identifier_token;
 
     // check if identifier already in symbol table
     Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
@@ -564,7 +526,7 @@ static bool check_variable_declaration( Expression* expression )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = expression->variable_declaration.rvalue->associated_tokens[ 0 ],
+                .offending_token = expression->variable_declaration.rvalue->associated_token,
                 .type_mismatch = {
                     .expected = declared_type,
                     .found = inferred_type,
@@ -613,7 +575,7 @@ static bool check_compound( Expression* expression )
 
 static bool check_function_declaration( Expression* expression )
 {
-    Token identifier_token = expression->associated_tokens[ 1 ];
+    Token identifier_token = expression->function_declaration.identifier_token;
 
     // check if identifier already in symbol table
     Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
@@ -649,8 +611,7 @@ static bool check_function_declaration( Expression* expression )
     push_scope();
     for( int i = 0; i < expression->function_declaration.param_count; i++ )
     {
-        int associated_token_index = 3 + ( i * 4 );
-        Token param_identifier_token = expression->associated_tokens[ associated_token_index ];
+        Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
         Type param_type = expression->function_declaration.param_types[ i ];
 
         Symbol* declaration = symbol_lookup( param_identifier_token.identifier );
@@ -711,11 +672,11 @@ bool check_return( Expression* expression )
         Token associated_token;
         if( found_return_type.kind == TYPEKIND_VOID )
         {
-            associated_token = expression->associated_tokens[ 0 ];
+            associated_token = expression->associated_token;
         }
         else
         {
-            associated_token = expression->return_expression.rvalue->associated_tokens[ 0 ];
+            associated_token = expression->return_expression.rvalue->associated_token;
         }
 
         Error error = {
@@ -736,7 +697,7 @@ bool check_return( Expression* expression )
 bool check_assignment( Expression* expression )
 {
     // check if identifier exists;
-    Token identifier_token = expression->associated_tokens[ 0 ];
+    Token identifier_token = expression->assignment.identifier_token;
     Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
     if( original_declaration == NULL )
     {
@@ -765,7 +726,7 @@ bool check_assignment( Expression* expression )
     {
         Error error = {
             .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->assignment.rvalue->associated_tokens[ 0 ],
+            .offending_token = expression->assignment.rvalue->associated_token,
             .type_mismatch = {
                 .expected = expected_type,
                 .found = found_type,

@@ -64,7 +64,9 @@ typedef enum BinaryOperation
 typedef enum UnaryOperation
 {
     UNARYOPERATION_NEGATIVE,
-    UNARYOPERATION_NOT
+    UNARYOPERATION_NOT,
+    UNARYOPERATION_ADDRESSOF,
+    UNARYOPERATION_DEREFERENCE,
 } UnaryOperation;
 
 typedef enum ExpressionKind
@@ -90,7 +92,10 @@ typedef enum ExpressionKind
 typedef struct Expression
 {
     ExpressionKind kind;
-    Token* associated_tokens;
+
+    // for the base cases
+    Token associated_token;
+
     union
     {
         // base cases
@@ -104,6 +109,8 @@ typedef struct Expression
         struct
         {
             BinaryOperation operation;
+            Token operator_token;
+
             struct Expression* left;
             struct Expression* right;
         } binary;
@@ -111,12 +118,16 @@ typedef struct Expression
         struct
         {
             UnaryOperation operation;
+            Token operator_token;
+
             struct Expression* operand;
         } unary;
 
         struct
         {
             char* identifier;
+            Token identifier_token;
+
             struct Expression** args; // array of expression pointers
             size_t arg_count;
         } function_call;
@@ -124,7 +135,11 @@ typedef struct Expression
         struct
         {
             char* identifier;
+            Token identifier_token;
+
             Type type;
+            Token type_token;
+
             struct Expression* rvalue;
         } variable_declaration;
 
@@ -137,11 +152,18 @@ typedef struct Expression
         struct
         {
             char* identifier;
+            Token identifier_token;
+
             Type return_type;
+            Token return_type_token;
 
             // arrays to hold params info
             char** param_identifiers;
+            Token* param_identifiers_tokens;
+
             Type* param_types;
+            Token* param_types_tokens;
+
             int param_count;
 
             struct Expression* body;
@@ -155,6 +177,8 @@ typedef struct Expression
         struct
         {
             char* identifier;
+            Token identifier_token;
+
             struct Expression* rvalue;
         } assignment;
     };

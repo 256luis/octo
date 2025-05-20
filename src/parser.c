@@ -90,8 +90,10 @@ static UnaryOperation token_kind_to_unary_operation( TokenKind token_kind )
 {
     switch( token_kind )
     {
-        case TOKENKIND_BANG: return UNARYOPERATION_NOT;
-        case TOKENKIND_MINUS: return UNARYOPERATION_NEGATIVE;
+        case TOKENKIND_BANG:      return UNARYOPERATION_NOT;
+        case TOKENKIND_MINUS:     return UNARYOPERATION_NEGATIVE;
+        case TOKENKIND_AMPERSAND: return UNARYOPERATION_ADDRESSOF;
+        case TOKENKIND_STAR:      return UNARYOPERATION_DEREFERENCE;
         default: UNREACHABLE();
     }
 }
@@ -107,19 +109,19 @@ static void advance()
     parser.next_token = tokens[ parser.current_token_index + 1 ];
 }
 
-static void add_associated_tokens( Expression* expression, int token_start_index, int token_end_index )
-{
-    int associated_tokens_length = token_end_index - token_start_index;
+/* static void add_associated_tokens( Expression* expression, int token_start_index, int token_end_index ) */
+/* { */
+/*     int associated_tokens_length = token_end_index - token_start_index; */
 
-    expression->associated_tokens = lvec_new( Token );
-    if( expression->associated_tokens == NULL ) ALLOC_ERROR();
+/*     expression->associated_tokens = lvec_new( Token ); */
+/*     if( expression->associated_tokens == NULL ) ALLOC_ERROR(); */
 
-    lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length );
-    for( int i = token_start_index; i <= token_end_index; i++ )
-    {
-        lvec_append_aggregate( expression->associated_tokens, tokens[ i ] );
-    }
-}
+/*     lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length ); */
+/*     for( int i = token_start_index; i <= token_end_index; i++ ) */
+/*     { */
+/*         lvec_append_aggregate( expression->associated_tokens, tokens[ i ] ); */
+/*     } */
+/* } */
 
 
 static Expression* parse_integer()
@@ -146,7 +148,6 @@ static Expression* parse_float()
 
 static Expression* parse_identifier()
 {
-
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
 
@@ -180,14 +181,12 @@ static Expression* parse_character()
 
 static Expression* parse_base_expression()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression;
 
     switch( parser.current_token.kind )
     {
         case TOKENKIND_INTEGER:    expression = parse_integer();    break;
-        case TOKENKIND_FLOAT:    expression = parse_float();    break;
+        case TOKENKIND_FLOAT:      expression = parse_float();    break;
         case TOKENKIND_IDENTIFIER: expression = parse_identifier(); break;
         case TOKENKIND_STRING:     expression = parse_string();     break;
         case TOKENKIND_CHARACTER:  expression = parse_character();  break;
@@ -199,8 +198,7 @@ static Expression* parse_base_expression()
         return NULL;
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
+    expression->associated_token = parser.current_token;
 
     return expression;
 }
@@ -208,8 +206,6 @@ static Expression* parse_base_expression()
 static Expression* parse_rvalue();
 static Expression* parse_parentheses()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression;
 
     advance();
@@ -226,9 +222,6 @@ static Expression* parse_parentheses()
         return NULL;
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
-
     return expression;
 }
 
@@ -239,6 +232,7 @@ static Expression* parse_unary()
 
     expression->kind = EXPRESSIONKIND_UNARY;
     expression->unary.operation = token_kind_to_unary_operation( parser.current_token.kind );
+    expression->unary.operator_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
@@ -253,13 +247,12 @@ static Expression* parse_unary()
 
 static Expression* parse_function_call()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_FUNCTIONCALL;
     expression->function_call.identifier = parser.current_token.identifier;
+    expression->function_call.identifier_token = parser.current_token;
 
     advance();
     // parser.current_token == TOKENKIND_LEFTPAREN
@@ -307,17 +300,13 @@ static Expression* parse_function_call()
         expression->function_call.args = args;
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
-
     return expression;
 }
 
 static Expression* parse_rvalue()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression;
+    Token starting_token = parser.current_token;
 
     switch( parser.current_token.kind )
     {
@@ -347,6 +336,8 @@ static Expression* parse_rvalue()
             break;
         }
 
+        case TOKENKIND_AMPERSAND:
+        case TOKENKIND_STAR:
         case TOKENKIND_BANG:
         case TOKENKIND_MINUS:
         {
@@ -379,6 +370,7 @@ static Expression* parse_rvalue()
 
         expression->kind = EXPRESSIONKIND_BINARY;
         expression->binary.operation = token_kind_to_binary_operation( parser.current_token.kind );
+        expression->binary.operator_token = parser.current_token;
         expression->binary.left = left;
 
         advance();
@@ -394,8 +386,7 @@ static Expression* parse_rvalue()
         }
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
+    expression->associated_token = starting_token;
 
     return expression;
 }
@@ -458,8 +449,6 @@ static Type parse_type()
 
 static Expression* parse_variable_declaration()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -472,6 +461,7 @@ static Expression* parse_variable_declaration()
     }
 
     expression->variable_declaration.identifier = parser.current_token.identifier;
+    expression->variable_declaration.identifier_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_COLON, TOKENKIND_EQUAL ) )
@@ -519,16 +509,11 @@ static Expression* parse_variable_declaration()
         return NULL;
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
-
     return expression;
 }
 
 Expression* parse_compound()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* compound_expression = calloc( 1, sizeof( Expression ) );
     if( compound_expression == NULL ) ALLOC_ERROR();
 
@@ -565,16 +550,11 @@ Expression* parse_compound()
         }
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( compound_expression, token_start_index, token_end_index );
-
     return compound_expression;
 }
 
 Expression* parse_function_declaration()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -588,6 +568,7 @@ Expression* parse_function_declaration()
 
     expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
     expression->function_declaration.identifier = parser.current_token.identifier;
+    expression->function_declaration.identifier_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_LEFTPAREN ) )
@@ -611,10 +592,19 @@ Expression* parse_function_declaration()
         Type* param_types = lvec_new( Type );
         if( param_types == NULL ) ALLOC_ERROR();
 
+        Token* param_identifiers_tokens = lvec_new( Token );
+        if( param_identifiers_tokens == NULL ) ALLOC_ERROR();
+
+        Token* param_types_tokens = lvec_new( Token );
+        if( param_types_tokens == NULL ) ALLOC_ERROR();
+
         while( parser.current_token.kind != TOKENKIND_RIGHTPAREN )
         {
             char* param_identifier = parser.current_token.identifier;
+            Token param_identifier_token = parser.current_token;
+
             lvec_append( param_identifiers, param_identifier );
+            lvec_append_aggregate( param_identifiers_tokens, param_identifier_token );
 
             advance();
             if( !EXPECT( TOKENKIND_COLON ) )
@@ -629,7 +619,10 @@ Expression* parse_function_declaration()
             }
 
             Type param_type = parse_type();
+            Token param_type_token = parser.current_token;
+
             lvec_append_aggregate( param_types, param_type );
+            lvec_append_aggregate( param_types_tokens, param_type_token );
 
             expression->function_declaration.param_count++;
 
@@ -647,6 +640,9 @@ Expression* parse_function_declaration()
 
         expression->function_declaration.param_identifiers = param_identifiers;
         expression->function_declaration.param_types = param_types;
+
+        expression->function_declaration.param_identifiers_tokens = param_identifiers_tokens;
+        expression->function_declaration.param_types_tokens = param_types_tokens;
     }
 
     // current token is right paren
@@ -664,6 +660,7 @@ Expression* parse_function_declaration()
     }
 
     expression->function_declaration.return_type = parse_type();
+    expression->function_declaration.return_type_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_LEFTBRACE ) )
@@ -677,16 +674,11 @@ Expression* parse_function_declaration()
         return NULL;
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
-
     return expression;
 }
 
 Expression* parse_return()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
@@ -714,21 +706,17 @@ Expression* parse_return()
 
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
-
     return expression;
 }
 
 Expression* parse_assignment()
 {
-    int token_start_index = parser.current_token_index;
-
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_ASSIGNMENT;
     expression->assignment.identifier = parser.current_token.identifier;
+    expression->assignment.identifier_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_EQUAL ) )
@@ -754,9 +742,6 @@ Expression* parse_assignment()
         return NULL;
     }
 
-    int token_end_index = parser.current_token_index;
-    add_associated_tokens( expression, token_start_index, token_end_index );
-
     return expression;
 }
 
@@ -779,7 +764,6 @@ Expression* parse( Token* _tokens )
         return NULL;
     }
 
-    int token_start_index = parser.current_token_index;
     switch( parser.current_token.kind )
     {
         case TOKENKIND_LET:
@@ -848,12 +832,6 @@ Expression* parse( Token* _tokens )
         {
             UNIMPLEMENTED();
         }
-    }
-
-    if( expression != NULL )
-    {
-        int token_end_index = parser.current_token_index;
-        add_associated_tokens( expression, token_start_index, token_end_index );
     }
 
     return expression;

@@ -73,8 +73,10 @@ char* binary_operation_to_string[] = {
 };
 
 char* unary_operation_to_string[] = {
-    [ UNARYOPERATION_NEGATIVE ] = "NEGATIVE",
-    [ UNARYOPERATION_NOT ] = "NOT",
+    [ UNARYOPERATION_NEGATIVE ]    = "NEGATIVE",
+    [ UNARYOPERATION_NOT ]         = "NOT",
+    [ UNARYOPERATION_ADDRESSOF ]   = "ADDRESSOF",
+    [ UNARYOPERATION_DEREFERENCE ] = "DEREFERENCE",
 };
 
 char* type_kind_to_string[] = {
