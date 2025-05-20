@@ -63,6 +63,7 @@ static void generate_type( Type type )
         }
     }
 }
+
 static void generate_function_call( Expression* expression );
 static void generate_rvalue( Expression* expression )
 {
@@ -118,7 +119,13 @@ static void generate_rvalue( Expression* expression )
 
         case EXPRESSIONKIND_UNARY:
         {
-            UNIMPLEMENTED();
+            switch( expression->unary.operation )
+            {
+                case UNARYOPERATION_NEGATIVE: fprintf( file, "-" ); break;
+                case UNARYOPERATION_NOT:      fprintf( file, "!" ); break;
+            }
+            generate_rvalue( expression->unary.operand );
+
             break;
         }
 
