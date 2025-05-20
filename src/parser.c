@@ -215,26 +215,9 @@ static Expression* parse_unary()
     expression->unary.operation = token_kind_to_unary_operation( parser.current_token.kind );
 
     advance();
-    /* EXPECT( TOKENKIND_RVALUE_BASES, */
-    /*         TOKENKIND_UNARY_OPERATORS, */
-    /*         TOKENKIND_LEFTPAREN ); */
-
     EXPECT( TOKENKIND_RVALUE_STARTERS );
 
-    bool is_current_token_rvalue_base = IS_TOKENKIND_IN_GROUP( parser.current_token.kind, TOKENKIND_RVALUE_BASES );
-    bool is_current_token_unary_operator  = IS_TOKENKIND_IN_GROUP( parser.current_token.kind, TOKENKIND_UNARY_OPERATORS );
-    if( is_current_token_rvalue_base )
-    {
-        expression->unary.operand = parse_base_expression();
-    }
-    else if( is_current_token_unary_operator )
-    {
-        expression->unary.operand = parse_unary();
-    }
-    else // parser.current_token.kind == TOKENKIND_LEFTPAREN
-    {
-        expression->unary.operand = parse_parentheses();
-    }
+    expression->unary.operand = parse_rvalue();
 
     return expression;
 }
