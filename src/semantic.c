@@ -104,15 +104,15 @@ bool type_equals( Type t1, Type t2 )
         return false;
     }
 
-    bool are_custom_identifiers_equal = true;
     if( t1.kind == TYPEKIND_CUSTOM )
     {
-        are_custom_identifiers_equal = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
+        bool are_custom_identifiers_equal = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
+        return are_custom_identifiers_equal;
     }
-
-    if( !are_custom_identifiers_equal )
+    else if( t1.kind == TYPEKIND_POINTER )
     {
-        return false;
+        bool are_inner_types_equal = type_equals( *t1.pointer.type, *t2.pointer.type );
+        return are_inner_types_equal;
     }
 
     return true;
@@ -253,7 +253,6 @@ static bool check_binary( Expression* expression, Type* inferred_type )
     if( !is_operation_valid )
     {
         Token operator_token = expression->binary.operator_token;
-        printf("%d\n", operator_token.kind );
         Error error = {
             .kind = ERRORKIND_INVALIDBINARYOPERATION,
             .offending_token = operator_token,
@@ -391,6 +390,13 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
         [ UNARYOPERATION_NOT ] = ( TypeKind[] ) {
             TYPEKIND_BOOLEAN, -1,
         },
+
+        [ UNARYOPERATION_DEREFERENCE ] = ( TypeKind[] ) {
+            TYPEKIND_POINTER, -1,
+        },
+
+        // not applicable (code path handles it separately)
+        [ UNARYOPERATION_ADDRESSOF ] = NULL,
     };
 
     TypeKind* valid_type_kind = valid_unary_operation[ operation ];
@@ -418,22 +424,57 @@ static bool check_unary( Expression* expression, Type* inferred_type )
     }
 
     UnaryOperation operation = expression->unary.operation;
-    bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
-    if( !is_operation_valid )
+    if( operation == UNARYOPERATION_ADDRESSOF )
     {
-        Token operator_token = expression->unary.operator_token;
-        Error error = {
-            .kind = ERRORKIND_INVALIDUNARYOPERATION,
-            .offending_token = operator_token,
-            .invalid_unary_operation = {
-                .operand_type = operand_type
-            }
-        };
-        report_error( error );
-        return false;
-    }
+        // operand must be identifier
+        if( operand->kind != EXPRESSIONKIND_IDENTIFIER )
+        {
+            Error error = {
+                .kind = ERRORKIND_INVALIDADDRESSOF,
+                .offending_token = operand->starting_token
+            };
 
-    *inferred_type = operand_type;
+            report_error( error );
+            return false;
+        }
+
+        // check if operand is in symbol table
+        Symbol* operand_symbol = symbol_lookup( operand->associated_token.identifier );
+        if( operand_symbol == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                .offending_token = operand->associated_token,
+            };
+
+            report_error( error );
+            return false;
+        }
+
+        *inferred_type = ( Type ){
+            .kind = TYPEKIND_POINTER,
+            .pointer.type = &operand_symbol->type,
+        };
+    }
+    else
+    {
+        bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
+        if( !is_operation_valid )
+        {
+            Token operator_token = expression->unary.operator_token;
+            Error error = {
+                .kind = ERRORKIND_INVALIDUNARYOPERATION,
+                .offending_token = operator_token,
+                .invalid_unary_operation = {
+                    .operand_type = operand_type
+                }
+            };
+            report_error( error );
+            return false;
+        }
+
+        *inferred_type = operand_type;
+    }
 
     return true;
 }
@@ -526,7 +567,7 @@ static bool check_variable_declaration( Expression* expression )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = expression->variable_declaration.rvalue->associated_token,
+                .offending_token = expression->variable_declaration.rvalue->starting_token,
                 .type_mismatch = {
                     .expected = declared_type,
                     .found = inferred_type,

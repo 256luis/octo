@@ -3,6 +3,7 @@
 #include "error.h"
 #include "debug.h"
 #include "globals.h"
+#include "lvec.h"
 #include "parser.h"
 
 static char* file_to_string( const char* filename, int* length )
@@ -106,6 +107,56 @@ void source_code_print_line( SourceCode source_code, int line )
     }
 }
 
+void print_type( Type type )
+{
+    switch( type.kind )
+    {
+        case TYPEKIND_INVALID:
+        case TYPEKIND_TOINFER:
+        case TYPEKIND_VOID:
+        case TYPEKIND_INTEGER:
+        case TYPEKIND_FLOAT:
+        case TYPEKIND_CHARACTER:
+        case TYPEKIND_BOOLEAN:
+        case TYPEKIND_STRING:
+        {
+            printf( "%s", type_kind_to_string[ type.kind ] );
+            break;
+        }
+
+        case TYPEKIND_FUNCTION:
+        {
+            printf( "func(" );
+            size_t param_count = lvec_get_length( type.function.param_types );
+            for( size_t i = 0; i < param_count; i++ )
+            {
+                Type param_type = type.function.param_types[ i ];
+                print_type( param_type );
+                if( i < param_count - 1 )
+                {
+                    printf( ", " );
+                }
+            }
+            printf( ") -> " );
+            print_type( *type.function.return_type );
+            break;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            printf( "&" );
+            print_type( *type.pointer.type );
+            break;
+        }
+
+        case TYPEKIND_CUSTOM:
+        {
+            printf( "%s", type.custom_identifier );
+            break;
+        }
+    }
+}
+
 void report_error( Error error )
 {
     Token offending_token = error.offending_token;
@@ -173,9 +224,13 @@ void report_error( Error error )
             Type left_type = error.invalid_binary_operation.left_type;
             Type right_type = error.invalid_binary_operation.right_type;
 
-            printf( "invalid operation for types '%s' and '%s'\n",
-                    type_kind_to_string[ left_type.kind ],
-                    type_kind_to_string[ right_type.kind ] );
+            // example: invalid operation for types 'int' and 'bool'
+            printf( "invalid operation for types \'" );
+            print_type( left_type );
+            printf( "\' and \'");
+            print_type( right_type );
+            printf( "\'\n");
+
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;
@@ -185,8 +240,11 @@ void report_error( Error error )
         {
             Type operand_type = error.invalid_binary_operation.left_type;
 
-            printf( "invalid operation for type '%s'\n",
-                    type_kind_to_string[ operand_type.kind ] );
+            // example: invalid operation for type '&int'
+            printf( "invalid operation for type \'" );
+            print_type( operand_type );
+            printf( "\'\n");
+
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;
@@ -197,9 +255,16 @@ void report_error( Error error )
             Type expected_type = error.type_mismatch.expected;
             Type found_type = error.type_mismatch.found;
 
-            printf( "expected type '%s', found '%s'\n",
-                    type_kind_to_string[ expected_type.kind ],
-                    type_kind_to_string[ found_type.kind ] );
+            /* printf( "expected type '%s', found '%s'\n", */
+            /*         type_kind_to_string[ expected_type.kind ], */
+            /*         type_kind_to_string[ found_type.kind ] ); */
+
+            printf( "expected type \'" );
+            print_type( expected_type );
+            printf( "\', found type \'" );
+            print_type( found_type );
+            printf( "\'\n" );
+
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;
@@ -221,6 +286,14 @@ void report_error( Error error )
             printf( "expected %d arguments, found %d\n",
                     expected_arg_count,
                     found_arg_count );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_INVALIDADDRESSOF:
+        {
+            printf( "cannot get address of expression\n" );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;

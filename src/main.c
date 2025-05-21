@@ -37,7 +37,7 @@ int main( int argc, char* argv[] )
     bool is_valid = check_semantics( program );
     if( !is_valid )
     {
-        return 1;
+        // return 1;
     }
 
     /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
@@ -46,8 +46,8 @@ int main( int argc, char* argv[] )
     /*     printf( "%s ", token.as_string ); */
     /* } */
 
-    FILE* generated_c = generate_code( program );
-    fclose( generated_c );
+    /* FILE* generated_c = generate_code( program ); */
+    /* fclose( generated_c ); */
 
     // expression_print( program );
 }

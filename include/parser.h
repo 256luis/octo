@@ -8,7 +8,7 @@ typedef enum TypeKind
 {
     TYPEKIND_VOID,
     TYPEKIND_INTEGER,
-    TYPEKIND_FLOAT, // not yet parsed
+    TYPEKIND_FLOAT,
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
     TYPEKIND_STRING,
