@@ -92,7 +92,7 @@ static void generate_rvalue( Expression* expression )
     {
         case EXPRESSIONKIND_INTEGER:
         {
-            append( "%d", expression->integer );
+            append( "%lld", expression->integer );
             break;
         }
 
@@ -116,7 +116,7 @@ static void generate_rvalue( Expression* expression )
 
         case EXPRESSIONKIND_CHARACTER:
         {
-            append( "%c", expression->character );
+            append( "\'%c\'", expression->character );
             break;
         }
 
