@@ -113,14 +113,22 @@ void print_type( Type type )
     {
         case TYPEKIND_INVALID:
         case TYPEKIND_TOINFER:
-        case TYPEKIND_VOID:
-        case TYPEKIND_INTEGER:
         case TYPEKIND_FLOAT:
+        case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
         {
             printf( "%s", type_kind_to_string[ type.kind ] );
+            break;
+        }
+
+        // case TYPEKIND_FLOAT:
+        case TYPEKIND_INTEGER:
+        {
+            printf( "%c%zu",
+                    type.integer.is_signed ? 'i' : 'u',
+                    type.integer.bit_count );
             break;
         }
 

@@ -45,13 +45,20 @@ static void generate_type( Type type )
     switch( type.kind )
     {
         case TYPEKIND_VOID:
-        case TYPEKIND_INTEGER:
         case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
         {
             append( "%s ", type_kind_to_string[ type.kind ] );
+            break;
+        }
+
+        case TYPEKIND_INTEGER:
+        {
+            append( "%c%zu ",
+                    type.integer.is_signed ? 'i' : 'u',
+                    type.integer.bit_count );
             break;
         }
 

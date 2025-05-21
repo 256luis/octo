@@ -37,6 +37,12 @@ typedef struct Type
         {
             struct Type* type;
         } pointer;
+
+        struct
+        {
+            size_t bit_count; // CAN ONLY BE 8, 16, 32, 64
+            bool is_signed;
+        } integer;
     };
 } Type;
 

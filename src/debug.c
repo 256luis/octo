@@ -99,13 +99,20 @@ void debug_print_type( Type type )
     switch( type.kind )
     {
         case TYPEKIND_VOID:
-        case TYPEKIND_INTEGER:
         case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
         {
             // do nothing
+            break;
+        }
+
+        case TYPEKIND_INTEGER:
+        {
+            printf( "(%c%zu)",
+                    type.integer.is_signed ? 'i' : 'u',
+                    type.integer.bit_count );
             break;
         }
 

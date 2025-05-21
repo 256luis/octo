@@ -384,9 +384,53 @@ static Type parse_type()
     {
         char* type_identifier = parser.current_token.identifier;
 
-        if( strcmp( type_identifier, "int" ) == 0 )
+        if( strcmp( type_identifier, "i8" ) == 0 )
         {
             result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 8;
+            result.integer.is_signed = true;
+        }
+        else if( strcmp( type_identifier, "i16" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 16;
+            result.integer.is_signed = true;
+        }
+        else if( strcmp( type_identifier, "i32" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 32;
+            result.integer.is_signed = true;
+        }
+        else if( strcmp( type_identifier, "i64" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 64;
+            result.integer.is_signed = true;
+        }
+        else if( strcmp( type_identifier, "u8" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 8;
+            result.integer.is_signed = false;
+        }
+        else if( strcmp( type_identifier, "u16" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 16;
+            result.integer.is_signed = false;
+        }
+        else if( strcmp( type_identifier, "u32" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 32;
+            result.integer.is_signed = false;
+        }
+        else if( strcmp( type_identifier, "u64" ) == 0 )
+        {
+            result.kind = TYPEKIND_INTEGER;
+            result.integer.bit_count = 64;
+            result.integer.is_signed = false;
         }
         else if( strcmp( type_identifier, "float" ) == 0 )
         {

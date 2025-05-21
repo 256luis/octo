@@ -104,18 +104,44 @@ bool type_equals( Type t1, Type t2 )
         return false;
     }
 
-    if( t1.kind == TYPEKIND_CUSTOM )
+    bool result;
+    switch( t1.kind )
     {
-        bool are_custom_identifiers_equal = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
-        return are_custom_identifiers_equal;
-    }
-    else if( t1.kind == TYPEKIND_POINTER )
-    {
-        bool are_inner_types_equal = type_equals( *t1.pointer.type, *t2.pointer.type );
-        return are_inner_types_equal;
+        // case TYPEKIND_FLOAT:
+        case TYPEKIND_INTEGER:
+        {
+            bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
+            bool is_same_signedness = t1.integer.is_signed == t2.integer.is_signed;
+            result = is_same_size && is_same_signedness;
+            break;
+        }
+
+        case TYPEKIND_CUSTOM:
+        {
+            result = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
+            break;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            result = type_equals( *t1.pointer.type, *t2.pointer.type );
+            break;
+        }
+
+        case TYPEKIND_FUNCTION:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
     }
 
-    return true;
+    return result;
 }
 
 static bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
@@ -486,10 +512,19 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
     switch( expression->kind )
     {
-        case EXPRESSIONKIND_INTEGER:   inferred_type->kind = TYPEKIND_INTEGER;   break;
         case EXPRESSIONKIND_FLOAT:     inferred_type->kind = TYPEKIND_FLOAT;     break;
         case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
+
+        case EXPRESSIONKIND_INTEGER:
+        {
+            inferred_type->kind = TYPEKIND_INTEGER;
+
+            // default int type is i32
+            inferred_type->integer.bit_count = 32;
+            inferred_type->integer.is_signed = true;
+            break;
+        }
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
