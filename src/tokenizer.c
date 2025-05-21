@@ -171,7 +171,7 @@ static void finalize_symbol( Token** tokens )
         case TOKENIZERSTATE_FLOAT:
         {
             token.kind = TOKENKIND_FLOAT;
-            token.float_ = strtod( tokenizer.symbol, NULL );
+            token.floating = strtod( tokenizer.symbol, NULL );
             break;
         }
 

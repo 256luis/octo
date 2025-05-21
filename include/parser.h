@@ -43,6 +43,11 @@ typedef struct Type
             size_t bit_count; // CAN ONLY BE 8, 16, 32, 64
             bool is_signed;
         } integer;
+
+        struct
+        {
+            size_t bit_count; // CAN ONLY BE 32, 64
+        } floating;
     };
 } Type;
 
@@ -109,7 +114,7 @@ typedef struct Expression
     {
         // base cases
         uint64_t integer;
-        double float_;
+        double floating;
         char* identifier;
         char* string;
         char character;

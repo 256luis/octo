@@ -45,7 +45,6 @@ static void generate_type( Type type )
     switch( type.kind )
     {
         case TYPEKIND_VOID:
-        case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
@@ -59,6 +58,12 @@ static void generate_type( Type type )
             append( "%c%zu ",
                     type.integer.is_signed ? 'i' : 'u',
                     type.integer.bit_count );
+            break;
+        }
+
+        case TYPEKIND_FLOAT:
+        {
+            append( "f%zu ", type.integer.bit_count );
             break;
         }
 
@@ -105,7 +110,7 @@ static void generate_rvalue( Expression* expression )
 
         case EXPRESSIONKIND_FLOAT:
         {
-            append( "%lf", expression->float_ );
+            append( "%lf", expression->floating );
             break;
         }
 
@@ -253,7 +258,18 @@ FILE* generate_code( Expression* expression )
     {
         is_file_initialized = true;
         file = fopen( "generated.c", "w+" );
-        // file = stdout;
+
+        // temporary
+        append( "typedef signed char        i8;\n" );
+        append( "typedef short              i16;\n" );
+        append( "typedef int                i32;\n" );
+        append( "typedef long long          i64;\n" );
+        append( "typedef unsigned char      u8;\n" );
+        append( "typedef unsigned short     u16;\n" );
+        append( "typedef unsigned int       u32;\n" );
+        append( "typedef unsigned long long u64;\n" );
+        append( "typedef float              f32;\n" );
+        append( "typedef double             f64;\n" );
     }
 
     switch( expression->kind )

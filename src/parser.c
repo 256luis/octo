@@ -126,7 +126,7 @@ static Expression* parse_float()
     if( expression ==  NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_FLOAT;
-    expression->float_ = parser.current_token.float_;
+    expression->floating = parser.current_token.floating;
 
     return expression;
 }
@@ -432,9 +432,15 @@ static Type parse_type()
             result.integer.bit_count = 64;
             result.integer.is_signed = false;
         }
-        else if( strcmp( type_identifier, "float" ) == 0 )
+        else if( strcmp( type_identifier, "f32" ) == 0 )
         {
             result.kind = TYPEKIND_FLOAT;
+            result.floating.bit_count = 32;
+        }
+        else if( strcmp( type_identifier, "f64" ) == 0 )
+        {
+            result.kind = TYPEKIND_FLOAT;
+            result.floating.bit_count = 64;
         }
         else if( strcmp( type_identifier, "char" ) == 0 )
         {

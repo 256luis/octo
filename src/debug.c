@@ -99,7 +99,6 @@ void debug_print_type( Type type )
     switch( type.kind )
     {
         case TYPEKIND_VOID:
-        case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
@@ -113,6 +112,12 @@ void debug_print_type( Type type )
             printf( "(%c%zu)",
                     type.integer.is_signed ? 'i' : 'u',
                     type.integer.bit_count );
+            break;
+        }
+
+        case TYPEKIND_FLOAT:
+        {
+            printf( "(f%zu)", type.integer.bit_count );
             break;
         }
 
@@ -136,12 +141,6 @@ void debug_print_type( Type type )
             break;
         }
     }
-
-    /* printf( "%s", type_kind_to_string[ type.kind ] ); */
-    /* if( type.kind == TYPEKIND_CUSTOM ) */
-    /* { */
-    /*     printf( "(%s)", type.custom_identifier ); */
-    /* } */
 }
 
 static int depth = 0;
@@ -166,7 +165,7 @@ void expression_print( Expression* expression )
 
         case EXPRESSIONKIND_FLOAT:
         {
-            printf( "(%lf)", expression->float_ );
+            printf( "(%lf)", expression->floating );
             should_newline = false;
             break;
         }

@@ -116,6 +116,13 @@ bool type_equals( Type t1, Type t2 )
             break;
         }
 
+        case TYPEKIND_FLOAT:
+        {
+            bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
+            result = is_same_size;
+            break;
+        }
+
         case TYPEKIND_CUSTOM:
         {
             result = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
@@ -512,7 +519,6 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
     switch( expression->kind )
     {
-        case EXPRESSIONKIND_FLOAT:     inferred_type->kind = TYPEKIND_FLOAT;     break;
         case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
 
@@ -523,6 +529,15 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
             // default int type is i32
             inferred_type->integer.bit_count = 32;
             inferred_type->integer.is_signed = true;
+            break;
+        }
+
+        case EXPRESSIONKIND_FLOAT:
+        {
+            inferred_type->kind = TYPEKIND_FLOAT;
+
+            // default float type is f32
+            inferred_type->integer.bit_count = 32;
             break;
         }
 
