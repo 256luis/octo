@@ -168,8 +168,14 @@ static void generate_rvalue( Expression* expression )
 static void generate_variable_declaration( Expression* expression )
 {
     generate_type( expression->variable_declaration.type );
-    append( "%s = ", expression->variable_declaration.identifier );
-    generate_rvalue( expression->variable_declaration.rvalue );
+    append( "%s", expression->variable_declaration.identifier );
+
+    if( expression->variable_declaration.rvalue != NULL )
+    {
+        append(" = ");
+        generate_rvalue( expression->variable_declaration.rvalue );
+    }
+
     append( ";\n" );
 }
 
