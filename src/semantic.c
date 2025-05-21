@@ -360,7 +360,7 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = arg->associated_token,
+                .offending_token = arg->starting_token,
                 .type_mismatch = {
                     .expected = param_type,
                     .found = arg_type,
