@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <string.h>
 #include <math.h>
 #include "debug.h"
@@ -108,6 +109,14 @@ bool type_equals( Type t1, Type t2 )
     bool result;
     switch( t1.kind )
     {
+        case TYPEKIND_CHARACTER:
+        case TYPEKIND_BOOLEAN:
+        case TYPEKIND_STRING:
+        {
+            result = true;
+            break;
+        }
+
         case TYPEKIND_INTEGER:
         {
             bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
@@ -191,22 +200,24 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
         },
 
         [ BINARYOPERATION_EQUAL ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_BOOLEAN, TYPEKIND_BOOLEAN },
-            ( TypeKindPair ){ TYPEKIND_STRING,  TYPEKIND_STRING },
+            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
+            ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
+            ( TypeKindPair ){ TYPEKIND_CHARACTER, TYPEKIND_CHARACTER },
             TYPEKINDPAIR_TERMINATOR,
         },
 
         [ BINARYOPERATION_NOTEQUAL ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_BOOLEAN, TYPEKIND_BOOLEAN },
-            ( TypeKindPair ){ TYPEKIND_STRING,  TYPEKIND_STRING },
+            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_FLOAT },
+            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_INTEGER },
+            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
+            ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
+            ( TypeKindPair ){ TYPEKIND_CHARACTER, TYPEKIND_CHARACTER },
             TYPEKINDPAIR_TERMINATOR,
         },
 
@@ -483,20 +494,6 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
 
             return false;
         }
-
-        /* if( !type_equals( param_type, arg_type ) ) */
-        /* { */
-        /*     Error error = { */
-        /*         .kind = ERRORKIND_TYPEMISMATCH, */
-        /*         .offending_token = arg->starting_token, */
-        /*         .type_mismatch = { */
-        /*             .expected = param_type, */
-        /*             .found = arg_type, */
-        /*         }, */
-        /*     }; */
-        /*     report_error( error ); */
-        /*     return false; */
-        /* } */
     }
 
     if( inferred_type != NULL )
