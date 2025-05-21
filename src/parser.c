@@ -109,21 +109,6 @@ static void advance()
     parser.next_token = tokens[ parser.current_token_index + 1 ];
 }
 
-/* static void add_associated_tokens( Expression* expression, int token_start_index, int token_end_index ) */
-/* { */
-/*     int associated_tokens_length = token_end_index - token_start_index; */
-
-/*     expression->associated_tokens = lvec_new( Token ); */
-/*     if( expression->associated_tokens == NULL ) ALLOC_ERROR(); */
-
-/*     lvec_reserve_minimum( expression->associated_tokens, associated_tokens_length ); */
-/*     for( int i = token_start_index; i <= token_end_index; i++ ) */
-/*     { */
-/*         lvec_append_aggregate( expression->associated_tokens, tokens[ i ] ); */
-/*     } */
-/* } */
-
-
 static Expression* parse_integer()
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -186,7 +171,7 @@ static Expression* parse_base_expression()
     switch( parser.current_token.kind )
     {
         case TOKENKIND_INTEGER:    expression = parse_integer();    break;
-        case TOKENKIND_FLOAT:      expression = parse_float();    break;
+        case TOKENKIND_FLOAT:      expression = parse_float();      break;
         case TOKENKIND_IDENTIFIER: expression = parse_identifier(); break;
         case TOKENKIND_STRING:     expression = parse_string();     break;
         case TOKENKIND_CHARACTER:  expression = parse_character();  break;
@@ -386,7 +371,7 @@ static Expression* parse_rvalue()
         }
     }
 
-    expression->associated_token = starting_token;
+    expression->starting_token = starting_token;
 
     return expression;
 }
@@ -453,6 +438,7 @@ static Expression* parse_variable_declaration()
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_VARIABLEDECLARATION;
+    expression->starting_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_IDENTIFIER ) )
@@ -559,6 +545,7 @@ Expression* parse_function_declaration()
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
+    expression->starting_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_IDENTIFIER ) )
@@ -683,6 +670,7 @@ Expression* parse_return()
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_RETURN;
+    expression->starting_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_RVALUE_STARTERS, TOKENKIND_SEMICOLON ) )
@@ -715,6 +703,7 @@ Expression* parse_assignment()
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_ASSIGNMENT;
+    expression->starting_token = parser.current_token;
     expression->assignment.identifier = parser.current_token.identifier;
     expression->assignment.identifier_token = parser.current_token;
 

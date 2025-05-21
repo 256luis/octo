@@ -672,11 +672,11 @@ bool check_return( Expression* expression )
         Token associated_token;
         if( found_return_type.kind == TYPEKIND_VOID )
         {
-            associated_token = expression->associated_token;
+            associated_token = expression->starting_token;
         }
         else
         {
-            associated_token = expression->return_expression.rvalue->associated_token;
+            associated_token = expression->return_expression.rvalue->starting_token;
         }
 
         Error error = {

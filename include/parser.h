@@ -96,6 +96,9 @@ typedef struct Expression
     // for the base cases
     Token associated_token;
 
+    // for everything else
+    Token starting_token;
+
     union
     {
         // base cases
