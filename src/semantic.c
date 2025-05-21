@@ -1,4 +1,5 @@
 #include <string.h>
+#include <math.h>
 #include "debug.h"
 #include "error.h"
 #include "parser.h"
@@ -107,7 +108,6 @@ bool type_equals( Type t1, Type t2 )
     bool result;
     switch( t1.kind )
     {
-        // case TYPEKIND_FLOAT:
         case TYPEKIND_INTEGER:
         {
             bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
@@ -245,9 +245,8 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
 
     TypeKindPair* pairs = valid_binary_operations[ operation ];
 
-    bool is_valid = false;
-
     // iterate over all valid pairs
+    bool is_valid_pair = false;
     for( TypeKindPair pair = *pairs; pair.tk1 != -1; pairs++, pair = *pairs )
     {
         TypeKind pair_left = pair.tk1;
@@ -255,12 +254,38 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
 
         if( pair_left == left_type.kind && pair_right == right_type.kind )
         {
-            is_valid = true;
+            is_valid_pair = true;
             break;
         }
     }
 
-    return is_valid;
+    if( !is_valid_pair )
+    {
+        return false;
+    }
+
+    // not allowed for numeric types
+    // signed and unsigned ints
+    // int and float
+    switch( left_type.kind * right_type.kind )
+    {
+        case TYPEKIND_INTEGER * TYPEKIND_INTEGER:
+        {
+            if( left_type.integer.is_signed != right_type.integer.is_signed )
+            {
+                return false;
+            }
+            break;
+        }
+
+        case TYPEKIND_FLOAT * TYPEKIND_INTEGER:
+        {
+            return false;
+            break;
+        }
+    }
+
+    return true;
 }
 
 static bool check_rvalue( Expression* expression, Type* inferred_type );
@@ -298,6 +323,7 @@ static bool check_binary( Expression* expression, Type* inferred_type )
         return false;
     }
 
+
     // if operation is one of the boolean operators
     if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
     {
@@ -309,10 +335,13 @@ static bool check_binary( Expression* expression, Type* inferred_type )
         if( left_type.kind == TYPEKIND_FLOAT || right_type.kind == TYPEKIND_FLOAT )
         {
             inferred_type->kind = TYPEKIND_FLOAT;
+            inferred_type->floating.bit_count = fmax( left_type.integer.bit_count, right_type.integer.bit_count );
         }
         else
         {
             inferred_type->kind = TYPEKIND_INTEGER;
+            inferred_type->integer.is_signed = right_type.integer.is_signed;
+            inferred_type->integer.bit_count = fmax( left_type.integer.bit_count, right_type.integer.bit_count );
         }
     }
 
@@ -339,6 +368,55 @@ static bool check_rvalue_identifier( Expression* expression, Type* inferred_type
     *inferred_type = original_declaration->type;
 
     return true;
+}
+
+static bool try_implicit_cast( Type destination_type, Type* out_type )
+{
+    // implicit casts are only for numeric types
+    if( destination_type.kind != TYPEKIND_INTEGER && destination_type.kind != TYPEKIND_FLOAT )
+    {
+        return false;
+    }
+    if( out_type->kind != TYPEKIND_INTEGER && out_type->kind != TYPEKIND_FLOAT )
+    {
+        return false;
+    }
+
+    bool result = false;
+    switch( destination_type.kind )
+    {
+        case TYPEKIND_INTEGER:
+        {
+            bool is_same_signedness = destination_type.integer.is_signed == out_type->integer.is_signed;
+            size_t destination_bit_count = destination_type.integer.bit_count;
+            size_t original_bit_count = out_type->integer.bit_count;
+            result = is_same_signedness && ( destination_bit_count > original_bit_count );
+
+            break;
+        }
+
+        case TYPEKIND_FLOAT:
+        {
+            size_t destination_bit_count = destination_type.floating.bit_count;
+            size_t original_bit_count = out_type->floating.bit_count;
+            result = destination_bit_count > original_bit_count;
+
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
+    }
+
+    if( result )
+    {
+        *out_type = destination_type;
+    }
+
+    return result;
 }
 
 static bool check_function_call( Expression* expression, Type* inferred_type )
@@ -389,7 +467,9 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
             return false;
         }
 
-        if( !type_equals( param_type, arg_type ) )
+        bool implicit_cast_attempt = try_implicit_cast( param_type, &arg_type );
+        bool are_types_equal = type_equals( param_type, arg_type );
+        if( !implicit_cast_attempt && !are_types_equal)
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
@@ -400,8 +480,23 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
                 },
             };
             report_error( error );
+
             return false;
         }
+
+        /* if( !type_equals( param_type, arg_type ) ) */
+        /* { */
+        /*     Error error = { */
+        /*         .kind = ERRORKIND_TYPEMISMATCH, */
+        /*         .offending_token = arg->starting_token, */
+        /*         .type_mismatch = { */
+        /*             .expected = param_type, */
+        /*             .found = arg_type, */
+        /*         }, */
+        /*     }; */
+        /*     report_error( error ); */
+        /*     return false; */
+        /* } */
     }
 
     if( inferred_type != NULL )
@@ -613,7 +708,10 @@ static bool check_variable_declaration( Expression* expression )
         {
             declared_type = inferred_type;
         }
-        else if( !type_equals( declared_type, inferred_type ) )
+
+        bool implicit_cast_attempt = try_implicit_cast( declared_type, &inferred_type );
+        bool are_types_equal = type_equals( declared_type, inferred_type );
+        if( !implicit_cast_attempt && !are_types_equal)
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
@@ -758,7 +856,10 @@ bool check_return( Expression* expression )
     }
 
     Type expected_return_type = get_top_return_type();
-    if( !type_equals( found_return_type, expected_return_type ) )
+
+    bool implicit_cast_attempt = try_implicit_cast( expected_return_type, &found_return_type );
+    bool are_types_equal = type_equals( expected_return_type, found_return_type );
+    if( !implicit_cast_attempt && !are_types_equal)
     {
         Token associated_token;
         if( found_return_type.kind == TYPEKIND_VOID )
@@ -779,6 +880,7 @@ bool check_return( Expression* expression )
             },
         };
         report_error( error );
+
         return false;
     }
 
@@ -813,17 +915,20 @@ bool check_assignment( Expression* expression )
 
     // check if types match with original declaration
     Type expected_type = original_declaration->type;
-    if( !type_equals( expected_type, found_type ) )
+    bool implicit_cast_attempt = try_implicit_cast( expected_type, &found_type );
+    bool are_types_equal = type_equals( expected_type, found_type );
+    if( !implicit_cast_attempt && !are_types_equal)
     {
         Error error = {
             .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->assignment.rvalue->associated_token,
+            .offending_token = expression->assignment.rvalue->starting_token,
             .type_mismatch = {
                 .expected = expected_type,
                 .found = found_type,
             },
         };
         report_error( error );
+
         return false;
     }
 
