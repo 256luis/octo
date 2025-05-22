@@ -460,10 +460,10 @@ static Type parse_type()
         {
             result.kind = TYPEKIND_CHARACTER;
         }
-        else if( strcmp( type_identifier, "string" ) == 0 )
-        {
-            result.kind = TYPEKIND_STRING;
-        }
+        /* else if( strcmp( type_identifier, "string" ) == 0 ) */
+        /* { */
+        /*     result.kind = TYPEKIND_STRING; */
+        /* } */
         else if( strcmp( type_identifier, "bool" ) == 0 )
         {
             result.kind = TYPEKIND_BOOLEAN;

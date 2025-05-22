@@ -87,7 +87,7 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_FLOAT ]     = "float",
     [ TYPEKIND_CHARACTER ] = "char",
     [ TYPEKIND_BOOLEAN ]   = "bool",
-    [ TYPEKIND_STRING ]    = "string",
+    // [ TYPEKIND_STRING ]    = "string",
     [ TYPEKIND_CUSTOM ]    = "CUSTOM",
     [ TYPEKIND_POINTER ]   = "POINTER",
     [ TYPEKIND_FUNCTION ]  = "FUNCTION",
@@ -103,7 +103,7 @@ void debug_print_type( Type type )
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-        case TYPEKIND_STRING:
+            // case TYPEKIND_STRING:
         {
             // do nothing
             break;

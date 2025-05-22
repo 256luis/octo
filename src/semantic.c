@@ -116,7 +116,7 @@ bool type_equals( Type t1, Type t2 )
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-        case TYPEKIND_STRING:
+            // case TYPEKIND_STRING:
         {
             result = true;
             break;
@@ -229,7 +229,7 @@ bool check_type( Type type, Token type_token )
         case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-        case TYPEKIND_STRING:
+            // case TYPEKIND_STRING:
         {
             return true;
             break;
@@ -361,7 +361,7 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
             ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_FLOAT },
             ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_INTEGER },
             ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
-            ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
+            // ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
             ( TypeKindPair ){ TYPEKIND_CHARACTER, TYPEKIND_CHARACTER },
             TYPEKINDPAIR_TERMINATOR,
         },
@@ -372,7 +372,7 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
             ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_FLOAT },
             ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_INTEGER },
             ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
-            ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
+            // ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
             ( TypeKindPair ){ TYPEKIND_CHARACTER, TYPEKIND_CHARACTER },
             TYPEKINDPAIR_TERMINATOR,
         },
@@ -711,9 +711,18 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
     switch( expression->kind )
     {
-        case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
+        // case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
         case EXPRESSIONKIND_BOOLEAN:   inferred_type->kind = TYPEKIND_BOOLEAN; break;
+        case EXPRESSIONKIND_STRING:
+        {
+            inferred_type->kind = TYPEKIND_POINTER;
+
+            // I HATE HOW I HAVE TO ALLOCATE HERE!!!!!!
+            inferred_type->pointer.type = malloc( sizeof( Type ) );
+            inferred_type->pointer.type->kind = TYPEKIND_CHARACTER;
+            break;
+        }
 
         case EXPRESSIONKIND_INTEGER:
         {

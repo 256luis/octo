@@ -116,7 +116,7 @@ void print_type( Type type )
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-        case TYPEKIND_STRING:
+            // case TYPEKIND_STRING:
         {
             printf( "%s", type_kind_to_string[ type.kind ] );
             break;
