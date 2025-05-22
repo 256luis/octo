@@ -11,7 +11,6 @@ typedef enum TypeKind
     TYPEKIND_FLOAT,
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
-    // TYPEKIND_STRING,
     TYPEKIND_FUNCTION,
     TYPEKIND_POINTER,
     TYPEKIND_CUSTOM,
@@ -22,7 +21,6 @@ typedef enum TypeKind
 typedef struct Type
 {
     TypeKind kind;
-    // Token associated_token;
 
     union
     {

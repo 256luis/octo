@@ -117,7 +117,6 @@ bool type_equals( Type t1, Type t2 )
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-            // case TYPEKIND_STRING:
         {
             result = true;
             break;
@@ -152,7 +151,28 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_FUNCTION:
         {
-            UNIMPLEMENTED();
+            if( t1.function.param_count != t2.function.param_count )
+            {
+                return false;
+            }
+
+            if( t1.function.return_type != t2.function.return_type )
+            {
+                return false;
+            }
+
+            result = true; // initialize to true
+            int param_count = t1.function.param_count;
+            for( int i = 0; i < param_count; i++ )
+            {
+                Type t1_param_type = t1.function.param_types[ i ];
+                Type t2_param_type = t2.function.param_types[ i ];
+                if( !type_equals( t1_param_type, t2_param_type ) )
+                {
+                    result = false;
+                }
+            }
+
             break;
         }
 
@@ -230,7 +250,6 @@ bool check_type( Type type, Token type_token )
         case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-            // case TYPEKIND_STRING:
         {
             return true;
             break;
@@ -260,6 +279,7 @@ bool check_type( Type type, Token type_token )
                 report_error( error );
                 return false;
             }
+            return true;
             break;
         }
 
