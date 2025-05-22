@@ -323,6 +323,22 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_MISSINGFUNCTIONBODY:
+        {
+            printf( "non-extern function must have a body\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_EXTERNWITHBODY:
+        {
+            printf( "extern function must not have a body\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();

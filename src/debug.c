@@ -10,6 +10,7 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_LET ]          = "let",
     [ TOKENKIND_RETURN ]       = "return",
     [ TOKENKIND_FUNC ]         = "func",
+    [ TOKENKIND_EXTERN ]       = "extern",
     [ TOKENKIND_INTEGER ]      = "INTEGER",
     [ TOKENKIND_FLOAT ]        = "FLOAT",
     [ TOKENKIND_IDENTIFIER ]   = "IDENTIFIER",
@@ -59,6 +60,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_COMPOUND ]            = "COMPOUND",
     [ EXPRESSIONKIND_RETURN ]              = "RETURN",
     [ EXPRESSIONKIND_ASSIGNMENT ]          = "ASSIGNMENT",
+    [ EXPRESSIONKIND_EXTERN ]              = "EXTERN",
 };
 
 char* binary_operation_to_string[] = {
@@ -87,7 +89,6 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_FLOAT ]     = "float",
     [ TYPEKIND_CHARACTER ] = "char",
     [ TYPEKIND_BOOLEAN ]   = "bool",
-    // [ TYPEKIND_STRING ]    = "string",
     [ TYPEKIND_CUSTOM ]    = "CUSTOM",
     [ TYPEKIND_POINTER ]   = "POINTER",
     [ TYPEKIND_FUNCTION ]  = "FUNCTION",
@@ -103,7 +104,6 @@ void debug_print_type( Type type )
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-            // case TYPEKIND_STRING:
         {
             // do nothing
             break;
@@ -390,6 +390,19 @@ void expression_print( Expression* expression )
             printf( "}" );
 
             break;
+        }
+
+        case EXPRESSIONKIND_EXTERN:
+        {
+            printf( " {\n" );
+            depth++;
+
+            expression_print( expression->extern_expression.function );
+
+            depth--;
+            INDENT();
+            printf( "}" );
+
         }
 
         default:

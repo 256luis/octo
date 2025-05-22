@@ -11,16 +11,18 @@
 
 #define EXPECT( ... )\
     _expect( ( TokenKind[] ){ __VA_ARGS__ },\
-             sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
+             sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ),\
+             __LINE__ )
 
 #define EXPECT_NEXT( ... )\
     _expect_next( ( TokenKind[] ){ __VA_ARGS__ },\
-             sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
+                  sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ),\
+                  __LINE__ )
 
 static Parser parser;
 static Token* tokens;
 
-static bool _expect( TokenKind* expected_token_kinds, size_t length )
+static bool _expect( TokenKind* expected_token_kinds, size_t length, int line )
 {
     bool is_valid = false;
     for( size_t i = 0; i < length; i++ )
@@ -33,7 +35,7 @@ static bool _expect( TokenKind* expected_token_kinds, size_t length )
     }
     if( !is_valid )
     {
-        printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );
+        printf( "ERROR CALLED FROM LINE %d\n", line );
         Error error = {
             .kind = ERRORKIND_UNEXPECTEDSYMBOL,
             .offending_token = parser.current_token,
@@ -44,7 +46,7 @@ static bool _expect( TokenKind* expected_token_kinds, size_t length )
     return is_valid;
 }
 
-static bool _expect_next( TokenKind* expected_token_kinds, size_t length )
+static bool _expect_next( TokenKind* expected_token_kinds, size_t length, int line )
 {
     bool is_valid = false;
     for( size_t i = 0; i < length; i++ )
@@ -57,7 +59,7 @@ static bool _expect_next( TokenKind* expected_token_kinds, size_t length )
     }
     if( !is_valid )
     {
-        printf( "ERROR CALLED FROM LINE %d\n", __LINE__ );
+        printf( "ERROR CALLED FROM LINE %d\n", line );
         Error error = {
             .kind = ERRORKIND_UNEXPECTEDSYMBOL,
             .offending_token = parser.current_token,
@@ -715,15 +717,18 @@ Expression* parse_function_declaration()
     expression->function_declaration.return_type_token = parser.current_token;
 
     advance();
-    if( !EXPECT( TOKENKIND_LEFTBRACE ) )
+    if( !EXPECT( TOKENKIND_LEFTBRACE, TOKENKIND_SEMICOLON ) )
     {
         return NULL;
     }
 
-    expression->function_declaration.body = parse_compound();
-    if( expression->function_declaration.body == NULL )
+    if( parser.current_token.kind == TOKENKIND_LEFTBRACE )
     {
-        return NULL;
+        expression->function_declaration.body = parse_compound();
+        if( expression->function_declaration.body == NULL )
+        {
+            return NULL;
+        }
     }
 
     return expression;
@@ -795,6 +800,25 @@ Expression* parse_assignment()
     {
         return NULL;
     }
+
+    return expression;
+}
+
+static Expression* parse_extern()
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_EXTERN;
+    expression->starting_token = parser.current_token;
+
+    advance();
+    if( !EXPECT( TOKENKIND_FUNC ) )
+    {
+        return NULL;
+    }
+
+    expression->extern_expression.function = parse_function_declaration();
 
     return expression;
 }
@@ -879,6 +903,12 @@ Expression* parse( Token* _tokens )
         case TOKENKIND_RETURN:
         {
             expression = parse_return();
+            break;
+        }
+
+        case TOKENKIND_EXTERN:
+        {
+            expression = parse_extern();
             break;
         }
 

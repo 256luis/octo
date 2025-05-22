@@ -213,9 +213,18 @@ static void generate_function_declaration( Expression* expression )
             append( ", " );
         }
     }
-    append( ")\n"  );
+    append( ")"  );
 
-    generate_compound( expression->function_declaration.body );
+    Expression* function_body = expression->function_declaration.body;
+    if( function_body != NULL )
+    {
+        append( "\n" );
+        generate_compound( function_body );
+    }
+    else
+    {
+        append( ";\n" );
+    }
 }
 
 static void generate_return( Expression* expression )
@@ -314,6 +323,12 @@ FILE* generate_code( Expression* expression )
         {
             generate_function_call( expression );
             append( ";\n" );
+            break;
+        }
+
+        case EXPRESSIONKIND_EXTERN:
+        {
+            generate_function_declaration( expression->extern_expression.function );
             break;
         }
 

@@ -100,6 +100,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_COMPOUND,
     EXPRESSIONKIND_RETURN,
     EXPRESSIONKIND_ASSIGNMENT,
+    EXPRESSIONKIND_EXTERN,
 } ExpressionKind;
 
 typedef struct Expression
@@ -198,6 +199,11 @@ typedef struct Expression
 
             struct Expression* rvalue;
         } assignment;
+
+        struct
+        {
+            struct Expression* function;
+        } extern_expression;
     };
 } Expression;
 

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include "debug.h"
@@ -866,7 +867,7 @@ static bool check_compound( Expression* expression )
     return is_valid;
 }
 
-static bool check_function_declaration( Expression* expression )
+static bool check_function_declaration( Expression* expression, bool is_extern )
 {
     Token identifier_token = expression->function_declaration.identifier_token;
 
@@ -938,9 +939,32 @@ static bool check_function_declaration( Expression* expression )
 
     // check function body
     Expression* function_body = expression->function_declaration.body;
-    bool is_body_valid = check_compound( function_body );
-    pop_scope();
+    if( function_body == NULL && !is_extern )
+    {
+        Error error = {
+            .kind = ERRORKIND_MISSINGFUNCTIONBODY,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+    else if( function_body != NULL && is_extern )
+    {
+        Error error = {
+            .kind = ERRORKIND_EXTERNWITHBODY,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
 
+    bool is_body_valid = true;
+    if( !is_extern )
+    {
+        is_body_valid = check_compound( function_body );
+    }
+
+    pop_scope();
     pop_return_type();
 
     if( !is_body_valid )
@@ -1087,7 +1111,7 @@ bool check_semantics( Expression* expression )
 
         case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
-            is_valid = check_function_declaration( expression );
+            is_valid = check_function_declaration( expression, false );
             break;
         }
 
@@ -1106,6 +1130,12 @@ bool check_semantics( Expression* expression )
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
             is_valid = check_function_call( expression, NULL );
+            break;
+        }
+
+        case EXPRESSIONKIND_EXTERN:
+        {
+            is_valid = check_function_declaration( expression->extern_expression.function, true );
             break;
         }
 
