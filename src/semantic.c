@@ -1,4 +1,3 @@
-#include <limits.h>
 #include <string.h>
 #include <math.h>
 #include "debug.h"
@@ -114,6 +113,7 @@ bool type_equals( Type t1, Type t2 )
     bool result;
     switch( t1.kind )
     {
+        case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_STRING:
@@ -224,6 +224,11 @@ bool check_types( Type t1, Type* out_t2, Error* out_error )
 {
     Error error;
     bool result = true;
+
+    if( type_equals( t1, *out_t2 ) )
+    {
+        return true;
+    }
 
     bool implicit_cast_attempt = try_implicit_cast( t1, out_t2 );
     if( !implicit_cast_attempt )
