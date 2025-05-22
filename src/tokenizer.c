@@ -269,6 +269,10 @@ Token* tokenize()
     tokenizer.in_string = false;
     tokenizer.in_character = false;
 
+    // this is needed because the parser will only parse multiple statements if
+    // they are enclosed in `{}`
+    lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_LEFTBRACE } );
+
     while( advance() )
     {
         // string handling
@@ -521,6 +525,10 @@ Token* tokenize()
     {
         finalize_symbol( &tokens );
     }
+
+    // this is needed because the parser will only parse multiple statements if
+    // they are enclosed in `{}`
+    lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_RIGHTBRACE } );
 
     // eof token
     Token eof = {
