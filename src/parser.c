@@ -164,6 +164,18 @@ static Expression* parse_character()
     return expression;
 }
 
+
+static Expression* parse_boolean()
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression ==  NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_BOOLEAN;
+    expression->boolean = parser.current_token.boolean;
+
+    return expression;
+}
+
 static Expression* parse_base_expression()
 {
     Expression* expression;
@@ -175,6 +187,7 @@ static Expression* parse_base_expression()
         case TOKENKIND_IDENTIFIER: expression = parse_identifier(); break;
         case TOKENKIND_STRING:     expression = parse_string();     break;
         case TOKENKIND_CHARACTER:  expression = parse_character();  break;
+        case TOKENKIND_BOOLEAN:    expression = parse_boolean();  break;
         default: UNREACHABLE();
     }
 
@@ -310,6 +323,7 @@ static Expression* parse_rvalue()
         case TOKENKIND_FLOAT:
         case TOKENKIND_STRING:
         case TOKENKIND_CHARACTER:
+        case TOKENKIND_BOOLEAN:
         {
             expression = parse_base_expression();
             break;

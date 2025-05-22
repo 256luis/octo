@@ -713,6 +713,7 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
     {
         case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER: inferred_type->kind = TYPEKIND_CHARACTER; break;
+        case EXPRESSIONKIND_BOOLEAN:   inferred_type->kind = TYPEKIND_BOOLEAN; break;
 
         case EXPRESSIONKIND_INTEGER:
         {
@@ -788,10 +789,6 @@ static bool check_variable_declaration( Expression* expression )
 
     // if the declared type is custom, check if the symbol for the custom type name exists
     Type declared_type = expression->variable_declaration.type;
-    if( !check_type( declared_type, expression->variable_declaration.type_token ) )
-    {
-        return false;
-    }
 
     // check if the type at the left hand side matches the type on the right hand
     // side, or if there is an implicit cast possible.
@@ -809,6 +806,10 @@ static bool check_variable_declaration( Expression* expression )
         if( declared_type.kind == TYPEKIND_TOINFER )
         {
             declared_type = inferred_type;
+        }
+        else if( !check_type( declared_type, expression->variable_declaration.type_token ) )
+        {
+            return false;
         }
 
         Error error;
@@ -1030,6 +1031,33 @@ bool check_semantics( Expression* expression )
 
         context.symbol_table_stack = lvec_new( SymbolTable );
         context.return_type_stack = lvec_new( Type );
+
+        Symbol true_symbol = {
+            .token = ( Token ){
+                .kind = TOKENKIND_IDENTIFIER,
+                .as_string = "true",
+                .identifier = "true",
+            },
+            .type = ( Type ){
+                .kind = TYPEKIND_BOOLEAN,
+            },
+        };
+
+        Symbol false_symbol = {
+            .token = ( Token ){
+                .kind = TOKENKIND_IDENTIFIER,
+                .as_string = "false",
+                .identifier = "false",
+            },
+            .type = ( Type ){
+                .kind = TYPEKIND_BOOLEAN,
+            },
+        };
+
+        push_scope();
+
+        add_symbol_to_scope( true_symbol );
+        add_symbol_to_scope( false_symbol );
     }
 
     bool is_valid;

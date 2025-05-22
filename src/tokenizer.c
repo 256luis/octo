@@ -97,6 +97,8 @@ static TokenKind word_symbol_to_token_kind( const char* word_symbol )
     if( strcmp( word_symbol, "let" ) == 0 )    return TOKENKIND_LET;
     if( strcmp( word_symbol, "func" ) == 0 )   return TOKENKIND_FUNC;
     if( strcmp( word_symbol, "return" ) == 0 ) return TOKENKIND_RETURN;
+    if( strcmp( word_symbol, "true" ) == 0 )   return TOKENKIND_BOOLEAN;
+    if( strcmp( word_symbol, "false" ) == 0 )  return TOKENKIND_BOOLEAN;
 
     return TOKENKIND_IDENTIFIER;
 
@@ -232,6 +234,10 @@ static void finalize_symbol( Token** tokens )
                         if( token.identifier == NULL ) ALLOC_ERROR();
 
                         strcpy( token.identifier, tokenizer.symbol );
+                    }
+                    else if( token.kind == TOKENKIND_BOOLEAN )
+                    {
+                        token.boolean = strcmp( token.as_string, "true" ) ? true : false;
                     }
 
                     break;

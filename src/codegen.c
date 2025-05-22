@@ -132,6 +132,12 @@ static void generate_rvalue( Expression* expression )
             break;
         }
 
+        case EXPRESSIONKIND_BOOLEAN:
+        {
+            append( "%s", expression->associated_token.as_string );
+            break;
+        }
+
         case EXPRESSIONKIND_BINARY:
         {
             append( "(" );

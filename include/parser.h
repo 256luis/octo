@@ -92,6 +92,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_UNARY,
     EXPRESSIONKIND_FUNCTIONCALL,
+    EXPRESSIONKIND_BOOLEAN,
 
     // not rvalues
     EXPRESSIONKIND_VARIABLEDECLARATION,
@@ -119,6 +120,7 @@ typedef struct Expression
         char* identifier;
         char* string;
         char character;
+        bool boolean;
 
         // recursive expressions
         struct
