@@ -307,6 +307,7 @@ FILE* generate_code( Expression* expression )
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
             generate_function_call( expression );
+            append( ";\n" );
             break;
         }
 
