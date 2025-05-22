@@ -24,6 +24,7 @@ typedef enum ErrorKind
     ERRORKIND_UNDECLAREDSYMBOL,
     ERRORKIND_TOOMANYARGUMENTS,
     ERRORKIND_INVALIDADDRESSOF,
+    ERRORKIND_INVALIDIMPLICITCAST,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -70,6 +71,12 @@ typedef struct Error
             int expected;
             int found;
         } too_many_arguments;
+
+        struct
+        {
+            Type to;
+            Type from;
+        } invalid_implicit_cast;
     };
 } Error;
 

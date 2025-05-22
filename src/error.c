@@ -267,15 +267,27 @@ void report_error( Error error )
             Type expected_type = error.type_mismatch.expected;
             Type found_type = error.type_mismatch.found;
 
-            /* printf( "expected type '%s', found '%s'\n", */
-            /*         type_kind_to_string[ expected_type.kind ], */
-            /*         type_kind_to_string[ found_type.kind ] ); */
-
             printf( "expected type \'" );
             print_type( expected_type );
             printf( "\', found type \'" );
             print_type( found_type );
             printf( "\'\n" );
+
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_INVALIDIMPLICITCAST:
+        {
+            Type to_type = error.invalid_implicit_cast.to;
+            Type from_type = error.invalid_implicit_cast.from;
+
+            printf( "implicit cast from \'" );
+            print_type( from_type );
+            printf( "\' to \'" );
+            print_type( to_type );
+            printf( "\' is not allowed\n" );
 
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
