@@ -31,6 +31,7 @@ typedef struct Type
         {
             struct Type* param_types;
             struct Type* return_type;
+            int param_count;
         } function;
 
         struct

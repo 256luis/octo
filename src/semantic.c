@@ -500,7 +500,7 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
     // check if args count match param count
     Type* param_types = original_declaration->type.function.param_types;
 
-    int param_count = lvec_get_length( param_types );
+    int param_count = original_declaration->type.function.param_count;
     int arg_count = expression->function_call.arg_count;
     if( arg_count != param_count )
     {
@@ -816,6 +816,7 @@ static bool check_function_declaration( Expression* expression )
 
     Type* param_types = expression->function_declaration.param_types;
     Type* return_type = &expression->function_declaration.return_type;
+    int param_count = expression->function_declaration.param_count;
 
     // add to symbol table
     Symbol symbol = {
@@ -824,7 +825,8 @@ static bool check_function_declaration( Expression* expression )
             .kind = TYPEKIND_FUNCTION,
             .function = {
                 .param_types = param_types,
-                .return_type = return_type
+                .return_type = return_type,
+                .param_count = param_count,
             }
         },
     };
