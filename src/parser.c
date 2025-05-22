@@ -515,6 +515,7 @@ static Expression* parse_variable_declaration()
         }
 
         expression->variable_declaration.type = parse_type();
+        expression->variable_declaration.type_token = parser.current_token;
 
         advance();
         if( !EXPECT( TOKENKIND_SEMICOLON, TOKENKIND_EQUAL ) )

@@ -220,7 +220,57 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
     return result;
 }
 
-bool check_types( Type t1, Type* out_t2, Error* out_error )
+bool check_type( Type type, Token type_token )
+{
+    switch( type.kind )
+    {
+        case TYPEKIND_VOID:
+        case TYPEKIND_INTEGER:
+        case TYPEKIND_FLOAT:
+        case TYPEKIND_CHARACTER:
+        case TYPEKIND_BOOLEAN:
+        case TYPEKIND_STRING:
+        {
+            return true;
+            break;
+        }
+
+        case TYPEKIND_FUNCTION:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            return check_type( *type.pointer.type, type_token );
+            break;
+        }
+
+        case TYPEKIND_CUSTOM:
+        {
+            Symbol* symbol = symbol_lookup( type.custom_identifier );
+            if( symbol == NULL )
+            {
+                Error error = {
+                    .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                    .offending_token = type_token,
+                };
+                report_error( error );
+                return false;
+            }
+            break;
+        }
+
+        default: // TOINFER and INVALID
+        {
+            UNREACHABLE();
+            break;
+        }
+    }
+}
+
+bool check_type_compatibility( Type t1, Type* out_t2, Error* out_error )
 {
     Error error;
     bool result = true;
@@ -536,8 +586,8 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
         }
 
         Error error;
-        bool are_types_valid = check_types( param_type, &arg_type, &error );
-        if( !are_types_valid )
+        bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error );
+        if( !are_types_compatible )
         {
             error.offending_token = arg->starting_token;
             report_error( error );
@@ -736,10 +786,15 @@ static bool check_variable_declaration( Expression* expression )
         return false;
     }
 
-    // check if the type at the left hand side matches the type on the right hand
-    // side (if not ommitted)
-
+    // if the declared type is custom, check if the symbol for the custom type name exists
     Type declared_type = expression->variable_declaration.type;
+    if( !check_type( declared_type, expression->variable_declaration.type_token ) )
+    {
+        return false;
+    }
+
+    // check if the type at the left hand side matches the type on the right hand
+    // side, or if there is an implicit cast possible.
     Type inferred_type;
     Expression* rvalue = expression->variable_declaration.rvalue;
     if( rvalue != NULL )
@@ -757,8 +812,8 @@ static bool check_variable_declaration( Expression* expression )
         }
 
         Error error;
-        bool are_types_valid = check_types( declared_type, &inferred_type, &error );
-        if( !are_types_valid )
+        bool are_types_compatible = check_type_compatibility( declared_type, &inferred_type, &error );
+        if( !are_types_compatible )
         {
             error.offending_token = expression->variable_declaration.rvalue->starting_token;
             report_error( error );
@@ -843,6 +898,11 @@ static bool check_function_declaration( Expression* expression )
     {
         Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
         Type param_type = expression->function_declaration.param_types[ i ];
+        Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
+        if( !check_type( param_type, param_type_token ) )
+        {
+            return false;
+        }
 
         Symbol* declaration = symbol_lookup( param_identifier_token.identifier );
         if( declaration != NULL )
@@ -899,8 +959,8 @@ bool check_return( Expression* expression )
     Type expected_return_type = get_top_return_type();
 
     Error error;
-    bool are_types_valid = check_types( expected_return_type, &found_return_type, &error );
-    if( !are_types_valid )
+    bool are_types_compatible = check_type_compatibility( expected_return_type, &found_return_type, &error );
+    if( !are_types_compatible )
     {
         Token associated_token;
         if( found_return_type.kind == TYPEKIND_VOID )
@@ -949,8 +1009,8 @@ bool check_assignment( Expression* expression )
     // check if types match with original declaration
     Type expected_type = original_declaration->type;
     Error error;
-    bool are_types_valid = check_types( expected_type, &found_type, &error );
-    if( !are_types_valid )
+    bool are_types_compatible = check_type_compatibility( expected_type, &found_type, &error );
+    if( !are_types_compatible )
     {
         error.offending_token = expression->assignment.rvalue->starting_token;
         report_error( error );
