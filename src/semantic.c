@@ -628,6 +628,18 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
 
 static bool is_unary_operation_valid( UnaryOperation operation, Type type )
 {
+    Type void_pointer = {
+        .kind = TYPEKIND_POINTER,
+        .pointer.type = &( Type ){
+            .kind = TYPEKIND_VOID,
+        },
+    };
+
+    if( operation == UNARYOPERATION_DEREFERENCE && type_equals( type, void_pointer ) )
+    {
+        return false;
+    }
+
     TypeKind* valid_unary_operation[] = {
         [ UNARYOPERATION_NEGATIVE ] = ( TypeKind[] ) {
             TYPEKIND_INTEGER, TYPEKIND_FLOAT, -1,
@@ -720,7 +732,14 @@ static bool check_unary( Expression* expression, Type* inferred_type )
             return false;
         }
 
-        *inferred_type = operand_type;
+        if( operation == UNARYOPERATION_DEREFERENCE )
+        {
+            *inferred_type = *operand_type.pointer.type;
+        }
+        else
+        {
+            *inferred_type = operand_type;
+        }
     }
 
     return true;
@@ -819,7 +838,7 @@ static bool check_variable_declaration( Expression* expression )
     }
 
     // if the declared type is custom, check if the symbol for the custom type name exists
-    Type declared_type = expression->variable_declaration.type;
+    Type final_type = expression->variable_declaration.type;
 
     // check if the type at the left hand side matches the type on the right hand
     // side, or if there is an implicit cast possible.
@@ -834,17 +853,17 @@ static bool check_variable_declaration( Expression* expression )
             return false;
         }
 
-        if( declared_type.kind == TYPEKIND_TOINFER )
+        if( final_type.kind == TYPEKIND_TOINFER )
         {
-            declared_type = inferred_type;
+            final_type = inferred_type;
         }
-        else if( !check_type( declared_type, expression->variable_declaration.type_token ) )
+        else if( !check_type( final_type, expression->variable_declaration.type_token ) )
         {
             return false;
         }
 
         Error error;
-        bool are_types_compatible = check_type_compatibility( declared_type, &inferred_type, &error );
+        bool are_types_compatible = check_type_compatibility( final_type, &inferred_type, &error );
         if( !are_types_compatible )
         {
             error.offending_token = expression->variable_declaration.rvalue->starting_token;
@@ -852,13 +871,22 @@ static bool check_variable_declaration( Expression* expression )
             return false;
         }
     }
+    else if( final_type.kind == TYPEKIND_VOID )
+    {
+        Error error = {
+            .kind = ERRORKIND_VOIDVARIABLE,
+            .offending_token = expression->variable_declaration.type_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    expression->variable_declaration.type = declared_type;
+    expression->variable_declaration.type = final_type;
 
     // add to symbol table
     Symbol symbol = {
         .token = identifier_token,
-        .type = declared_type,
+        .type = final_type,
     };
     add_symbol_to_scope( symbol );
 

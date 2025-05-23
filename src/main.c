@@ -41,17 +41,10 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    /* for( size_t i = 0; i < lvec_get_length( program->associated_tokens ); i++ ) */
-    /* { */
-    /*     Token token = program->associated_tokens[ i ]; */
-    /*     printf( "%s ", token.as_string ); */
-    /* } */
-
     FILE* generated_c = generate_code( program );
     fclose( generated_c );
 
-    system("tcc -run generated.c");
+    // temporarily use this to test
+    system("tcc -run generated.c -std=c99");
     // system("del generated.c");
-
-    // expression_print( program );
 }

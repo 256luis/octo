@@ -166,9 +166,10 @@ static void generate_rvalue( Expression* expression )
         {
             switch( expression->unary.operation )
             {
-                case UNARYOPERATION_NEGATIVE:  append( "-" ); break;
-                case UNARYOPERATION_NOT:       append( "!" ); break;
-                case UNARYOPERATION_ADDRESSOF: append( "&" ); break;
+                case UNARYOPERATION_NEGATIVE:    append( "-" ); break;
+                case UNARYOPERATION_NOT:         append( "!" ); break;
+                case UNARYOPERATION_ADDRESSOF:   append( "&" ); break;
+                case UNARYOPERATION_DEREFERENCE: append( "*" ); break;
             }
             generate_rvalue( expression->unary.operand );
 
