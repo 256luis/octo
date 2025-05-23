@@ -162,6 +162,7 @@ Octo contains the following built-in types:
 | `char` | 1 | character |
 | `bool` | 1 | boolean |
 | `&T` | 8 | pointer to `T` |
+
 Octo is strict with types. Implicit casts from signed to unsigned types and the reverse are not allowed. Implicit casts from integer to floating point types and the reverse are also not allowed. Numeric types (floats and integers) can only be implicitly casted from lower size to higher size (e.g. `i16 -> i32`, `f32 -> f64`) but the reverse is not allowed.
 ```rust
 let my_int = 123;          // type of my_int is i32
