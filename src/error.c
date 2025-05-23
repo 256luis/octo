@@ -339,6 +339,14 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_WHILEWITHELSE:
+        {
+            printf( "\'while\'-loops cannot have an 'else' block\n");
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();

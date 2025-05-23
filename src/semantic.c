@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -1074,6 +1075,56 @@ bool check_assignment( Expression* expression )
     return true;
 }
 
+static bool check_conditional( Expression* expression )
+{
+    // check the condition (must evaluate to bool type)
+    Type condition_type;
+    bool condition_is_valid = check_rvalue( expression->conditional.condition, &condition_type );
+    if( !condition_is_valid )
+    {
+        return false;
+    }
+
+    if( condition_type.kind != TYPEKIND_BOOLEAN )
+    {
+        Type expected_type = { .kind = TYPEKIND_BOOLEAN };
+        Error error = {
+            .kind = ERRORKIND_TYPEMISMATCH,
+            .offending_token = expression->conditional.condition->starting_token,
+            .type_mismatch = {
+                .expected = expected_type,
+                .found = condition_type
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    // while loops must NOT have an else
+    Expression* false_body = expression->conditional.false_body;
+    if( expression->conditional.is_loop && false_body != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_WHILEWITHELSE,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    // check true and false bodies (if applicable)
+    if( !check_semantics( expression->conditional.true_body ) )
+    {
+        return false;
+    }
+    if( false_body != NULL && !check_semantics( false_body ) )
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool check_semantics( Expression* expression )
 {
     // initialize semantic_context;
@@ -1156,6 +1207,12 @@ bool check_semantics( Expression* expression )
         case EXPRESSIONKIND_EXTERN:
         {
             is_valid = check_function_declaration( expression->extern_expression.function, true );
+            break;
+        }
+
+        case EXPRESSIONKIND_CONDITIONAL:
+        {
+            is_valid = check_conditional( expression );
             break;
         }
 

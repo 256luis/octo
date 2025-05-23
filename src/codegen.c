@@ -36,7 +36,7 @@ static void generate_compound( Expression* expression )
     depth--;
     if( depth != 0)
     {
-        append( "}\n\n" );
+        append( "}\n" );
     }
 }
 
@@ -266,6 +266,20 @@ static void generate_function_call( Expression* expression )
 
 }
 
+static void generate_conditional( Expression* expression )
+{
+    append( "%s (", expression->conditional.is_loop ? "while" : "if" );
+    generate_rvalue( expression->conditional.condition );
+    append( ")\n" );
+    generate_code( expression->conditional.true_body );
+
+    if( expression->conditional.false_body != NULL )
+    {
+        append( "else " );
+        generate_code( expression->conditional.false_body );
+    }
+}
+
 FILE* generate_code( Expression* expression )
 {
     static bool is_file_initialized = false;
@@ -329,6 +343,12 @@ FILE* generate_code( Expression* expression )
         case EXPRESSIONKIND_EXTERN:
         {
             generate_function_declaration( expression->extern_expression.function );
+            break;
+        }
+
+        case EXPRESSIONKIND_CONDITIONAL:
+        {
+            generate_conditional( expression );
             break;
         }
 
