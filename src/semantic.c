@@ -871,8 +871,16 @@ static bool check_variable_declaration( Expression* expression )
         return false;
     }
 
-    // if the declared type is custom, check if the symbol for the custom type name exists
     Type final_type = expression->variable_declaration.type;
+    if( final_type.kind == TYPEKIND_VOID )
+    {
+        Error error = {
+            .kind = ERRORKIND_VOIDVARIABLE,
+            .offending_token = expression->variable_declaration.type_token,
+        };
+        report_error( error );
+        return false;
+    }
 
     // check if the type at the left hand side matches the type on the right hand
     // side, or if there is an implicit cast possible.
@@ -884,6 +892,16 @@ static bool check_variable_declaration( Expression* expression )
         bool is_valid = check_rvalue( rvalue, &inferred_type );
         if( !is_valid )
         {
+            return false;
+        }
+
+        if( inferred_type.kind == TYPEKIND_VOID )
+        {
+            Error error = {
+                .kind = ERRORKIND_VOIDVARIABLE,
+                .offending_token = expression->variable_declaration.rvalue->starting_token,
+            };
+            report_error( error );
             return false;
         }
 
@@ -904,15 +922,6 @@ static bool check_variable_declaration( Expression* expression )
             report_error( error );
             return false;
         }
-    }
-    else if( final_type.kind == TYPEKIND_VOID )
-    {
-        Error error = {
-            .kind = ERRORKIND_VOIDVARIABLE,
-            .offending_token = expression->variable_declaration.type_token,
-        };
-        report_error( error );
-        return false;
     }
 
     expression->variable_declaration.type = final_type;
