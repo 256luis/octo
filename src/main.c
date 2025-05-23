@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "codegen.h"
 #include "error.h"
 #include "lvec.h"
@@ -48,6 +49,9 @@ int main( int argc, char* argv[] )
 
     FILE* generated_c = generate_code( program );
     fclose( generated_c );
+
+    system("tcc -run generated.c");
+    // system("del generated.c");
 
     // expression_print( program );
 }

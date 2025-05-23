@@ -280,8 +280,28 @@ Token* tokenize()
     // they are enclosed in `{}`
     lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_LEFTBRACE } );
 
+    bool in_comment = false;
     while( advance() )
     {
+        // comment handling
+        if( in_comment )
+        {
+            if( tokenizer.character == '\n' )
+            {
+                in_comment = false;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        if( tokenizer.character == '/' && tokenizer.next_character == '/' )
+        {
+            in_comment = true;
+            continue;
+        }
+
         // string handling
         if( tokenizer.character == '\"')
         {
