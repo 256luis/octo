@@ -96,6 +96,7 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_CUSTOM ]    = "CUSTOM",
     [ TYPEKIND_POINTER ]   = "POINTER",
     [ TYPEKIND_FUNCTION ]  = "FUNCTION",
+    [ TYPEKIND_ARRAY ]     = "ARRAY",
     [ TYPEKIND_TOINFER ]   = "TOINFER",
     [ TYPEKIND_INVALID ]   = "INVALID",
 };
@@ -145,6 +146,14 @@ void debug_print_type( Type type )
         case TYPEKIND_FUNCTION:
         {
             UNIMPLEMENTED();
+            break;
+        }
+
+        case TYPEKIND_ARRAY:
+        {
+            printf( "(" );
+            debug_print_type( *type.array.type );
+            printf( "; %d)", type.array.length );
             break;
         }
 

@@ -298,7 +298,7 @@ static Expression* parse_rvalue()
                 break;
             }
 
-            // if not function call, fallthrough
+            [[ fallthrough ]];
         }
         case TOKENKIND_INTEGER:
         case TOKENKIND_FLOAT:
@@ -374,107 +374,153 @@ static Expression* parse_rvalue()
     return expression;
 }
 
+static Type parse_base_type()
+{
+    Type result;
+    char* type_identifier = parser.current_token.identifier;
+
+    if( strcmp( type_identifier, "i8" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 8;
+        result.integer.is_signed = true;
+    }
+    else if( strcmp( type_identifier, "i16" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 16;
+        result.integer.is_signed = true;
+    }
+    else if( strcmp( type_identifier, "i32" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 32;
+        result.integer.is_signed = true;
+    }
+    else if( strcmp( type_identifier, "i64" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 64;
+        result.integer.is_signed = true;
+    }
+    else if( strcmp( type_identifier, "u8" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 8;
+        result.integer.is_signed = false;
+    }
+    else if( strcmp( type_identifier, "u16" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 16;
+        result.integer.is_signed = false;
+    }
+    else if( strcmp( type_identifier, "u32" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 32;
+        result.integer.is_signed = false;
+    }
+    else if( strcmp( type_identifier, "u64" ) == 0 )
+    {
+        result.kind = TYPEKIND_INTEGER;
+        result.integer.bit_count = 64;
+        result.integer.is_signed = false;
+    }
+    else if( strcmp( type_identifier, "f32" ) == 0 )
+    {
+        result.kind = TYPEKIND_FLOAT;
+        result.floating.bit_count = 32;
+    }
+    else if( strcmp( type_identifier, "f64" ) == 0 )
+    {
+        result.kind = TYPEKIND_FLOAT;
+        result.floating.bit_count = 64;
+    }
+    else if( strcmp( type_identifier, "char" ) == 0 )
+    {
+        result.kind = TYPEKIND_CHARACTER;
+    }
+    else if( strcmp( type_identifier, "bool" ) == 0 )
+    {
+        result.kind = TYPEKIND_BOOLEAN;
+    }
+    else if( strcmp( type_identifier, "void" ) == 0 )
+    {
+        result.kind = TYPEKIND_VOID;
+    }
+    else // custom type
+    {
+        result.kind = TYPEKIND_CUSTOM;
+        result.custom_identifier = type_identifier;
+    }
+
+    return result;
+}
+
 // todo HASHMAP!!!
 static Type parse_type()
 {
     Type result;
-    if( parser.current_token.kind == TOKENKIND_IDENTIFIER )
+    switch( parser.current_token.kind )
     {
-        char* type_identifier = parser.current_token.identifier;
+        case TOKENKIND_IDENTIFIER:
+        {
+            Type base_type = parse_base_type();
+            result = base_type;
 
-        if( strcmp( type_identifier, "i8" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 8;
-            result.integer.is_signed = true;
-        }
-        else if( strcmp( type_identifier, "i16" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 16;
-            result.integer.is_signed = true;
-        }
-        else if( strcmp( type_identifier, "i32" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 32;
-            result.integer.is_signed = true;
-        }
-        else if( strcmp( type_identifier, "i64" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 64;
-            result.integer.is_signed = true;
-        }
-        else if( strcmp( type_identifier, "u8" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 8;
-            result.integer.is_signed = false;
-        }
-        else if( strcmp( type_identifier, "u16" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 16;
-            result.integer.is_signed = false;
-        }
-        else if( strcmp( type_identifier, "u32" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 32;
-            result.integer.is_signed = false;
-        }
-        else if( strcmp( type_identifier, "u64" ) == 0 )
-        {
-            result.kind = TYPEKIND_INTEGER;
-            result.integer.bit_count = 64;
-            result.integer.is_signed = false;
-        }
-        else if( strcmp( type_identifier, "f32" ) == 0 )
-        {
-            result.kind = TYPEKIND_FLOAT;
-            result.floating.bit_count = 32;
-        }
-        else if( strcmp( type_identifier, "f64" ) == 0 )
-        {
-            result.kind = TYPEKIND_FLOAT;
-            result.floating.bit_count = 64;
-        }
-        else if( strcmp( type_identifier, "char" ) == 0 )
-        {
-            result.kind = TYPEKIND_CHARACTER;
-        }
-        /* else if( strcmp( type_identifier, "string" ) == 0 ) */
-        /* { */
-        /*     result.kind = TYPEKIND_STRING; */
-        /* } */
-        else if( strcmp( type_identifier, "bool" ) == 0 )
-        {
-            result.kind = TYPEKIND_BOOLEAN;
-        }
-        else if( strcmp( type_identifier, "void" ) == 0 )
-        {
-            result.kind = TYPEKIND_VOID;
-        }
-        else // custom type
-        {
-            result.kind = TYPEKIND_CUSTOM;
-            result.custom_identifier = type_identifier;
-        }
-    }
-    else // ampersand
-    {
-        result.kind = TYPEKIND_POINTER;
-        advance();
-        if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
-        {
-            result.kind = TYPEKIND_INVALID;
-            return result;
+            // if array
+            if( parser.next_token.kind == TOKENKIND_LEFTBRACKET )
+            {
+                result.kind = TYPEKIND_ARRAY;
+                result.array.type = malloc( sizeof( Type ) );
+                *result.array.type = base_type;
+
+                advance();
+                advance();
+                if( !EXPECT( TOKENKIND_INTEGER, TOKENKIND_RIGHTBRACKET ) )
+                {
+                    result.kind = TYPEKIND_INVALID;
+                    return result;
+                }
+
+                // default value to indicate if length is to be infered
+                result.array.length = -1;
+                if( parser.current_token.kind == TOKENKIND_INTEGER )
+                {
+                    result.array.length = parser.current_token.integer;
+                    advance();
+                    if( !EXPECT( TOKENKIND_RIGHTBRACKET ) )
+                    {
+                        result.kind = TYPEKIND_INVALID;
+                        return result;
+                    }
+                }
+            }
+            break;
         }
 
-        // i have to allocate here... SO ANNOYING!!!
-        result.pointer.type = malloc( sizeof( Type ) );
-        *result.pointer.type = parse_type();
+        case TOKENKIND_AMPERSAND: // pointers
+        {
+            result.kind = TYPEKIND_POINTER;
+            advance();
+            if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+            {
+                result.kind = TYPEKIND_INVALID;
+                return result;
+            }
+
+            // i have to allocate here... SO ANNOYING!!!
+            result.pointer.type = malloc( sizeof( Type ) );
+            *result.pointer.type = parse_type();
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
     }
 
     return result;

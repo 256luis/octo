@@ -13,7 +13,9 @@ typedef enum TypeKind
     TYPEKIND_BOOLEAN,
     TYPEKIND_FUNCTION,
     TYPEKIND_POINTER,
+    TYPEKIND_ARRAY,
     TYPEKIND_CUSTOM,
+
     TYPEKIND_TOINFER,
     TYPEKIND_INVALID,
 } TypeKind;
@@ -47,6 +49,12 @@ typedef struct Type
         {
             size_t bit_count; // CAN ONLY BE 32, 64
         } floating;
+
+        struct
+        {
+            struct Type* type;
+            int length; // if this is -1, length is to be inferred
+        } array;
     };
 } Type;
 

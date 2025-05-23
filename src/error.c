@@ -166,6 +166,12 @@ void print_type( Type type )
             printf( "%s", type.custom_identifier );
             break;
         }
+
+        case TYPEKIND_ARRAY:
+        {
+            print_type( *type.array.type );
+            printf( "[]" );
+        }
     }
 }
 
