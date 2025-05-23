@@ -181,6 +181,12 @@ static void generate_rvalue( Expression* expression )
             generate_function_call( expression );
             break;
         }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
     }
 }
 
@@ -243,7 +249,8 @@ static void generate_return( Expression* expression )
 
 static void generate_assignment( Expression* expression )
 {
-    append( "%s = ", expression->assignment.identifier );
+    generate_rvalue( expression->assignment.lvalue );
+    append( " = ", expression->assignment.lvalue );
     generate_rvalue( expression->assignment.rvalue );
     append( ";\n" );
 }

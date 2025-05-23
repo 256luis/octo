@@ -706,6 +706,7 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
     return is_valid;
 }
 
+static bool check_lvalue( Expression* expression, Type* out_type );
 static bool check_unary( Expression* expression, Type* inferred_type )
 {
     Expression* operand = expression->unary.operand;
@@ -719,8 +720,10 @@ static bool check_unary( Expression* expression, Type* inferred_type )
     UnaryOperation operation = expression->unary.operation;
     if( operation == UNARYOPERATION_ADDRESSOF )
     {
-        // operand must be identifier
-        if( operand->kind != EXPRESSIONKIND_IDENTIFIER )
+
+        // operand must be lvalue
+        bool operand_lvalue_check = check_lvalue( operand, &operand_type );
+        if( !operand_lvalue_check )
         {
             Error error = {
                 .kind = ERRORKIND_INVALIDADDRESSOF,
@@ -1106,36 +1109,93 @@ bool check_return( Expression* expression )
     return true;
 }
 
+static bool check_lvalue( Expression* expression, Type* out_type )
+{
+    bool is_valid;
+    switch( expression->kind )
+    {
+        case EXPRESSIONKIND_IDENTIFIER:
+        {
+            // check if identifier exists
+            Token identifier_token = expression->associated_token;
+            Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+            if( original_declaration == NULL )
+            {
+                Error error = {
+                    .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                    .offending_token = identifier_token,
+                };
+
+                report_error( error );
+                return false;
+            }
+
+            *out_type = original_declaration->type;
+            is_valid = true;
+            break;
+        }
+
+        case EXPRESSIONKIND_UNARY:
+        {
+            Type lvalue_type;
+            bool is_unary_valid = check_unary( expression, &lvalue_type );
+            if( !is_unary_valid )
+            {
+                // returning false here because error has already been reported in
+                // check_unary
+                return false;
+            }
+
+            if( expression->unary.operation != UNARYOPERATION_DEREFERENCE )
+            {
+                is_valid = false;
+                break;
+            }
+
+            *out_type = lvalue_type;
+            is_valid = true;
+            break;
+        }
+
+        default:
+        {
+            is_valid = false;
+            break;
+        }
+    }
+
+    return is_valid;
+}
+
 bool check_assignment( Expression* expression )
 {
-    // check if identifier exists;
-    Token identifier_token = expression->assignment.identifier_token;
-    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
-    if( original_declaration == NULL )
+    // check if lvalue is a valid lvalue
+    Type found_lvalue_type;
+    bool is_lvalue_valid = check_lvalue( expression->assignment.lvalue, &found_lvalue_type );
+    if( !is_lvalue_valid )
     {
         Error error = {
-            .kind = ERRORKIND_UNDECLAREDSYMBOL,
-            .offending_token = identifier_token,
+            .kind = ERRORKIND_INVALIDLVALUE,
+            .offending_token = expression->starting_token,
         };
-
         report_error( error );
         return false;
     }
 
     // check if rvalue is a valid rvalue
-    Type found_type;
-    bool is_valid = check_rvalue( expression->assignment.rvalue, &found_type );
-    if( !is_valid )
+    Type found_rvalue_type;
+    bool is_rvalue_valid = check_rvalue( expression->assignment.rvalue, &found_rvalue_type );
+    if( !is_rvalue_valid )
     {
         // no need for error reporting here because that was already handled by
-        // check_expression_rvalue
+        // check_rvalue
         return false;
     }
 
     // check if types match with original declaration
-    Type expected_type = original_declaration->type;
+    Type expected_type = found_lvalue_type;
     Error error;
-    bool are_types_compatible = check_type_compatibility( expected_type, &found_type, &error );
+    bool are_types_compatible = check_type_compatibility( expected_type, &found_rvalue_type, &error );
     if( !are_types_compatible )
     {
         error.offending_token = expression->assignment.rvalue->starting_token;

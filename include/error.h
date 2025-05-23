@@ -14,7 +14,7 @@ typedef enum ErrorKind
 
     // parser error
     ERRORKIND_UNEXPECTEDSYMBOL,
-    // ERRORKIND_UNEXPECTEDEOF,
+    ERRORKIND_INVALIDLVALUE,
 
     // semantic errors
     ERRORKIND_SYMBOLREDECLARATION,

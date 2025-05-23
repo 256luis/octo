@@ -105,6 +105,7 @@ void debug_print_type( Type type )
     printf( "%s", type_kind_to_string[ type.kind ] );
     switch( type.kind )
     {
+        case TYPEKIND_TOINFER:
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
@@ -138,6 +139,12 @@ void debug_print_type( Type type )
             printf( "(" );
             debug_print_type( *type.pointer.type );
             printf( ")" );
+            break;
+        }
+
+        case TYPEKIND_FUNCTION:
+        {
+            UNIMPLEMENTED();
             break;
         }
 
@@ -381,7 +388,8 @@ void expression_print( Expression* expression )
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", expression->assignment.identifier );
+            printf( "lvalue = " );
+            expression_print( expression->assignment.lvalue );
 
             INDENT();
             printf( "value = " );

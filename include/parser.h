@@ -83,16 +83,18 @@ typedef enum ExpressionKind
 {
     // rvalues
     EXPRESSIONKIND_INTEGER,
-    EXPRESSIONKIND_FLOAT, // unimplemented
-    EXPRESSIONKIND_IDENTIFIER,
+    EXPRESSIONKIND_FLOAT,
     EXPRESSIONKIND_STRING,
     EXPRESSIONKIND_CHARACTER,
     EXPRESSIONKIND_BINARY,
-    EXPRESSIONKIND_UNARY,
     EXPRESSIONKIND_FUNCTIONCALL,
     EXPRESSIONKIND_BOOLEAN,
 
-    // not rvalues
+    // can be lvalue or rvalue
+    EXPRESSIONKIND_IDENTIFIER,
+    EXPRESSIONKIND_UNARY, // only for dereference (will be checked in semantic analysis)
+
+    // base statements
     EXPRESSIONKIND_VARIABLEDECLARATION,
     EXPRESSIONKIND_FUNCTIONDECLARATION,
     EXPRESSIONKIND_COMPOUND,
@@ -193,9 +195,7 @@ typedef struct Expression
 
         struct
         {
-            char* identifier;
-            Token identifier_token;
-
+            struct Expression* lvalue;
             struct Expression* rvalue;
         } assignment;
 

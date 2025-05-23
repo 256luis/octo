@@ -204,27 +204,6 @@ static Expression* parse_base_expression()
 }
 
 static Expression* parse_rvalue();
-static Expression* parse_parentheses()
-{
-    Expression* expression;
-
-    advance();
-    if ( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
-    expression = parse_rvalue();
-
-    advance();
-    if( !EXPECT( TOKENKIND_RIGHTPAREN ) )
-    {
-        return NULL;
-    }
-
-    return expression;
-}
-
 static Expression* parse_unary()
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -235,11 +214,6 @@ static Expression* parse_unary()
     expression->unary.operator_token = parser.current_token;
 
     advance();
-    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
     expression->unary.operand = parse_rvalue();
 
     return expression;
@@ -305,6 +279,11 @@ static Expression* parse_function_call()
 
 static Expression* parse_rvalue()
 {
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
     Expression* expression;
     Token starting_token = parser.current_token;
 
@@ -333,7 +312,15 @@ static Expression* parse_rvalue()
 
         case TOKENKIND_LEFTPAREN:
         {
-            expression = parse_parentheses();
+            // expression = parse_parentheses();
+            advance();
+            expression = parse_rvalue();
+
+            advance();
+            if( !EXPECT( TOKENKIND_RIGHTPAREN ) )
+            {
+                return NULL;
+            }
             break;
         }
 
@@ -375,11 +362,6 @@ static Expression* parse_rvalue()
         expression->binary.left = left;
 
         advance();
-        if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-        {
-            return NULL;
-        }
-
         expression->binary.right = parse_rvalue();
         if( expression->binary.right == NULL )
         {
@@ -546,10 +528,6 @@ static Expression* parse_variable_declaration()
     }
 
     advance();
-    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
     expression->variable_declaration.rvalue = parse_rvalue();
     if( expression->variable_declaration.rvalue == NULL )
     {
@@ -565,7 +543,7 @@ static Expression* parse_variable_declaration()
     return expression;
 }
 
-Expression* parse_compound()
+static Expression* parse_compound()
 {
     Expression* compound_expression = calloc( 1, sizeof( Expression ) );
     if( compound_expression == NULL ) ALLOC_ERROR();
@@ -606,7 +584,7 @@ Expression* parse_compound()
     return compound_expression;
 }
 
-Expression* parse_function_declaration()
+static Expression* parse_function_declaration()
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
@@ -734,7 +712,7 @@ Expression* parse_function_declaration()
     return expression;
 }
 
-Expression* parse_return()
+static Expression* parse_return()
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
@@ -767,15 +745,18 @@ Expression* parse_return()
     return expression;
 }
 
-Expression* parse_assignment()
+static Expression* parse_lvalue();
+static Expression* parse_assignment()
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_ASSIGNMENT;
     expression->starting_token = parser.current_token;
-    expression->assignment.identifier = parser.current_token.identifier;
-    expression->assignment.identifier_token = parser.current_token;
+    /* expression->assignment.identifier = parser.current_token.identifier; */
+    /* expression->assignment.identifier_token = parser.current_token; */
+
+    expression->assignment.lvalue = parse_lvalue();
 
     advance();
     if( !EXPECT( TOKENKIND_EQUAL ) )
@@ -784,11 +765,6 @@ Expression* parse_assignment()
     }
 
     advance();
-    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
     expression->assignment.rvalue = parse_rvalue();
     if( expression->assignment.rvalue == NULL )
     {
@@ -841,10 +817,6 @@ static Expression* parse_conditional()
     expression->conditional.is_loop = is_loop;
 
     advance();
-    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
     expression->conditional.condition = parse_rvalue();
 
     advance();
@@ -865,6 +837,17 @@ static Expression* parse_conditional()
         expression->conditional.false_body = parse( tokens );
     }
 
+    return expression;
+}
+
+static Expression* parse_lvalue()
+{
+    if( !EXPECT( TOKENKIND_LVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
+    Expression* expression = parse_rvalue();
     return expression;
 }
 
@@ -942,6 +925,14 @@ Expression* parse( Token* _tokens )
                 }
             }
 
+            break;
+        }
+
+        // other lvalue starters (identifier was handled above)
+        case TOKENKIND_STAR:
+        case TOKENKIND_LEFTPAREN:
+        {
+            expression = parse_assignment();
             break;
         }
 
