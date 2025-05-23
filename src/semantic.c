@@ -189,12 +189,29 @@ bool type_equals( Type t1, Type t2 )
 
 static bool try_implicit_cast( Type destination_type, Type* out_type )
 {
-    // implicit casts are only for numeric types
-    if( destination_type.kind != TYPEKIND_INTEGER && destination_type.kind != TYPEKIND_FLOAT )
+    // implicit casts are only for numeric and pointer types
+    static TypeKind implicitly_castable_type_kinds[] = {
+        TYPEKIND_INTEGER, TYPEKIND_FLOAT, TYPEKIND_POINTER
+    };
+    int implicitly_castable_type_kinds_length =
+        sizeof( implicitly_castable_type_kinds ) / sizeof( *implicitly_castable_type_kinds );
+
+    bool destination_type_allowed = false;
+    bool out_type_allowed = false;
+    for( int i = 0; i < implicitly_castable_type_kinds_length; i++ )
     {
-        return false;
+        if( destination_type.kind == implicitly_castable_type_kinds[ i ] )
+        {
+            destination_type_allowed = true;
+        }
+
+        if( out_type->kind == implicitly_castable_type_kinds[ i ] )
+        {
+            out_type_allowed = true;
+        }
     }
-    if( out_type->kind != TYPEKIND_INTEGER && out_type->kind != TYPEKIND_FLOAT )
+
+    if( !( destination_type_allowed && out_type_allowed ) )
     {
         return false;
     }
@@ -223,6 +240,23 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
             size_t destination_bit_count = destination_type.floating.bit_count;
             size_t original_bit_count = out_type->floating.bit_count;
             result = destination_bit_count >= original_bit_count;
+
+            break;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            // at least one of the ptrs have to point at void
+            // implicit cast from non-&void to non-&void is not allowed
+            // non-&void to &void is allowed
+            // &void to non-&void is allowed
+
+            bool is_destination_void_ptr = destination_type.pointer.type->kind == TYPEKIND_VOID;
+            bool is_original_void_ptr = out_type->pointer.type->kind == TYPEKIND_VOID;
+            if( ( is_destination_void_ptr + is_original_void_ptr ) > 0 )
+            {
+                result = true;
+            }
 
             break;
         }
