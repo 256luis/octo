@@ -99,6 +99,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_RETURN,
     EXPRESSIONKIND_ASSIGNMENT,
     EXPRESSIONKIND_EXTERN,
+    EXPRESSIONKIND_CONDITIONAL,
 } ExpressionKind;
 
 typedef struct Expression
@@ -202,6 +203,18 @@ typedef struct Expression
         {
             struct Expression* function;
         } extern_expression;
+
+        struct
+        {
+            bool is_loop; // used to check if conditional is an if statement or a
+                          // while loop
+            struct Expression* condition;
+            struct Expression* true_body;
+
+            // will be null if there is no 'else' in if statements
+            // will be null in while loops
+            struct Expression* false_body;
+        } conditional;
     };
 } Expression;
 

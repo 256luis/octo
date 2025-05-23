@@ -823,6 +823,51 @@ static Expression* parse_extern()
     return expression;
 }
 
+static Expression* parse_conditional()
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_CONDITIONAL;
+    expression->starting_token = parser.current_token;
+
+    bool is_loop;
+    switch( parser.current_token.kind )
+    {
+        case TOKENKIND_IF:    is_loop = false; break;
+        case TOKENKIND_WHILE: is_loop = true;  break;
+        default: UNREACHABLE();
+    }
+    expression->conditional.is_loop = is_loop;
+
+    advance();
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+    expression->conditional.condition = parse_rvalue();
+
+    advance();
+    if( !EXPECT( TOKENKIND_EXPRESSION_STARTERS ) )
+    {
+        return NULL;
+    }
+    expression->conditional.true_body = parse( tokens );
+
+    if( parser.next_token.kind == TOKENKIND_ELSE )
+    {
+        advance();
+        advance();
+        if( !EXPECT( TOKENKIND_EXPRESSION_STARTERS ) )
+        {
+            return NULL;
+        }
+        expression->conditional.false_body = parse( tokens );
+    }
+
+    return expression;
+}
+
 Expression* parse( Token* _tokens )
 {
     // initialize parser
@@ -909,6 +954,13 @@ Expression* parse( Token* _tokens )
         case TOKENKIND_EXTERN:
         {
             expression = parse_extern();
+            break;
+        }
+
+        case TOKENKIND_WHILE:
+        case TOKENKIND_IF:
+        {
+            expression = parse_conditional();
             break;
         }
 

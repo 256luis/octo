@@ -100,6 +100,9 @@ static TokenKind word_symbol_to_token_kind( const char* word_symbol )
     if( strcmp( word_symbol, "true" ) == 0 )   return TOKENKIND_BOOLEAN;
     if( strcmp( word_symbol, "false" ) == 0 )  return TOKENKIND_BOOLEAN;
     if( strcmp( word_symbol, "extern" ) == 0 ) return TOKENKIND_EXTERN;
+    if( strcmp( word_symbol, "if" ) == 0 )     return TOKENKIND_IF;
+    if( strcmp( word_symbol, "else" ) == 0 )   return TOKENKIND_ELSE;
+    if( strcmp( word_symbol, "while" ) == 0 )  return TOKENKIND_WHILE;
 
     return TOKENKIND_IDENTIFIER;
 

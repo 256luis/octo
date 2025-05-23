@@ -11,6 +11,9 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_RETURN ]       = "return",
     [ TOKENKIND_FUNC ]         = "func",
     [ TOKENKIND_EXTERN ]       = "extern",
+    [ TOKENKIND_IF ]           = "if",
+    [ TOKENKIND_ELSE ]         = "else",
+    [ TOKENKIND_WHILE ]        = "while",
     [ TOKENKIND_INTEGER ]      = "INTEGER",
     [ TOKENKIND_FLOAT ]        = "FLOAT",
     [ TOKENKIND_IDENTIFIER ]   = "IDENTIFIER",
@@ -61,6 +64,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_RETURN ]              = "RETURN",
     [ EXPRESSIONKIND_ASSIGNMENT ]          = "ASSIGNMENT",
     [ EXPRESSIONKIND_EXTERN ]              = "EXTERN",
+    [ EXPRESSIONKIND_CONDITIONAL ]         = "CONDITIONAL",
 };
 
 char* binary_operation_to_string[] = {
@@ -397,12 +401,36 @@ void expression_print( Expression* expression )
             printf( " {\n" );
             depth++;
 
+            INDENT();
             expression_print( expression->extern_expression.function );
 
             depth--;
             INDENT();
             printf( "}" );
+            break;
+        }
 
+        case EXPRESSIONKIND_CONDITIONAL:
+        {
+            printf( "(%s) {\n", expression->conditional.is_loop ? "while" : "if" );
+            depth++;
+
+            INDENT();
+            printf( "condition = " );
+            expression_print( expression->conditional.condition );
+
+            INDENT();
+            printf( "true body = ");
+            expression_print( expression->conditional.true_body );
+
+            INDENT();
+            printf( "false body = ");
+            expression_print( expression->conditional.false_body );
+
+            depth--;
+            INDENT();
+            printf( "}" );
+            break;
         }
 
         default:
