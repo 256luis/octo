@@ -87,6 +87,12 @@ static void generate_type( Type type )
             break;
         }
 
+        case TYPEKIND_ARRAY:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+
         case TYPEKIND_INVALID:
         case TYPEKIND_TOINFER:
         {

@@ -277,103 +277,6 @@ static Expression* parse_function_call()
     return expression;
 }
 
-static Expression* parse_rvalue()
-{
-    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
-    Expression* expression;
-    Token starting_token = parser.current_token;
-
-    switch( parser.current_token.kind )
-    {
-        case TOKENKIND_IDENTIFIER:
-        {
-            // check if function call
-            if( parser.next_token.kind == TOKENKIND_LEFTPAREN )
-            {
-                expression = parse_function_call();
-                break;
-            }
-
-            [[ fallthrough ]];
-        }
-        case TOKENKIND_INTEGER:
-        case TOKENKIND_FLOAT:
-        case TOKENKIND_STRING:
-        case TOKENKIND_CHARACTER:
-        case TOKENKIND_BOOLEAN:
-        {
-            expression = parse_base_expression();
-            break;
-        }
-
-        case TOKENKIND_LEFTPAREN:
-        {
-            // expression = parse_parentheses();
-            advance();
-            expression = parse_rvalue();
-
-            advance();
-            if( !EXPECT( TOKENKIND_RIGHTPAREN ) )
-            {
-                return NULL;
-            }
-            break;
-        }
-
-        case TOKENKIND_AMPERSAND:
-        case TOKENKIND_STAR:
-        case TOKENKIND_BANG:
-        case TOKENKIND_MINUS:
-        {
-            expression = parse_unary();
-            break;
-        }
-
-        default:
-        {
-            UNIMPLEMENTED();
-            break;
-        }
-    }
-
-    if( expression == NULL )
-    {
-        return NULL;
-    }
-
-    bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser.next_token.kind, TOKENKIND_BINARY_OPERATORS );
-    if( is_next_token_kind_binary_operator )
-    {
-        advance();
-
-        Expression* left = calloc( 1, sizeof( Expression ) );
-        if( left == NULL ) ALLOC_ERROR();
-
-        memcpy( left, expression, sizeof( Expression ) );
-        memset( expression, 0, sizeof( Expression ) );
-
-        expression->kind = EXPRESSIONKIND_BINARY;
-        expression->binary.operation = token_kind_to_binary_operation( parser.current_token.kind );
-        expression->binary.operator_token = parser.current_token;
-        expression->binary.left = left;
-
-        advance();
-        expression->binary.right = parse_rvalue();
-        if( expression->binary.right == NULL )
-        {
-            return NULL;
-        }
-    }
-
-    expression->starting_token = starting_token;
-
-    return expression;
-}
-
 static Type parse_base_type()
 {
     Type result;
@@ -466,37 +369,37 @@ static Type parse_type()
     {
         case TOKENKIND_IDENTIFIER:
         {
-            Type base_type = parse_base_type();
-            result = base_type;
+            result = parse_base_type();
+            break;
+        }
 
-            // if array
-            if( parser.next_token.kind == TOKENKIND_LEFTBRACKET )
+        case TOKENKIND_LEFTBRACKET:
+        {
+            result.kind = TYPEKIND_ARRAY;
+            advance();
+            if( !EXPECT( TOKENKIND_INTEGER, TOKENKIND_RIGHTBRACKET ) )
             {
-                result.kind = TYPEKIND_ARRAY;
-                result.array.type = malloc( sizeof( Type ) );
-                *result.array.type = base_type;
+                result.kind = TYPEKIND_INVALID;
+                return result;
+            }
 
+            // default value to indicate if length is to be infered
+            result.array.length = -1;
+            if( parser.current_token.kind == TOKENKIND_INTEGER )
+            {
+                result.array.length = parser.current_token.integer;
                 advance();
-                advance();
-                if( !EXPECT( TOKENKIND_INTEGER, TOKENKIND_RIGHTBRACKET ) )
+                if( !EXPECT( TOKENKIND_RIGHTBRACKET ) )
                 {
                     result.kind = TYPEKIND_INVALID;
                     return result;
                 }
-
-                // default value to indicate if length is to be infered
-                result.array.length = -1;
-                if( parser.current_token.kind == TOKENKIND_INTEGER )
-                {
-                    result.array.length = parser.current_token.integer;
-                    advance();
-                    if( !EXPECT( TOKENKIND_RIGHTBRACKET ) )
-                    {
-                        result.kind = TYPEKIND_INVALID;
-                        return result;
-                    }
-                }
             }
+
+            advance();
+            result.array.type = malloc( sizeof( Type ) );
+            *result.array.type = parse_type();
+
             break;
         }
 
@@ -526,6 +429,166 @@ static Type parse_type()
     return result;
 }
 
+static Expression* parse_array()
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression ==  NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_ARRAY;
+    expression->starting_token = parser.current_token;
+    expression->array.type = parse_type();
+
+    advance();
+    if( !EXPECT( TOKENKIND_LEFTBRACKET ) )
+    {
+        return NULL;
+    }
+
+    advance();
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS, TOKENKIND_RIGHTBRACKET ) )
+    {
+        return NULL;
+    }
+
+    if( parser.current_token.kind != TOKENKIND_RIGHTBRACKET )
+    {
+        Expression* initialized_rvalues = lvec_new( Expression );
+        int count_initialized = 0;
+
+        Expression* first_initialized = parse_rvalue();
+        lvec_append_aggregate( initialized_rvalues, *first_initialized );
+        count_initialized++;
+
+        advance();
+        while( parser.current_token.kind != TOKENKIND_RIGHTBRACKET )
+        {
+            if( !EXPECT( TOKENKIND_COMMA ) )
+            {
+                return NULL;
+            }
+
+            advance();
+            Expression* e = parse_rvalue();
+            if( e == NULL )
+            {
+                return NULL;
+            }
+
+            lvec_append_aggregate( initialized_rvalues, *e );
+            count_initialized++;
+            advance();
+        }
+
+        expression->array.initialized_rvalues = initialized_rvalues;
+        expression->array.count_initialized = count_initialized;
+    }
+
+    return expression;
+}
+
+static Expression* parse_rvalue()
+{
+    if( !EXPECT( TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
+    Expression* expression;
+    Token starting_token = parser.current_token;
+
+    switch( parser.current_token.kind )
+    {
+        case TOKENKIND_IDENTIFIER:
+        {
+            // check if function call
+            if( parser.next_token.kind == TOKENKIND_LEFTPAREN )
+            {
+                expression = parse_function_call();
+                break;
+            }
+
+            [[ fallthrough ]];
+        }
+        case TOKENKIND_INTEGER:
+        case TOKENKIND_FLOAT:
+        case TOKENKIND_STRING:
+        case TOKENKIND_CHARACTER:
+        case TOKENKIND_BOOLEAN:
+        {
+            expression = parse_base_expression();
+            break;
+        }
+
+        case TOKENKIND_LEFTPAREN:
+        {
+            // expression = parse_parentheses();
+            advance();
+            expression = parse_rvalue();
+
+            advance();
+            if( !EXPECT( TOKENKIND_RIGHTPAREN ) )
+            {
+                return NULL;
+            }
+            break;
+        }
+
+        case TOKENKIND_AMPERSAND:
+        case TOKENKIND_STAR:
+        case TOKENKIND_BANG:
+        case TOKENKIND_MINUS:
+        {
+            expression = parse_unary();
+            break;
+        }
+
+        case TOKENKIND_LEFTBRACKET:
+        {
+            expression = parse_array();
+            break;
+        }
+
+        default:
+        {
+            UNIMPLEMENTED();
+            break;
+        }
+    }
+
+    if( expression == NULL )
+    {
+        return NULL;
+    }
+
+    bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser.next_token.kind, TOKENKIND_BINARY_OPERATORS );
+    if( is_next_token_kind_binary_operator )
+    {
+        advance();
+
+        Expression* left = calloc( 1, sizeof( Expression ) );
+        if( left == NULL ) ALLOC_ERROR();
+
+        memcpy( left, expression, sizeof( Expression ) );
+        memset( expression, 0, sizeof( Expression ) );
+
+        expression->kind = EXPRESSIONKIND_BINARY;
+        expression->binary.operation = token_kind_to_binary_operation( parser.current_token.kind );
+        expression->binary.operator_token = parser.current_token;
+        expression->binary.left = left;
+
+        advance();
+        expression->binary.right = parse_rvalue();
+        if( expression->binary.right == NULL )
+        {
+            return NULL;
+        }
+    }
+
+    expression->starting_token = starting_token;
+
+    return expression;
+}
+
 static Expression* parse_variable_declaration()
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -553,10 +616,10 @@ static Expression* parse_variable_declaration()
     if( parser.current_token.kind == TOKENKIND_COLON )
     {
         advance();
-        if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
-        {
-            return NULL;
-        }
+        /* if( !EXPECT( TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) ) */
+        /* { */
+        /*     return NULL; */
+        /* } */
 
         expression->variable_declaration.type = parse_type();
         expression->variable_declaration.type_token = parser.current_token;

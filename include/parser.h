@@ -97,6 +97,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_FUNCTIONCALL,
     EXPRESSIONKIND_BOOLEAN,
+    EXPRESSIONKIND_ARRAY,
 
     // can be lvalue or rvalue
     EXPRESSIONKIND_IDENTIFIER,
@@ -223,6 +224,14 @@ typedef struct Expression
             // will be null in while loops
             struct Expression* false_body;
         } conditional;
+
+        struct
+        {
+            Type type;
+            // Token type_token;
+            int count_initialized; // number of values initialized in the array literal
+            struct Expression* initialized_rvalues;
+        } array;
     };
 } Expression;
 

@@ -1,3 +1,5 @@
+// TODO: fix the formatting on the output of the ast
+
 #include "debug.h"
 #include "lvec.h"
 #include "parser.h"
@@ -65,6 +67,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_ASSIGNMENT ]          = "ASSIGNMENT",
     [ EXPRESSIONKIND_EXTERN ]              = "EXTERN",
     [ EXPRESSIONKIND_CONDITIONAL ]         = "CONDITIONAL",
+    [ EXPRESSIONKIND_ARRAY ]               = "ARRAY",
 };
 
 char* binary_operation_to_string[] = {
@@ -445,6 +448,29 @@ void expression_print( Expression* expression )
             expression_print( expression->conditional.false_body );
 
             depth--;
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_ARRAY:
+        {
+            printf( "(" );
+            debug_print_type( *expression->array.type.array.type );
+            printf( "; %d) {\n", expression->array.type.array.length );
+            depth++;
+
+            INDENT();
+            for( int i = 0; i < expression->array.count_initialized; i++ )
+            {
+                printf( "[%d] = ", i );
+                expression_print( &expression->array.initialized_rvalues[ i ] );
+                printf( "\n" );
+                INDENT();
+            }
+
+            depth--;
+            printf( "\n");
             INDENT();
             printf( "}" );
             break;
