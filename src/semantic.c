@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -8,6 +7,8 @@
 #include "lvec.h"
 #include "tokenizer.h"
 #include "semantic.h"
+
+#define MAX(a,b) ( ( ( a ) > ( b ) ) ? ( a ) : ( b ) )
 
 #define TYPEKINDPAIR_TERMINATOR (( TypeKindPair ){ -1, -1 })
 
@@ -112,42 +113,36 @@ bool type_equals( Type t1, Type t2 )
         return false;
     }
 
-    bool result;
+    // bool result;
     switch( t1.kind )
     {
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         {
-            result = true;
-            break;
+            return true;
         }
 
         case TYPEKIND_INTEGER:
         {
             bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
             bool is_same_signedness = t1.integer.is_signed == t2.integer.is_signed;
-            result = is_same_size && is_same_signedness;
-            break;
+            return is_same_size && is_same_signedness;
         }
 
         case TYPEKIND_FLOAT:
         {
-            bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
-            result = is_same_size;
-            break;
+            return t1.integer.bit_count == t2.integer.bit_count;
         }
 
         case TYPEKIND_CUSTOM:
         {
-            result = strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
-            break;
+            return strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
         }
 
         case TYPEKIND_POINTER:
         {
-            result = type_equals( *t1.pointer.type, *t2.pointer.type );
-            break;
+            return type_equals( *t1.pointer.type, *t2.pointer.type );
         }
 
         case TYPEKIND_FUNCTION:
@@ -162,7 +157,7 @@ bool type_equals( Type t1, Type t2 )
                 return false;
             }
 
-            result = true; // initialize to true
+            bool result = true;
             int param_count = t1.function.param_count;
             for( int i = 0; i < param_count; i++ )
             {
@@ -174,17 +169,23 @@ bool type_equals( Type t1, Type t2 )
                 }
             }
 
-            break;
+            return result;
         }
 
-        default:
+        case TYPEKIND_ARRAY:
+        {
+            bool are_lengths_equal = t1.array.length == t2.array.length;
+            bool are_base_types_equal = type_equals( *t1.array.base_type, *t2.array.base_type );
+
+            return are_lengths_equal && are_base_types_equal;
+        }
+
+        default: // TOINFER and INVALID
         {
             UNREACHABLE();
             break;
         }
     }
-
-    return result;
 }
 
 static bool try_implicit_cast( Type destination_type, Type* out_type )
@@ -216,7 +217,7 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
         return false;
     }
 
-    // int -> float and vice-versa are NOT allowed
+    // must be the same type kind!!
     if( destination_type.kind != out_type->kind )
     {
         return false;
@@ -261,6 +262,14 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
             break;
         }
 
+        /* case TYPEKIND_ARRAY: */
+        /* { */
+        /*     bool is_destination_length_inferred = destination_type.array.length == -1; */
+        /*     bool are_base_types_equal = type_equals( *destination_type.array.base_type, *out_type->array.base_type ); */
+        /*     result = is_destination_length_inferred && are_base_types_equal; */
+        /*     break; */
+        /* } */
+
         default:
         {
             UNREACHABLE();
@@ -287,7 +296,6 @@ bool check_type( Type type, Token type_token )
         case TYPEKIND_BOOLEAN:
         {
             return true;
-            break;
         }
 
         case TYPEKIND_FUNCTION:
@@ -299,7 +307,21 @@ bool check_type( Type type, Token type_token )
         case TYPEKIND_POINTER:
         {
             return check_type( *type.pointer.type, type_token );
-            break;
+        }
+
+        case TYPEKIND_ARRAY:
+        {
+            if( type.array.length == 0 )
+            {
+                Error error = {
+                    .kind = ERRORKIND_ZEROLENGTHARRAY,
+                    .offending_token = type_token,
+                };
+                report_error( error );
+                return false;
+            }
+
+            return check_type( *type.array.base_type, type_token );
         }
 
         case TYPEKIND_CUSTOM:
@@ -315,7 +337,6 @@ bool check_type( Type type, Token type_token )
                 return false;
             }
             return true;
-            break;
         }
 
         default: // TOINFER and INVALID
@@ -326,30 +347,60 @@ bool check_type( Type type, Token type_token )
     }
 }
 
-bool check_type_compatibility( Type t1, Type* out_t2, Error* out_error )
+bool check_type_compatibility( Type t1, Type* out_type, Error* out_error )
 {
     Error error;
     bool result = true;
 
-    if( type_equals( t1, *out_t2 ) )
+    if( type_equals( t1, *out_type ) )
     {
         return true;
     }
 
-    bool implicit_cast_attempt = try_implicit_cast( t1, out_t2 );
+    bool implicit_cast_attempt = try_implicit_cast( t1, out_type );
     if( !implicit_cast_attempt )
     {
-        bool are_both_types_numeric = is_type_numeric( t1 ) && is_type_numeric( *out_t2 );
+        bool are_both_types_numeric = is_type_numeric( t1 ) && is_type_numeric( *out_type );
+        bool are_both_types_arrays = t1.kind == TYPEKIND_ARRAY && out_type->kind == TYPEKIND_ARRAY;
         if( are_both_types_numeric )
         {
             error = ( Error ){
                 .kind = ERRORKIND_INVALIDIMPLICITCAST,
                 .invalid_implicit_cast = {
                     .to = t1,
-                    .from = *out_t2,
+                    .from = *out_type,
                 },
             };
             result = false;
+        }
+        else if( are_both_types_arrays )
+        {
+            bool is_destination_length_inferred = t1.array.length == -1;
+            if( !is_destination_length_inferred )
+            {
+                error = ( Error ){
+                    .kind = ERRORKING_ARRAYLENGTHMISMATCH,
+                    .array_length_mismatch = {
+                        .expected = t1.array.length,
+                        .found = out_type->array.length
+                    }
+                };
+                result = false;
+            }
+
+            bool are_base_types_equal = type_equals( *t1.array.base_type, *out_type->array.base_type );
+            // result = is_destination_length_inferred && are_base_types_equal;
+            if( !are_base_types_equal )
+            {
+                error = ( Error ){
+                    .kind = ERRORKIND_TYPEMISMATCH,
+                    .type_mismatch = {
+                        .expected = t1,
+                        .found = *out_type
+                    }
+                };
+                result = false;
+            }
         }
         else
         {
@@ -357,7 +408,7 @@ bool check_type_compatibility( Type t1, Type* out_t2, Error* out_error )
                 .kind = ERRORKIND_TYPEMISMATCH,
                 .type_mismatch = {
                     .expected = t1,
-                    .found = *out_t2,
+                    .found = *out_type,
                 },
             };
             result = false;
@@ -558,7 +609,7 @@ static bool check_binary( Expression* expression, Type* inferred_type )
         if( left_type.kind == TYPEKIND_FLOAT || right_type.kind == TYPEKIND_FLOAT )
         {
             inferred_type->kind = TYPEKIND_FLOAT;
-            inferred_type->floating.bit_count = fmax( left_type.integer.bit_count, right_type.integer.bit_count );
+            inferred_type->floating.bit_count = MAX( left_type.integer.bit_count, right_type.integer.bit_count );
         }
         else
         {
@@ -782,6 +833,87 @@ static bool check_unary( Expression* expression, Type* inferred_type )
     return true;
 }
 
+static bool check_array( Expression* expression, Type* inferred_type )
+{
+    Type declared_type = expression->array.type;
+
+    if( !check_type( declared_type, expression->array.type_token ) )
+    {
+        return false;
+    }
+
+    int found_length = declared_type.array.length;
+    int count_initialized = expression->array.count_initialized;
+
+    // declared_length being -1 means it is to be inferred
+    if( found_length == -1 && count_initialized == 0 )
+    {
+        Error error = {
+            .kind = ERRORKIND_ZEROLENGTHARRAY,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    if( found_length == -1 )
+    {
+        found_length = count_initialized;
+    }
+    else if( found_length < count_initialized )
+    {
+        Error error = {
+            .kind = ERRORKING_ARRAYLENGTHMISMATCH,
+            .offending_token = expression->starting_token,
+            .array_length_mismatch = {
+                .expected = found_length,
+                .found = count_initialized,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    bool are_initializers_valid = true;
+    for( int i = 0; i < count_initialized; i++ )
+    {
+        Type element_type;
+        Expression* element_rvalue = &expression->array.initialized_rvalues[ i ];
+        if( !check_rvalue( element_rvalue, &element_type ) )
+        {
+            are_initializers_valid = false;
+        }
+
+        if( !type_equals( element_type, *declared_type.array.base_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = element_rvalue->starting_token,
+                .type_mismatch = {
+                    .expected = *declared_type.array.base_type,
+                    .found = element_type,
+                },
+            };
+            report_error( error );
+            are_initializers_valid = false;
+        }
+    }
+
+    if( !are_initializers_valid )
+    {
+        return false;
+    }
+
+    inferred_type->kind = TYPEKIND_ARRAY;
+    inferred_type->array.length = found_length;
+    inferred_type->array.base_type = declared_type.array.base_type;
+
+    // for AST printing in debug.c
+    expression->array.type = *inferred_type;
+
+    return true;
+}
+
 static bool check_rvalue( Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
@@ -845,6 +977,12 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
             break;
         }
 
+        case EXPRESSIONKIND_ARRAY:
+        {
+            is_valid = check_array( expression, inferred_type );
+            break;
+        }
+
         default:
         {
             // report error
@@ -874,8 +1012,8 @@ static bool check_variable_declaration( Expression* expression )
         return false;
     }
 
-    Type final_type = expression->variable_declaration.type;
-    if( final_type.kind == TYPEKIND_VOID )
+    Type found_type = expression->variable_declaration.type;
+    if( found_type.kind == TYPEKIND_VOID )
     {
         Error error = {
             .kind = ERRORKIND_VOIDVARIABLE,
@@ -908,31 +1046,45 @@ static bool check_variable_declaration( Expression* expression )
             return false;
         }
 
-        if( final_type.kind == TYPEKIND_TOINFER )
+        if( found_type.kind == TYPEKIND_TOINFER )
         {
-            final_type = inferred_type;
+            found_type = inferred_type;
         }
-        else if( !check_type( final_type, expression->variable_declaration.type_token ) )
+        else if( !check_type( found_type, expression->variable_declaration.type_token ) )
         {
             return false;
         }
 
         Error error;
-        bool are_types_compatible = check_type_compatibility( final_type, &inferred_type, &error );
+        bool are_types_compatible = check_type_compatibility( found_type, &inferred_type, &error );
         if( !are_types_compatible )
         {
             error.offending_token = expression->variable_declaration.rvalue->starting_token;
             report_error( error );
             return false;
         }
+
+        if( found_type.kind == TYPEKIND_ARRAY )
+        {
+            found_type = inferred_type;
+        }
+    }
+    else if( found_type.kind == TYPEKIND_ARRAY && found_type.array.length == -1 )
+    {
+        Error error = {
+            .kind = ERRORKIND_CANNOTINFERARRAYLENGTH,
+            .offending_token = expression->variable_declaration.type_token,
+        };
+        report_error( error );
+        return false;
     }
 
-    expression->variable_declaration.type = final_type;
+    expression->variable_declaration.type = found_type;
 
     // add to symbol table
     Symbol symbol = {
         .token = identifier_token,
-        .type = final_type,
+        .type = found_type,
     };
     add_symbol_to_scope( symbol );
 

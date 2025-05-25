@@ -29,6 +29,9 @@ typedef enum ErrorKind
     ERRORKIND_EXTERNWITHBODY,
     ERRORKIND_WHILEWITHELSE,
     ERRORKIND_VOIDVARIABLE,
+    ERRORKIND_ZEROLENGTHARRAY,
+    ERRORKING_ARRAYLENGTHMISMATCH,
+    ERRORKIND_CANNOTINFERARRAYLENGTH,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -81,6 +84,12 @@ typedef struct Error
             Type to;
             Type from;
         } invalid_implicit_cast;
+
+        struct
+        {
+            int expected;
+            int found;
+        } array_length_mismatch;
     };
 } Error;
 

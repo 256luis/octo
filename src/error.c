@@ -169,8 +169,16 @@ void print_type( Type type )
 
         case TYPEKIND_ARRAY:
         {
-            print_type( *type.array.type );
-            printf( "[]" );
+            if( type.array.length > 0 )
+            {
+                printf( "[%d]", type.array.length );
+            }
+            else
+            {
+                printf( "[]" );
+            }
+            print_type( *type.array.base_type );
+            break;
         }
     }
 }
@@ -369,10 +377,36 @@ void report_error( Error error )
             break;
         }
 
-        default:
+        case ERRORKIND_ZEROLENGTHARRAY:
         {
-            UNIMPLEMENTED();
+            printf( "zero-length arrays are not allowed\n");
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
             break;
         }
+
+        case ERRORKING_ARRAYLENGTHMISMATCH:
+        {
+            printf( "expected size %d, found %d\n",
+                    error.array_length_mismatch.expected,
+                    error.array_length_mismatch.found);
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_CANNOTINFERARRAYLENGTH:
+        {
+            printf( "cannot infer array length\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        /* default: */
+        /* { */
+        /*     UNIMPLEMENTED(); */
+        /*     break; */
+        /* } */
     }
 }

@@ -155,7 +155,7 @@ void debug_print_type( Type type )
         case TYPEKIND_ARRAY:
         {
             printf( "(" );
-            debug_print_type( *type.array.type );
+            debug_print_type( *type.array.base_type );
             printf( "; %d)", type.array.length );
             break;
         }
@@ -456,7 +456,7 @@ void expression_print( Expression* expression )
         case EXPRESSIONKIND_ARRAY:
         {
             printf( "(" );
-            debug_print_type( *expression->array.type.array.type );
+            debug_print_type( *expression->array.type.array.base_type );
             printf( "; %d) {\n", expression->array.type.array.length );
             depth++;
 

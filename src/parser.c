@@ -397,8 +397,8 @@ static Type parse_type()
             }
 
             advance();
-            result.array.type = malloc( sizeof( Type ) );
-            *result.array.type = parse_type();
+            result.array.base_type = malloc( sizeof( Type ) );
+            *result.array.base_type = parse_type();
 
             break;
         }
@@ -436,7 +436,9 @@ static Expression* parse_array()
 
     expression->kind = EXPRESSIONKIND_ARRAY;
     expression->starting_token = parser.current_token;
+
     expression->array.type = parse_type();
+    expression->array.type_token = parser.current_token;
 
     advance();
     if( !EXPECT( TOKENKIND_LEFTBRACKET ) )
@@ -621,8 +623,8 @@ static Expression* parse_variable_declaration()
         /*     return NULL; */
         /* } */
 
-        expression->variable_declaration.type = parse_type();
         expression->variable_declaration.type_token = parser.current_token;
+        expression->variable_declaration.type = parse_type();
 
         advance();
         if( !EXPECT( TOKENKIND_SEMICOLON, TOKENKIND_EQUAL ) )

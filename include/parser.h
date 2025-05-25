@@ -52,7 +52,7 @@ typedef struct Type
 
         struct
         {
-            struct Type* type;
+            struct Type* base_type;
             int length; // if this is -1, length is to be inferred
         } array;
     };
@@ -228,7 +228,7 @@ typedef struct Expression
         struct
         {
             Type type;
-            // Token type_token;
+            Token type_token;
             int count_initialized; // number of values initialized in the array literal
             struct Expression* initialized_rvalues;
         } array;
