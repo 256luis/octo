@@ -284,6 +284,7 @@ static Expression* parse_function_call( Parser* parser )
 static Type parse_base_type( Parser* parser )
 {
     Type result;
+    result.token = parser->current_token;
     char* type_identifier = parser->current_token.identifier;
 
     if( strcmp( type_identifier, "i8" ) == 0 )
@@ -365,10 +366,49 @@ static Type parse_base_type( Parser* parser )
     return result;
 }
 
+static Type parse_type( Parser* parser );
+static Type parse_array_type( Parser* parser )
+{
+    Type result;
+    result.kind = TYPEKIND_ARRAY;
+    result.token = parser->current_token;
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_INTEGER, TOKENKIND_RIGHTBRACKET ) )
+    {
+        result.kind = TYPEKIND_INVALID;
+        return result;
+    }
+
+    // default value to indicate if length is to be infered
+    result.array.length = -1;
+    if( parser->current_token.kind == TOKENKIND_INTEGER )
+    {
+        result.array.length = parser->current_token.integer;
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_RIGHTBRACKET ) )
+        {
+            result.kind = TYPEKIND_INVALID;
+            return result;
+        }
+    }
+
+    advance( parser );
+    result.array.base_type = malloc( sizeof( Type ) );
+    *result.array.base_type = parse_type( parser );
+
+    return result;
+}
+
 // todo HASHMAP!!!
 static Type parse_type( Parser* parser )
 {
+    if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
+    {
+        return ( Type ){ .kind = TYPEKIND_INVALID };
+    }
+
     Type result;
+
     switch( parser->current_token.kind )
     {
         case TOKENKIND_IDENTIFIER:
@@ -379,37 +419,14 @@ static Type parse_type( Parser* parser )
 
         case TOKENKIND_LEFTBRACKET:
         {
-            result.kind = TYPEKIND_ARRAY;
-            advance( parser );
-            if( !EXPECT( parser, TOKENKIND_INTEGER, TOKENKIND_RIGHTBRACKET ) )
-            {
-                result.kind = TYPEKIND_INVALID;
-                return result;
-            }
-
-            // default value to indicate if length is to be infered
-            result.array.length = -1;
-            if( parser->current_token.kind == TOKENKIND_INTEGER )
-            {
-                result.array.length = parser->current_token.integer;
-                advance( parser );
-                if( !EXPECT( parser, TOKENKIND_RIGHTBRACKET ) )
-                {
-                    result.kind = TYPEKIND_INVALID;
-                    return result;
-                }
-            }
-
-            advance( parser );
-            result.array.base_type = malloc( sizeof( Type ) );
-            *result.array.base_type = parse_type( parser );
-
+            result = parse_array_type( parser );
             break;
         }
 
         case TOKENKIND_AMPERSAND: // pointers
         {
             result.kind = TYPEKIND_POINTER;
+            result.token = parser->current_token;
             advance( parser );
             if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
             {
@@ -622,12 +639,6 @@ static Expression* parse_variable_declaration( Parser* parser )
     if( parser->current_token.kind == TOKENKIND_COLON )
     {
         advance( parser );
-        /* if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) ) */
-        /* { */
-        /*     return NULL; */
-        /* } */
-
-        expression->variable_declaration.type_token = parser->current_token;
         expression->variable_declaration.type = parse_type( parser );
 
         advance( parser );
@@ -760,7 +771,7 @@ static Expression* parse_function_declaration( Parser* parser )
             }
 
             advance( parser );
-            if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+            if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
             {
                 return NULL;
             }
@@ -801,7 +812,7 @@ static Expression* parse_function_declaration( Parser* parser )
     }
 
     advance( parser );
-    if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+    if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
     {
         return NULL;
     }

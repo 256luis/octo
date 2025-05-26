@@ -332,7 +332,7 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
     return result;
 }
 
-bool check_type( SemanticContext* context, Type type, Token type_token )
+bool check_type( SemanticContext* context, Type type )
 {
     switch( type.kind )
     {
@@ -348,7 +348,7 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
         {
             Error error = {
                 .kind = ERRORKIND_VOIDVARIABLE,
-                .offending_token = type_token,
+                .offending_token = type.token,
             };
             report_error( error );
             return false;
@@ -356,19 +356,28 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
 
         case TYPEKIND_FUNCTION:
         {
-            // TODO: this
-            // NOTE: make a special case for the return type
-            //       allow it to be void
+            bool is_valid = true;
 
-            UNIMPLEMENTED();
-            break;
+            // check params
+            for( int i = 0; i < type.function.param_count; i++ )
+            {
+                Type t = type.function.param_types[ i ];
+                is_valid = is_valid && check_type( context, t );
+            }
+
+            // void is allowed
+            if( type.function.return_type->kind != TYPEKIND_VOID )
+            {
+                is_valid = is_valid && check_type( context, *type.function.return_type );
+            }
+            return is_valid;
         }
 
         case TYPEKIND_POINTER:
         {
             // lvec_append_aggregate( context->pointer_types, *type.pointer.base_type );
             add_pointer_type( context, *type.pointer.base_type );
-            return check_type( context, *type.pointer.base_type, type_token );
+            return check_type( context, *type.pointer.base_type );
         }
 
         case TYPEKIND_ARRAY:
@@ -377,7 +386,7 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
             {
                 Error error = {
                     .kind = ERRORKIND_ZEROLENGTHARRAY,
-                    .offending_token = type_token,
+                    .offending_token = type.token,
                 };
                 report_error( error );
                 return false;
@@ -385,7 +394,7 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
 
             // lvec_append_aggregate( context->array_types, *type.array.base_type );
             add_array_type( context, *type.array.base_type );
-            return check_type( context, *type.array.base_type, type_token );
+            return check_type( context, *type.array.base_type );
         }
 
         case TYPEKIND_CUSTOM:
@@ -395,7 +404,7 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
             {
                 Error error = {
                     .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                    .offending_token = type_token,
+                    .offending_token = type.token,
                 };
                 report_error( error );
                 return false;
@@ -902,7 +911,7 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
 {
     Type declared_type = expression->array.type;
 
-    if( !check_type( context, declared_type, expression->array.type_token ) )
+    if( !check_type( context, declared_type ) )
     {
         return false;
     }
@@ -1079,7 +1088,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     }
 
     Type found_type = expression->variable_declaration.type;
-    if( found_type.kind != TYPEKIND_TOINFER && !check_type( context, found_type, expression->variable_declaration.type_token  ) )
+    if( found_type.kind != TYPEKIND_TOINFER && !check_type( context, found_type ) )
     {
         return false;
     }
@@ -1111,7 +1120,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         {
             found_type = inferred_type;
         }
-        else if( !check_type( context, found_type, expression->variable_declaration.type_token ) )
+        else if( !check_type( context, found_type ) )
         {
             return false;
         }
@@ -1134,7 +1143,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     {
         Error error = {
             .kind = ERRORKIND_CANNOTINFERARRAYLENGTH,
-            .offending_token = expression->variable_declaration.type_token,
+            .offending_token = expression->variable_declaration.type.token,
         };
         report_error( error );
         return false;
@@ -1217,8 +1226,8 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
     {
         Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
         Type param_type = expression->function_declaration.param_types[ i ];
-        Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
-        if( !check_type( context, param_type, param_type_token ) )
+        // Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
+        if( !check_type( context, param_type ) )
         {
             return false;
         }

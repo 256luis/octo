@@ -23,6 +23,7 @@ typedef enum TypeKind
 typedef struct Type
 {
     TypeKind kind;
+    Token token;
 
     union
     {
@@ -166,7 +167,6 @@ typedef struct Expression
             Token identifier_token;
 
             Type type;
-            Token type_token;
 
             struct Expression* rvalue;
         } variable_declaration;
