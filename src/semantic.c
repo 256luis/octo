@@ -866,6 +866,7 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
             .kind = TYPEKIND_POINTER,
             .pointer.base_type = &operand_symbol->type,
         };
+        add_pointer_type( context, *inferred_type->pointer.base_type );
     }
     else
     {
@@ -971,6 +972,7 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
     inferred_type->kind = TYPEKIND_ARRAY;
     inferred_type->array.length = found_length;
     inferred_type->array.base_type = declared_type.array.base_type;
+    add_array_type( context, *inferred_type->array.base_type );
 
     // for AST printing in debug.c
     expression->array.type = *inferred_type;
@@ -1077,7 +1079,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     }
 
     Type found_type = expression->variable_declaration.type;
-    if( !check_type( context, found_type, expression->variable_declaration.type_token  ) )
+    if( found_type.kind != TYPEKIND_TOINFER && !check_type( context, found_type, expression->variable_declaration.type_token  ) )
     {
         return false;
     }
