@@ -21,6 +21,7 @@ typedef struct SemanticContext
     Type* return_type_stack;
     Type* pointer_types;
     Type* array_types;
+    Symbol* reserved_symbols;
 } SemanticContext;
 
 void semantic_context_initialize( SemanticContext* context );

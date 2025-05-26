@@ -237,10 +237,13 @@ void report_error( Error error )
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
 
-            printf( "%s:%d:%d: note: ", g_source_code.path, original_declaration_token.line, original_declaration_token.column );
-            printf( "previous declaration here\n");
-            source_code_print_line( g_source_code, original_declaration_token.line );
-            printf( "\n        %*c\n", original_declaration_token.column, '^' );
+            if( original_declaration_token.line != 0 )
+            {
+                printf( "%s:%d:%d: note: ", g_source_code.path, original_declaration_token.line, original_declaration_token.column );
+                printf( "previous declaration here\n");
+                source_code_print_line( g_source_code, original_declaration_token.line );
+                printf( "\n        %*c\n", original_declaration_token.column, '^' );
+            }
 
             break;
         }

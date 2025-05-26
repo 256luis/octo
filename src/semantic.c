@@ -88,10 +88,154 @@ void semantic_context_initialize( SemanticContext* context )
         },
     };
 
+    Symbol i8_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "i8",
+            .identifier = "i8",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol i16_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "i16",
+            .identifier = "i16",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol i32_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "i32",
+            .identifier = "i32",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol i64_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "i64",
+            .identifier = "i64",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol u8_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "u8",
+            .identifier = "u8",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol u16_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "u16",
+            .identifier = "u16",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol u32_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "u32",
+            .identifier = "u32",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol u64_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "u64",
+            .identifier = "u64",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol f32_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "f32",
+            .identifier = "f32",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol f64_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "f64",
+            .identifier = "f64",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol bool_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "bool",
+            .identifier = "bool",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
+    Symbol char_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "char",
+            .identifier = "char",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_PRIMITIVE,
+        },
+    };
+
     push_scope( context );
 
     add_symbol_to_scope( context, true_symbol );
     add_symbol_to_scope( context, false_symbol );
+    add_symbol_to_scope( context, i8_symbol );
+    add_symbol_to_scope( context, i16_symbol );
+    add_symbol_to_scope( context, i32_symbol );
+    add_symbol_to_scope( context, i64_symbol );
+    add_symbol_to_scope( context, u8_symbol );
+    add_symbol_to_scope( context, u16_symbol );
+    add_symbol_to_scope( context, u32_symbol );
+    add_symbol_to_scope( context, u64_symbol );
+    add_symbol_to_scope( context, f32_symbol );
+    add_symbol_to_scope( context, f64_symbol );
+    add_symbol_to_scope( context, bool_symbol );
+    add_symbol_to_scope( context, char_symbol );
 }
 
 // searches the entire symbol table stack backwards for identifier
