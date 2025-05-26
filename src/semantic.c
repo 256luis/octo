@@ -734,13 +734,24 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
 
     // check if args count match param count
     Type* param_types = original_declaration->type.function.param_types;
-
     int param_count = original_declaration->type.function.param_count;
     int arg_count = expression->function_call.arg_count;
-    if( arg_count != param_count )
+    bool is_variadic = original_declaration->type.function.is_variadic;
+
+    bool is_argument_count_valid;
+    if( is_variadic )
+    {
+        is_argument_count_valid = arg_count >= param_count;
+    }
+    else
+    {
+        is_argument_count_valid = arg_count == param_count;
+    }
+
+    if( !is_argument_count_valid )
     {
         Error error = {
-            .kind = ERRORKIND_TOOMANYARGUMENTS,
+            .kind = ERRORKIND_INVALIDARGUMENTCOUNT,
             .offending_token = identifier_token,
             .too_many_arguments = {
                 .expected = param_count,
@@ -1060,8 +1071,8 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
 
         default:
         {
-            // report error
-            UNIMPLEMENTED();
+            // not rvalue expressions
+            UNREACHABLE();
             break;
         }
     }
@@ -1205,6 +1216,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
     Type* param_types = expression->function_declaration.param_types;
     Type* return_type = &expression->function_declaration.return_type;
     int param_count = expression->function_declaration.param_count;
+    bool is_variadic = expression->function_declaration.is_variadic;
 
     // add to symbol table
     Symbol symbol = {
@@ -1215,6 +1227,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
                 .param_types = param_types,
                 .return_type = return_type,
                 .param_count = param_count,
+                .is_variadic = is_variadic,
             }
         },
     };

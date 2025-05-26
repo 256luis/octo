@@ -316,7 +316,7 @@ void report_error( Error error )
             break;
         }
 
-        case ERRORKIND_TOOMANYARGUMENTS:
+        case ERRORKIND_INVALIDARGUMENTCOUNT:
         {
             int expected_arg_count = error.too_many_arguments.expected;
             int found_arg_count = error.too_many_arguments.found;

@@ -33,6 +33,7 @@ typedef struct Type
             struct Type* param_types;
             struct Type* return_type;
             int param_count;
+            bool is_variadic;
         } function;
 
         struct
@@ -183,16 +184,16 @@ typedef struct Expression
             Token identifier_token;
 
             Type return_type;
-            Token return_type_token;
 
             // arrays to hold params info
             char** param_identifiers;
             Token* param_identifiers_tokens;
 
             Type* param_types;
-            Token* param_types_tokens;
 
             int param_count;
+
+            bool is_variadic;
 
             struct Expression* body;
         } function_declaration;

@@ -8,8 +8,6 @@
 
 #define INDENTATION_WIDTH 4
 
-// FILE* file;
-
 static int depth = 0;
 static void append( FILE* file, const char* format, ... )
 {
@@ -250,20 +248,40 @@ static void generate_variable_declaration( FILE* file, Expression* expression )
 
 static void generate_function_declaration( FILE* file, SemanticContext* context,  Expression* expression )
 {
-    generate_type( file, expression->function_declaration.return_type );
-    append( file, " %s(", expression->function_declaration.identifier );
+    Type return_type = expression->function_declaration.return_type;
+    char* identifier = expression->function_declaration.identifier;
+    Type* param_types = expression->function_declaration.param_types;
+    char** param_identifiers = expression->function_declaration.param_identifiers;
+    int param_count = expression->function_declaration.param_count;
+    bool is_variadic = expression->function_declaration.is_variadic;
 
-    for( int i = 0; i < expression->function_declaration.param_count; i++ )
+    generate_type( file, return_type );
+    append( file, " %s(", identifier );
+
+    if( param_count > 0)
     {
-        Type param_type = expression->function_declaration.param_types[ i ];
-        char* param_identifier = expression->function_declaration.param_identifiers[ i ];
+        // append the first param
+        Type param_type = param_types[ 0 ];
+        char* param_identifier = param_identifiers[ 0 ];
         generate_type( file, param_type );
         append( file, " %s", param_identifier );
-        if( i < expression->function_declaration.param_count - 1 )
+
+        for( int i = 1; i < param_count - 1; i++ )
         {
+            Type param_type = param_types[ i ];
+            char* param_identifier = param_identifiers[ i ];
+
             append( file, ", " );
+            generate_type( file, param_type );
+            append( file, " %s", param_identifier );
         }
     }
+
+    if( is_variadic )
+    {
+        append( file, ", ..." );
+    }
+
     append( file, ")"  );
 
     Expression* function_body = expression->function_declaration.body;

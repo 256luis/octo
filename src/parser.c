@@ -735,14 +735,14 @@ static Expression* parse_function_declaration( Parser* parser )
     }
 
     advance( parser );
-    if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTPAREN ) )
+    if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_DOUBLEPERIOD, TOKENKIND_RIGHTPAREN ) )
     {
         return NULL;
     }
 
     expression->function_declaration.param_count = 0;
 
-    if( parser->current_token.kind == TOKENKIND_IDENTIFIER )
+    if( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
     {
         char** param_identifiers = lvec_new( char* );
         if( param_identifiers == NULL ) ALLOC_ERROR();
@@ -756,36 +756,45 @@ static Expression* parse_function_declaration( Parser* parser )
         Token* param_types_tokens = lvec_new( Token );
         if( param_types_tokens == NULL ) ALLOC_ERROR();
 
+        // this entire block is so ugly
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
         {
-            char* param_identifier = parser->current_token.identifier;
-            Token param_identifier_token = parser->current_token;
+            if( parser->current_token.kind == TOKENKIND_IDENTIFIER )
+            {
+                char* param_identifier = parser->current_token.identifier;
+                Token param_identifier_token = parser->current_token;
 
-            lvec_append( param_identifiers, param_identifier );
-            lvec_append_aggregate( param_identifiers_tokens, param_identifier_token );
+                lvec_append( param_identifiers, param_identifier );
+                lvec_append_aggregate( param_identifiers_tokens, param_identifier_token );
+
+                advance( parser );
+                if( !EXPECT( parser, TOKENKIND_COLON ) )
+                {
+                    return NULL;
+                }
+
+                advance( parser );
+                Type param_type = parse_type( parser );
+                Token param_type_token = parser->current_token;
+
+                lvec_append_aggregate( param_types, param_type );
+                lvec_append_aggregate( param_types_tokens, param_type_token );
+
+                expression->function_declaration.param_count++;
+            }
+            else // TOKENKIND_DOUBLEPERIOD
+            {
+                expression->function_declaration.is_variadic = true;
+            }
 
             advance( parser );
-            if( !EXPECT( parser, TOKENKIND_COLON ) )
+            bool is_variadic = expression->function_declaration.is_variadic;
+            if( is_variadic && !EXPECT( parser, TOKENKIND_RIGHTPAREN ) )
             {
                 return NULL;
             }
 
-            advance( parser );
-            if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
-            {
-                return NULL;
-            }
-
-            Type param_type = parse_type( parser );
-            Token param_type_token = parser->current_token;
-
-            lvec_append_aggregate( param_types, param_type );
-            lvec_append_aggregate( param_types_tokens, param_type_token );
-
-            expression->function_declaration.param_count++;
-
-            advance( parser );
-            if( !EXPECT( parser, TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN ) )
+            if( !is_variadic && !EXPECT( parser, TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN ) )
             {
                 return NULL;
             }
@@ -800,7 +809,6 @@ static Expression* parse_function_declaration( Parser* parser )
         expression->function_declaration.param_types = param_types;
 
         expression->function_declaration.param_identifiers_tokens = param_identifiers_tokens;
-        expression->function_declaration.param_types_tokens = param_types_tokens;
     }
 
     // current token is right paren
@@ -818,7 +826,6 @@ static Expression* parse_function_declaration( Parser* parser )
     }
 
     expression->function_declaration.return_type = parse_type( parser );
-    expression->function_declaration.return_type_token = parser->current_token;
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_LEFTBRACE, TOKENKIND_SEMICOLON ) )

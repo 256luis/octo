@@ -26,6 +26,7 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_COLON ]        = ":",
     [ TOKENKIND_DOUBLECOLON ]  = "::",
     [ TOKENKIND_PERIOD ]       = ".",
+    [ TOKENKIND_DOUBLEPERIOD ] = "..",
     [ TOKENKIND_COMMA ]        = ",",
     [ TOKENKIND_PLUS ]         = "+",
     [ TOKENKIND_MINUS ]        = "-",

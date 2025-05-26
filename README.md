@@ -54,6 +54,58 @@ Note: Currently, the compiler calls `tcc` to build the generated C code but it i
 
 ## Building from source
 This project uses CMake as its build system.
+# The Octo Programming Language
+Octo is a statically, strongly-typed programming language that transpiles to C.
+```rust
+extern func printf(format: &char, ..) -> i32;
+
+func fib(n: i64) -> i64
+{
+    if n == 0 return 0;
+    if n == 1 return 1;
+
+    return fib(n - 1) + fib(n - 2);
+}
+
+func main() -> i32
+{
+    let n = 5;
+    let nth_fib = fib(n);
+    printf("fib(%d) = %d", n, nth_fib);
+}
+
+```
+Note: Currently, the compiler calls `tcc` to build the generated C code but it is trivial to change it to a C compiler on your system.
+
+## Development Progress
+| | Tokenizing + Parsing | Semantic Analysis | Code Generation |
+|-|:-:|:-:|:-:|
+| Function declaration | ✅ | ✅ | ✅ |
+| Function call | ✅ | ✅ | ✅ |
+| Variadic functions | ✅ | ⚠️ | ⚠️ |
+| Variable declaration | ✅ | ✅ | ✅ |
+| Variable reassignment | ✅ | ✅ | ✅ |
+| Type inference | ⬛ | ✅ | ✅ |
+| Pointers | ✅ | ⚠️ | ⚠️ |
+| Arrays | ⚠️ | ⚠️ | ⚠️ |
+| Modules | ❌| ❌ | ❌ |
+| If-statements | ✅ | ✅ | ✅ |
+| If-expressions | ❌ | ❌ | ❌ |
+| Switch-statements | ❌ | ❌ | ❌ |
+| Switch-expressions | ❌ | ❌ | ❌ |
+| While-loops | ✅ | ✅ | ✅ |
+| For-loops | ❌ | ❌ | ❌ |
+| Structs | ❌ | ❌ | ❌ |
+| Unions | ❌ | ❌ | ❌ |
+| Enums | ❌ | ❌ | ❌ |
+| Tagged unions | ❌ | ❌ | ❌ |
+| Compile-time function execution | ❌ | ❌ | ❌ |
+| Generics | ❌ | ❌ | ❌ |
+| Closures | ❌ | ❌ | ❌ |
+| Out-of-order declarations | ⬛ | ❌ | ❌ |
+
+## Building from source
+This project uses CMake as its build system.
 
 Clone the repository with the `--recurse-submodules` flag to also clone the submodules.
 ```
@@ -162,6 +214,7 @@ Octo contains the following built-in types:
 | `char` | 1 | character |
 | `bool` | 1 | boolean |
 | `&T` | 8 | pointer to `T` |
+| `[n]T` | 8 | array of `T` with size `n` |
 
 Octo is strict with types. Implicit casts from signed to unsigned types and the reverse are not allowed. Implicit casts from integer to floating point types and the reverse are also not allowed. Numeric types (floats and integers) can only be implicitly casted from lower size to higher size (e.g. `i16 -> i32`, `f32 -> f64`) but the reverse is not allowed.
 ```rust
