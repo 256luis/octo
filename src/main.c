@@ -47,10 +47,10 @@ int main( int argc, char* argv[] )
     }
 
     FILE* generated_c = fopen( "generated.c", "w+" );
-    generate_code( generated_c, program );
+    generate_code( generated_c, &semantic_context, program );
     fclose( generated_c );
 
     // temporarily use this to test
-    system("tcc -run generated.c -std=c99");
+    system("gcc generated.c -std=gnu99");
     // system("del generated.c");
 }

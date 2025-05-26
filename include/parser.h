@@ -36,7 +36,7 @@ typedef struct Type
 
         struct
         {
-            struct Type* type;
+            struct Type* base_type;
         } pointer;
 
         struct

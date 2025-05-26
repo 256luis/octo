@@ -3,7 +3,8 @@
 
 #include <stdio.h>
 #include "parser.h"
+#include "semantic.h"
 
-FILE* generate_code( FILE* file, Expression* program );
+void generate_code( FILE* file, SemanticContext* context, Expression* program );
 
 #endif

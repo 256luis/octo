@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "parser.h"
 #include "lvec.h"
+#include "semantic.h"
 
 #define INDENTATION_WIDTH 4
 
@@ -18,7 +19,7 @@ static void append( FILE* file, const char* format, ... )
     va_end( args );
 }
 
-static void generate_compound( FILE* file, Expression* expression )
+static void generate_compound( FILE* file, SemanticContext* context, Expression* expression )
 {
     if( depth != 0 )
     {
@@ -30,7 +31,7 @@ static void generate_compound( FILE* file, Expression* expression )
     for( size_t i = 0; i < length; i++ )
     {
         Expression* e = expression->compound.expressions[ i ];
-        generate_code( file, e );
+        generate_code( file, context, e );
     }
 
     depth--;
@@ -49,13 +50,13 @@ static void generate_type( FILE* file, Type type )
         case TYPEKIND_BOOLEAN:
             // case TYPEKIND_STRING:
         {
-            append( file, "%s ", type_kind_to_string[ type.kind ] );
+            append( file, "%s", type_kind_to_string[ type.kind ] );
             break;
         }
 
         case TYPEKIND_INTEGER:
         {
-            append( file, "%c%zu ",
+            append( file, "%c%zu",
                     type.integer.is_signed ? 'i' : 'u',
                     type.integer.bit_count );
             break;
@@ -63,13 +64,13 @@ static void generate_type( FILE* file, Type type )
 
         case TYPEKIND_FLOAT:
         {
-            append( file, "f%zu ", type.integer.bit_count );
+            append( file, "f%zu", type.integer.bit_count );
             break;
         }
 
         case TYPEKIND_CUSTOM:
         {
-            append( file, "%s ", type.custom_identifier );
+            append( file, "%s", type.custom_identifier );
             break;
         }
 
@@ -82,14 +83,15 @@ static void generate_type( FILE* file, Type type )
         case TYPEKIND_POINTER:
         {
             // UNIMPLEMENTED();
-            generate_type( file, *type.pointer.type );
-            append( file, "*" );
+            append( file, "OctoPtr_" );
+            generate_type( file, *type.pointer.base_type );
             break;
         }
 
         case TYPEKIND_ARRAY:
         {
-            UNIMPLEMENTED();
+            append( file, "OctoArray_" );
+            generate_type( file, *type.array.base_type );
             break;
         }
 
@@ -101,6 +103,36 @@ static void generate_type( FILE* file, Type type )
         }
 
     }
+}
+
+static void generate_rvalue( FILE* file, Expression* expression );
+static void generate_array( FILE* file, Expression* expression )
+{
+    // ( OctoArray_T ){
+    //     .length = <length>,
+    //     .data = ( T[<length>] ){
+    //         <rvalues>
+    //     }
+    // };
+
+    int length = expression->array.type.array.length;
+    Type base_type = *expression->array.type.array.base_type;
+
+    append( file,  "(" );
+    generate_type( file, expression->array.type );
+    append( file, "){\n" );
+    append( file, ".length = %d,\n", length );
+    append( file, ".data = (" );
+    generate_type( file, base_type );
+    append( file, "[%d]){", length );
+    for( int i = 0; i < expression->array.count_initialized; i++ )
+    {
+        Expression* e = &expression->array.initialized_rvalues[ i ];
+        generate_rvalue( file, e );
+        append( file, ", " );
+    }
+    append( file, "}\n" );
+    append( file, "}" );
 }
 
 static void generate_function_call( FILE* file, Expression* expression );
@@ -188,6 +220,12 @@ static void generate_rvalue( FILE* file, Expression* expression )
             break;
         }
 
+        case EXPRESSIONKIND_ARRAY:
+        {
+            generate_array( file, expression );
+            break;
+        }
+
         default:
         {
             UNREACHABLE();
@@ -199,7 +237,7 @@ static void generate_rvalue( FILE* file, Expression* expression )
 static void generate_variable_declaration( FILE* file, Expression* expression )
 {
     generate_type( file, expression->variable_declaration.type );
-    append( file, "%s", expression->variable_declaration.identifier );
+    append( file, " %s", expression->variable_declaration.identifier );
 
     if( expression->variable_declaration.rvalue != NULL )
     {
@@ -210,17 +248,17 @@ static void generate_variable_declaration( FILE* file, Expression* expression )
     append( file, ";\n" );
 }
 
-static void generate_function_declaration( FILE* file, Expression* expression )
+static void generate_function_declaration( FILE* file, SemanticContext* context,  Expression* expression )
 {
     generate_type( file, expression->function_declaration.return_type );
-    append( file, "%s(", expression->function_declaration.identifier );
+    append( file, " %s(", expression->function_declaration.identifier );
 
     for( int i = 0; i < expression->function_declaration.param_count; i++ )
     {
         Type param_type = expression->function_declaration.param_types[ i ];
         char* param_identifier = expression->function_declaration.param_identifiers[ i ];
         generate_type( file, param_type );
-        append( file, "%s", param_identifier );
+        append( file, " %s", param_identifier );
         if( i < expression->function_declaration.param_count - 1 )
         {
             append( file, ", " );
@@ -232,7 +270,7 @@ static void generate_function_declaration( FILE* file, Expression* expression )
     if( function_body != NULL )
     {
         append( file, "\n" );
-        generate_compound( file, function_body );
+        generate_compound( file, context, function_body );
     }
     else
     {
@@ -280,39 +318,66 @@ static void generate_function_call( FILE* file, Expression* expression )
 
 }
 
-static void generate_conditional( FILE* file, Expression* expression )
+static void generate_conditional( FILE* file, SemanticContext* context, Expression* expression )
 {
     append( file, "%s (", expression->conditional.is_loop ? "while" : "if" );
     generate_rvalue( file, expression->conditional.condition );
     append( file, ")\n" );
-    generate_code( file, expression->conditional.true_body );
+    generate_code( file, context, expression->conditional.true_body );
 
     if( expression->conditional.false_body != NULL )
     {
         append( file, "else " );
-        generate_code( file, expression->conditional.false_body );
+        generate_code( file, context, expression->conditional.false_body );
     }
 }
 
-
-
-FILE* generate_code( FILE* file, Expression* expression )
+void generate_code( FILE* file, SemanticContext* context, Expression* expression )
 {
     // temporary
     static bool first = true;
     if( first )
     {
         first = false;
-        append( file, "typedef signed char        i8;\n" );
-        append( file, "typedef short              i16;\n" );
-        append( file, "typedef int                i32;\n" );
-        append( file, "typedef long long          i64;\n" );
-        append( file, "typedef unsigned char      u8;\n" );
-        append( file, "typedef unsigned short     u16;\n" );
-        append( file, "typedef unsigned int       u32;\n" );
-        append( file, "typedef unsigned long long u64;\n" );
-        append( file, "typedef float              f32;\n" );
-        append( file, "typedef double             f64;\n" );
+
+        append( file, "#include \"octoruntime/types.h\"\n" );
+
+        // generate forward declarations of array types
+        for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
+        {
+            // "typedef struct OctoArray_T OctoArray_T; "
+
+            Type base_type = context->array_types[ i ];
+            append( file, "typedef struct OctoArray_" );
+            generate_type( file, base_type );
+            append( file, " OctoArray_" );
+            generate_type( file, base_type );
+            append( file, ";\n" );
+        }
+
+        // generate definitions for pointer types
+        for( size_t i = 0; i < lvec_get_length( context->pointer_types ); i++ )
+        {
+            // "typedef T* T_ptr;"
+
+            Type base_type = context->pointer_types[ i ];
+            append( file, "#define OctoPtr_" );
+            generate_type( file, base_type );
+            append( file, " ");
+            generate_type( file, base_type );
+            append( file, "*\n");
+        }
+
+        // generate definitions for array_types
+        for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
+        {
+            // "OCTO_DEFINE_ARRAY(T);"
+
+            Type base_type = context->array_types[ i ];
+            append( file, "OCTO_DEFINE_ARRAY(" );
+            generate_type( file, base_type );
+            append( file, ");\n" );
+        }
     }
 
     switch( expression->kind )
@@ -325,13 +390,13 @@ FILE* generate_code( FILE* file, Expression* expression )
 
         case EXPRESSIONKIND_COMPOUND:
         {
-            generate_compound( file, expression );
+            generate_compound( file, context, expression );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
-            generate_function_declaration( file, expression );
+            generate_function_declaration( file, context, expression );
             break;
         }
 
@@ -356,13 +421,13 @@ FILE* generate_code( FILE* file, Expression* expression )
 
         case EXPRESSIONKIND_EXTERN:
         {
-            generate_function_declaration( file, expression->extern_expression.function );
+            generate_function_declaration( file, context, expression->extern_expression.function );
             break;
         }
 
         case EXPRESSIONKIND_CONDITIONAL:
         {
-            generate_conditional( file, expression );
+            generate_conditional( file, context, expression );
             break;
         }
 
@@ -371,6 +436,4 @@ FILE* generate_code( FILE* file, Expression* expression )
             UNREACHABLE();
         }
     }
-
-    // return file;
 }

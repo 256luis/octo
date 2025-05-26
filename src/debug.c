@@ -141,7 +141,7 @@ void debug_print_type( Type type )
         case TYPEKIND_POINTER:
         {
             printf( "(" );
-            debug_print_type( *type.pointer.type );
+            debug_print_type( *type.pointer.base_type );
             printf( ")" );
             break;
         }

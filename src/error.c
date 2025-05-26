@@ -157,7 +157,7 @@ void print_type( Type type )
         case TYPEKIND_POINTER:
         {
             printf( "&" );
-            print_type( *type.pointer.type );
+            print_type( *type.pointer.base_type );
             break;
         }
 

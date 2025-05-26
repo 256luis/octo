@@ -411,15 +411,15 @@ static Type parse_type( Parser* parser )
         {
             result.kind = TYPEKIND_POINTER;
             advance( parser );
-            if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_AMPERSAND ) )
+            if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
             {
                 result.kind = TYPEKIND_INVALID;
                 return result;
             }
 
             // i have to allocate here... SO ANNOYING!!!
-            result.pointer.type = malloc( sizeof( Type ) );
-            *result.pointer.type = parse_type( parser );
+            result.pointer.base_type = malloc( sizeof( Type ) );
+            *result.pointer.base_type = parse_type( parser );
             break;
         }
 

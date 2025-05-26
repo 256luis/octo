@@ -18,7 +18,7 @@ typedef struct TypeKindPair
     TypeKind tk2;
 } TypeKindPair;
 
-// static SemanticContext context;
+bool type_equals( Type t1, Type t2 );
 
 void push_return_type( SemanticContext* context, Type type )
 {
@@ -63,6 +63,8 @@ void semantic_context_initialize( SemanticContext* context )
 {
     context->symbol_table_stack = lvec_new( SymbolTable );
     context->return_type_stack = lvec_new( Type );
+    context->array_types = lvec_new( Type );
+    context->pointer_types = lvec_new( Type );
 
     Symbol true_symbol = {
         .token = ( Token ){
@@ -157,7 +159,7 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_POINTER:
         {
-            return type_equals( *t1.pointer.type, *t2.pointer.type );
+            return type_equals( *t1.pointer.base_type, *t2.pointer.base_type );
         }
 
         case TYPEKIND_FUNCTION:
@@ -201,6 +203,36 @@ bool type_equals( Type t1, Type t2 )
             break;
         }
     }
+}
+
+void add_array_type( SemanticContext* context, Type base_type )
+{
+    // check if type is already in array
+    for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
+    {
+        Type t = context->array_types[ i ];
+        if( type_equals( t, base_type ) )
+        {
+            return;
+        }
+    }
+
+    lvec_append_aggregate( context->array_types, base_type );
+}
+
+void add_pointer_type( SemanticContext* context, Type base_type )
+{
+    // check if type is already in array
+    for( size_t i = 0; i < lvec_get_length( context->pointer_types ); i++ )
+    {
+        Type t = context->pointer_types[ i ];
+        if( type_equals( t, base_type ) )
+        {
+            return;
+        }
+    }
+
+    lvec_append_aggregate( context->pointer_types, base_type );
 }
 
 static bool try_implicit_cast( Type destination_type, Type* out_type )
@@ -267,8 +299,8 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
             // non-&void to &void is allowed
             // &void to non-&void is allowed
 
-            bool is_destination_void_ptr = destination_type.pointer.type->kind == TYPEKIND_VOID;
-            bool is_original_void_ptr = out_type->pointer.type->kind == TYPEKIND_VOID;
+            bool is_destination_void_ptr = destination_type.pointer.base_type->kind == TYPEKIND_VOID;
+            bool is_original_void_ptr = out_type->pointer.base_type->kind == TYPEKIND_VOID;
             if( ( is_destination_void_ptr + is_original_void_ptr ) > 0 )
             {
                 result = true;
@@ -304,7 +336,6 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
 {
     switch( type.kind )
     {
-        case TYPEKIND_VOID:
         case TYPEKIND_INTEGER:
         case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
@@ -313,15 +344,31 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
             return true;
         }
 
+        case TYPEKIND_VOID:
+        {
+            Error error = {
+                .kind = ERRORKIND_VOIDVARIABLE,
+                .offending_token = type_token,
+            };
+            report_error( error );
+            return false;
+        }
+
         case TYPEKIND_FUNCTION:
         {
+            // TODO: this
+            // NOTE: make a special case for the return type
+            //       allow it to be void
+
             UNIMPLEMENTED();
             break;
         }
 
         case TYPEKIND_POINTER:
         {
-            return check_type( context, *type.pointer.type, type_token );
+            // lvec_append_aggregate( context->pointer_types, *type.pointer.base_type );
+            add_pointer_type( context, *type.pointer.base_type );
+            return check_type( context, *type.pointer.base_type, type_token );
         }
 
         case TYPEKIND_ARRAY:
@@ -336,6 +383,8 @@ bool check_type( SemanticContext* context, Type type, Token type_token )
                 return false;
             }
 
+            // lvec_append_aggregate( context->array_types, *type.array.base_type );
+            add_array_type( context, *type.array.base_type );
             return check_type( context, *type.array.base_type, type_token );
         }
 
@@ -730,7 +779,7 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
 {
     Type void_pointer = {
         .kind = TYPEKIND_POINTER,
-        .pointer.type = &( Type ){
+        .pointer.base_type = &( Type ){
             .kind = TYPEKIND_VOID,
         },
     };
@@ -815,7 +864,7 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
 
         *inferred_type = ( Type ){
             .kind = TYPEKIND_POINTER,
-            .pointer.type = &operand_symbol->type,
+            .pointer.base_type = &operand_symbol->type,
         };
     }
     else
@@ -837,7 +886,7 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
 
         if( operation == UNARYOPERATION_DEREFERENCE )
         {
-            *inferred_type = *operand_type.pointer.type;
+            *inferred_type = *operand_type.pointer.base_type;
         }
         else
         {
@@ -944,8 +993,8 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
             inferred_type->kind = TYPEKIND_POINTER;
 
             // I HATE HOW I HAVE TO ALLOCATE HERE!!!!!!
-            inferred_type->pointer.type = malloc( sizeof( Type ) );
-            inferred_type->pointer.type->kind = TYPEKIND_CHARACTER;
+            inferred_type->pointer.base_type = malloc( sizeof( Type ) );
+            inferred_type->pointer.base_type->kind = TYPEKIND_CHARACTER;
             break;
         }
 
@@ -1028,13 +1077,8 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     }
 
     Type found_type = expression->variable_declaration.type;
-    if( found_type.kind == TYPEKIND_VOID )
+    if( !check_type( context, found_type, expression->variable_declaration.type_token  ) )
     {
-        Error error = {
-            .kind = ERRORKIND_VOIDVARIABLE,
-            .offending_token = expression->variable_declaration.type_token,
-        };
-        report_error( error );
         return false;
     }
 
