@@ -28,20 +28,26 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    Expression* program = parse( tokens );
+    Parser parser;
+    parser_initialize( &parser, tokens );
+
+    Expression* program = parse( &parser );
     if( program == NULL )
     {
         return 1;
     }
     lvec_free( tokens );
 
-    bool is_valid = check_semantics( program );
+    SemanticContext semantic_context;
+    semantic_context_initialize( &semantic_context );
+    bool is_valid = check_semantics( &semantic_context, program );
     if( !is_valid )
     {
         return 1;
     }
 
-    FILE* generated_c = generate_code( program );
+    FILE* generated_c = fopen( "generated.c", "w+" );
+    generate_code( generated_c, program );
     fclose( generated_c );
 
     // temporarily use this to test

@@ -237,13 +237,15 @@ typedef struct Expression
 
 typedef struct Parser
 {
-    // Token* tokens;
+    Token* tokens;
     int current_token_index;
     Token current_token;
     Token next_token;
 } Parser;
 
-Expression* parse( Token* tokens );
+void parser_initialize( Parser* parser, Token* _tokens );
+
+Expression* parse( Parser* parser );
 
 void expression_print( Expression* expression );
 

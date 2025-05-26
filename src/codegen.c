@@ -7,10 +7,10 @@
 
 #define INDENTATION_WIDTH 4
 
-FILE* file;
+// FILE* file;
 
 static int depth = 0;
-static void append( const char* format, ... )
+static void append( FILE* file, const char* format, ... )
 {
     va_list args;
     va_start( args, format );
@@ -18,11 +18,11 @@ static void append( const char* format, ... )
     va_end( args );
 }
 
-static void generate_compound( Expression* expression )
+static void generate_compound( FILE* file, Expression* expression )
 {
     if( depth != 0 )
     {
-        append( "{\n" );
+        append( file, "{\n" );
     }
     depth++;
 
@@ -30,17 +30,17 @@ static void generate_compound( Expression* expression )
     for( size_t i = 0; i < length; i++ )
     {
         Expression* e = expression->compound.expressions[ i ];
-        generate_code( e );
+        generate_code( file, e );
     }
 
     depth--;
     if( depth != 0)
     {
-        append( "}\n" );
+        append( file, "}\n" );
     }
 }
 
-static void generate_type( Type type )
+static void generate_type( FILE* file, Type type )
 {
     switch( type.kind )
     {
@@ -49,13 +49,13 @@ static void generate_type( Type type )
         case TYPEKIND_BOOLEAN:
             // case TYPEKIND_STRING:
         {
-            append( "%s ", type_kind_to_string[ type.kind ] );
+            append( file, "%s ", type_kind_to_string[ type.kind ] );
             break;
         }
 
         case TYPEKIND_INTEGER:
         {
-            append( "%c%zu ",
+            append( file, "%c%zu ",
                     type.integer.is_signed ? 'i' : 'u',
                     type.integer.bit_count );
             break;
@@ -63,13 +63,13 @@ static void generate_type( Type type )
 
         case TYPEKIND_FLOAT:
         {
-            append( "f%zu ", type.integer.bit_count );
+            append( file, "f%zu ", type.integer.bit_count );
             break;
         }
 
         case TYPEKIND_CUSTOM:
         {
-            append( "%s ", type.custom_identifier );
+            append( file, "%s ", type.custom_identifier );
             break;
         }
 
@@ -82,8 +82,8 @@ static void generate_type( Type type )
         case TYPEKIND_POINTER:
         {
             // UNIMPLEMENTED();
-            generate_type( *type.pointer.type );
-            append( "*" );
+            generate_type( file, *type.pointer.type );
+            append( file, "*" );
             break;
         }
 
@@ -103,67 +103,67 @@ static void generate_type( Type type )
     }
 }
 
-static void generate_function_call( Expression* expression );
-static void generate_rvalue( Expression* expression )
+static void generate_function_call( FILE* file, Expression* expression );
+static void generate_rvalue( FILE* file, Expression* expression )
 {
     switch( expression->kind )
     {
         case EXPRESSIONKIND_INTEGER:
         {
-            append( "%lld", expression->integer );
+            append( file, "%lld", expression->integer );
             break;
         }
 
         case EXPRESSIONKIND_FLOAT:
         {
-            append( "%lf", expression->floating );
+            append( file, "%lf", expression->floating );
             break;
         }
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            append( "%s", expression->identifier );
+            append( file, "%s", expression->identifier );
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
-            append( "\"%s\"", expression->string );
+            append( file, "\"%s\"", expression->string );
             break;
         }
 
         case EXPRESSIONKIND_CHARACTER:
         {
-            append( "\'%c\'", expression->character );
+            append( file, "\'%c\'", expression->character );
             break;
         }
 
         case EXPRESSIONKIND_BOOLEAN:
         {
-            append( "%s", expression->associated_token.as_string );
+            append( file, "%s", expression->associated_token.as_string );
             break;
         }
 
         case EXPRESSIONKIND_BINARY:
         {
-            append( "(" );
-            generate_rvalue( expression->binary.left );
+            append( file, "(" );
+            generate_rvalue( file, expression->binary.left );
             switch( expression->binary.operation )
             {
-                case BINARYOPERATION_ADD:          append( " + " ); break;
-                case BINARYOPERATION_SUBTRACT:     append( " - " ); break;
-                case BINARYOPERATION_MULTIPLY:     append( " * " ); break;
-                case BINARYOPERATION_DIVIDE:       append( " / " ); break;
-                case BINARYOPERATION_EQUAL:        append( " == " ); break;
-                case BINARYOPERATION_GREATER:      append( " > " ); break;
-                case BINARYOPERATION_LESS:         append( " < " ); break;
-                case BINARYOPERATION_NOTEQUAL:     append( " != " ); break;
-                case BINARYOPERATION_GREATEREQUAL: append( " >= " ); break;
-                case BINARYOPERATION_LESSEQUAL:    append( " <= " ); break;
+                case BINARYOPERATION_ADD:          append( file, " + " ); break;
+                case BINARYOPERATION_SUBTRACT:     append( file, " - " ); break;
+                case BINARYOPERATION_MULTIPLY:     append( file, " * " ); break;
+                case BINARYOPERATION_DIVIDE:       append( file, " / " ); break;
+                case BINARYOPERATION_EQUAL:        append( file, " == " ); break;
+                case BINARYOPERATION_GREATER:      append( file, " > " ); break;
+                case BINARYOPERATION_LESS:         append( file, " < " ); break;
+                case BINARYOPERATION_NOTEQUAL:     append( file, " != " ); break;
+                case BINARYOPERATION_GREATEREQUAL: append( file, " >= " ); break;
+                case BINARYOPERATION_LESSEQUAL:    append( file, " <= " ); break;
             }
 
-            generate_rvalue( expression->binary.right );
-            append( ")" );
+            generate_rvalue( file, expression->binary.right );
+            append( file, ")" );
 
             break;
         }
@@ -172,19 +172,19 @@ static void generate_rvalue( Expression* expression )
         {
             switch( expression->unary.operation )
             {
-                case UNARYOPERATION_NEGATIVE:    append( "-" ); break;
-                case UNARYOPERATION_NOT:         append( "!" ); break;
-                case UNARYOPERATION_ADDRESSOF:   append( "&" ); break;
-                case UNARYOPERATION_DEREFERENCE: append( "*" ); break;
+                case UNARYOPERATION_NEGATIVE:    append( file, "-" ); break;
+                case UNARYOPERATION_NOT:         append( file, "!" ); break;
+                case UNARYOPERATION_ADDRESSOF:   append( file, "&" ); break;
+                case UNARYOPERATION_DEREFERENCE: append( file, "*" ); break;
             }
-            generate_rvalue( expression->unary.operand );
+            generate_rvalue( file, expression->unary.operand );
 
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            generate_function_call( expression );
+            generate_function_call( file, expression );
             break;
         }
 
@@ -196,173 +196,173 @@ static void generate_rvalue( Expression* expression )
     }
 }
 
-static void generate_variable_declaration( Expression* expression )
+static void generate_variable_declaration( FILE* file, Expression* expression )
 {
-    generate_type( expression->variable_declaration.type );
-    append( "%s", expression->variable_declaration.identifier );
+    generate_type( file, expression->variable_declaration.type );
+    append( file, "%s", expression->variable_declaration.identifier );
 
     if( expression->variable_declaration.rvalue != NULL )
     {
-        append(" = ");
-        generate_rvalue( expression->variable_declaration.rvalue );
+        append( file, " = " );
+        generate_rvalue( file, expression->variable_declaration.rvalue );
     }
 
-    append( ";\n" );
+    append( file, ";\n" );
 }
 
-static void generate_function_declaration( Expression* expression )
+static void generate_function_declaration( FILE* file, Expression* expression )
 {
-    generate_type( expression->function_declaration.return_type );
-    append( "%s(", expression->function_declaration.identifier );
+    generate_type( file, expression->function_declaration.return_type );
+    append( file, "%s(", expression->function_declaration.identifier );
 
     for( int i = 0; i < expression->function_declaration.param_count; i++ )
     {
         Type param_type = expression->function_declaration.param_types[ i ];
         char* param_identifier = expression->function_declaration.param_identifiers[ i ];
-        generate_type( param_type );
-        append( "%s", param_identifier );
+        generate_type( file, param_type );
+        append( file, "%s", param_identifier );
         if( i < expression->function_declaration.param_count - 1 )
         {
-            append( ", " );
+            append( file, ", " );
         }
     }
-    append( ")"  );
+    append( file, ")"  );
 
     Expression* function_body = expression->function_declaration.body;
     if( function_body != NULL )
     {
-        append( "\n" );
-        generate_compound( function_body );
+        append( file, "\n" );
+        generate_compound( file, function_body );
     }
     else
     {
-        append( ";\n" );
+        append( file, ";\n" );
     }
 }
 
-static void generate_return( Expression* expression )
+static void generate_return( FILE* file, Expression* expression )
 {
-    append( "return " );
+    append( file, "return " );
 
     Expression* rvalue = expression->return_expression.rvalue;
     if ( rvalue != NULL )
     {
-        generate_rvalue( rvalue );
+        generate_rvalue( file, rvalue );
     }
 
-    append( ";\n" );
+    append( file, ";\n" );
 }
 
-static void generate_assignment( Expression* expression )
+static void generate_assignment( FILE* file, Expression* expression )
 {
-    generate_rvalue( expression->assignment.lvalue );
-    append( " = ", expression->assignment.lvalue );
-    generate_rvalue( expression->assignment.rvalue );
-    append( ";\n" );
+    generate_rvalue( file, expression->assignment.lvalue );
+    append( file, " = ", expression->assignment.lvalue );
+    generate_rvalue( file, expression->assignment.rvalue );
+    append( file, ";\n" );
 }
 
-static void generate_function_call( Expression* expression )
+static void generate_function_call( FILE* file, Expression* expression )
 {
-    append( "%s(", expression->function_call.identifier );
+    append( file, "%s(", expression->function_call.identifier );
 
     for( size_t i = 0; i < expression->function_call.arg_count; i++ )
     {
         Expression* arg = expression->function_call.args[ i ];
-        generate_rvalue( arg );
+        generate_rvalue( file, arg );
         /* generate_type( param_type ); */
-        /* append( "%s ", param_identifier ); */
+        /* append( file, "%s ", param_identifier ); */
         if( i < expression->function_call.arg_count - 1 )
         {
-            append( ", " );
+            append( file, ", " );
         }
     }
-    append( ")" );
+    append( file, ")" );
 
 }
 
-static void generate_conditional( Expression* expression )
+static void generate_conditional( FILE* file, Expression* expression )
 {
-    append( "%s (", expression->conditional.is_loop ? "while" : "if" );
-    generate_rvalue( expression->conditional.condition );
-    append( ")\n" );
-    generate_code( expression->conditional.true_body );
+    append( file, "%s (", expression->conditional.is_loop ? "while" : "if" );
+    generate_rvalue( file, expression->conditional.condition );
+    append( file, ")\n" );
+    generate_code( file, expression->conditional.true_body );
 
     if( expression->conditional.false_body != NULL )
     {
-        append( "else " );
-        generate_code( expression->conditional.false_body );
+        append( file, "else " );
+        generate_code( file, expression->conditional.false_body );
     }
 }
 
-FILE* generate_code( Expression* expression )
-{
-    static bool is_file_initialized = false;
-    if( !is_file_initialized )
-    {
-        is_file_initialized = true;
-        file = fopen( "generated.c", "w+" );
 
-        // temporary
-        append( "typedef signed char        i8;\n" );
-        append( "typedef short              i16;\n" );
-        append( "typedef int                i32;\n" );
-        append( "typedef long long          i64;\n" );
-        append( "typedef unsigned char      u8;\n" );
-        append( "typedef unsigned short     u16;\n" );
-        append( "typedef unsigned int       u32;\n" );
-        append( "typedef unsigned long long u64;\n" );
-        append( "typedef float              f32;\n" );
-        append( "typedef double             f64;\n" );
+
+FILE* generate_code( FILE* file, Expression* expression )
+{
+    // temporary
+    static bool first = true;
+    if( first )
+    {
+        first = false;
+        append( file, "typedef signed char        i8;\n" );
+        append( file, "typedef short              i16;\n" );
+        append( file, "typedef int                i32;\n" );
+        append( file, "typedef long long          i64;\n" );
+        append( file, "typedef unsigned char      u8;\n" );
+        append( file, "typedef unsigned short     u16;\n" );
+        append( file, "typedef unsigned int       u32;\n" );
+        append( file, "typedef unsigned long long u64;\n" );
+        append( file, "typedef float              f32;\n" );
+        append( file, "typedef double             f64;\n" );
     }
 
     switch( expression->kind )
     {
         case EXPRESSIONKIND_VARIABLEDECLARATION:
         {
-            generate_variable_declaration( expression );
+            generate_variable_declaration( file, expression );
             break;
         }
 
         case EXPRESSIONKIND_COMPOUND:
         {
-            generate_compound( expression );
+            generate_compound( file, expression );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
-            generate_function_declaration( expression );
+            generate_function_declaration( file, expression );
             break;
         }
 
         case EXPRESSIONKIND_RETURN:
         {
-            generate_return( expression );
+            generate_return( file, expression );
             break;
         }
 
         case EXPRESSIONKIND_ASSIGNMENT:
         {
-            generate_assignment( expression );
+            generate_assignment( file, expression );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            generate_function_call( expression );
-            append( ";\n" );
+            generate_function_call( file, expression );
+            append( file, ";\n" );
             break;
         }
 
         case EXPRESSIONKIND_EXTERN:
         {
-            generate_function_declaration( expression->extern_expression.function );
+            generate_function_declaration( file, expression->extern_expression.function );
             break;
         }
 
         case EXPRESSIONKIND_CONDITIONAL:
         {
-            generate_conditional( expression );
+            generate_conditional( file, expression );
             break;
         }
 
@@ -372,5 +372,5 @@ FILE* generate_code( Expression* expression )
         }
     }
 
-    return file;
+    // return file;
 }

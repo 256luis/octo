@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include "parser.h"
 
-FILE* generate_code( Expression* program );
+FILE* generate_code( FILE* file, Expression* program );
 
 #endif

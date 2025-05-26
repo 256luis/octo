@@ -12,78 +12,93 @@
 
 #define TYPEKINDPAIR_TERMINATOR (( TypeKindPair ){ -1, -1 })
 
-typedef struct Symbol
-{
-    Token token;
-    Type type;
-} Symbol;
-
-typedef struct SymbolTable
-{
-    Symbol* symbols;
-    int length;
-} SymbolTable;
-
 typedef struct TypeKindPair
 {
     TypeKind tk1;
     TypeKind tk2;
 } TypeKindPair;
 
-typedef struct SemanticContext
-{
-    SymbolTable* symbol_table_stack;
-    Type* return_type_stack;
-} SemanticContext;
+// static SemanticContext context;
 
-static SemanticContext context;
-
-void push_return_type( Type type )
+void push_return_type( SemanticContext* context, Type type )
 {
-    lvec_append_aggregate( context.return_type_stack, type );
+    lvec_append_aggregate( context->return_type_stack, type );
 }
 
-void pop_return_type()
+void pop_return_type( SemanticContext* context )
 {
-    lvec_remove_last( context.return_type_stack );
+    lvec_remove_last( context->return_type_stack );
 }
 
-Type get_top_return_type()
+Type get_top_return_type( SemanticContext* context )
 {
-    int last_index = lvec_get_length( context.return_type_stack ) - 1;
-    return context.return_type_stack[ last_index ];
+    int last_index = lvec_get_length( context->return_type_stack ) - 1;
+    return context->return_type_stack[ last_index ];
 }
 
-void push_scope()
+void push_scope( SemanticContext* context )
 {
     SymbolTable st = {
         .symbols = lvec_new( Symbol ),
         .length = 0,
     };
-    lvec_append_aggregate( context.symbol_table_stack, st );
+    lvec_append_aggregate( context->symbol_table_stack, st );
 }
 
-void pop_scope()
+void pop_scope( SemanticContext* context )
 {
-    lvec_remove_last( context.symbol_table_stack );
+    lvec_remove_last( context->symbol_table_stack );
 }
 
-void add_symbol_to_scope( Symbol symbol )
+void add_symbol_to_scope( SemanticContext* context, Symbol symbol )
 {
-    int symbol_table_stack_top_index = lvec_get_length( context.symbol_table_stack ) - 1;
-    SymbolTable* current_scope_table = &context.symbol_table_stack[ symbol_table_stack_top_index ];
+    int symbol_table_stack_top_index = lvec_get_length( context->symbol_table_stack ) - 1;
+    SymbolTable* current_scope_table = &context->symbol_table_stack[ symbol_table_stack_top_index ];
 
     lvec_append_aggregate( current_scope_table->symbols, symbol );
     current_scope_table->length++;
 }
 
-// searches the entire symbol table stack backwards for identifier
-Symbol* symbol_lookup( char* identifier )
+void semantic_context_initialize( SemanticContext* context )
 {
-    int symbol_stack_length = lvec_get_length( context.symbol_table_stack );
+    context->symbol_table_stack = lvec_new( SymbolTable );
+    context->return_type_stack = lvec_new( Type );
+
+    Symbol true_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "true",
+            .identifier = "true",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_BOOLEAN,
+        },
+    };
+
+    Symbol false_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "false",
+            .identifier = "false",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_BOOLEAN,
+        },
+    };
+
+    push_scope( context );
+
+    add_symbol_to_scope( context, true_symbol );
+    add_symbol_to_scope( context, false_symbol );
+}
+
+// searches the entire symbol table stack backwards for identifier
+Symbol* symbol_lookup( SemanticContext* context, char* identifier )
+{
+    int symbol_stack_length = lvec_get_length( context->symbol_table_stack );
     for( int i = 0; i < symbol_stack_length ; i++ )
     {
-        SymbolTable current_scope_table = context.symbol_table_stack[ i ];
+        SymbolTable current_scope_table = context->symbol_table_stack[ i ];
 
         for( int j = 0; j < current_scope_table.length; j++ )
         {
@@ -285,7 +300,7 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
     return result;
 }
 
-bool check_type( Type type, Token type_token )
+bool check_type( SemanticContext* context, Type type, Token type_token )
 {
     switch( type.kind )
     {
@@ -306,7 +321,7 @@ bool check_type( Type type, Token type_token )
 
         case TYPEKIND_POINTER:
         {
-            return check_type( *type.pointer.type, type_token );
+            return check_type( context, *type.pointer.type, type_token );
         }
 
         case TYPEKIND_ARRAY:
@@ -321,12 +336,12 @@ bool check_type( Type type, Token type_token )
                 return false;
             }
 
-            return check_type( *type.array.base_type, type_token );
+            return check_type( context, *type.array.base_type, type_token );
         }
 
         case TYPEKIND_CUSTOM:
         {
-            Symbol* symbol = symbol_lookup( type.custom_identifier );
+            Symbol* symbol = symbol_lookup( context, type.custom_identifier );
             if( symbol == NULL )
             {
                 Error error = {
@@ -562,8 +577,8 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
     return true;
 }
 
-static bool check_rvalue( Expression* expression, Type* inferred_type );
-static bool check_binary( Expression* expression, Type* inferred_type )
+static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type );
+static bool check_binary( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Expression* left_expression = expression->binary.left;
     Expression* right_expression = expression->binary.right;
@@ -571,8 +586,8 @@ static bool check_binary( Expression* expression, Type* inferred_type )
     Type left_type;
     Type right_type;
 
-    bool is_left_valid = check_rvalue( left_expression, &left_type );
-    bool is_right_valid = check_rvalue( right_expression, &right_type );
+    bool is_left_valid = check_rvalue( context, left_expression, &left_type );
+    bool is_right_valid = check_rvalue( context, right_expression, &right_type );
 
     if( !is_left_valid || !is_right_valid )
     {
@@ -622,12 +637,12 @@ static bool check_binary( Expression* expression, Type* inferred_type )
     return true;
 }
 
-static bool check_rvalue_identifier( Expression* expression, Type* inferred_type )
+static bool check_rvalue_identifier( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Token identifier_token = expression->associated_token;
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
     if( original_declaration == NULL )
     {
         Error error = {
@@ -644,10 +659,10 @@ static bool check_rvalue_identifier( Expression* expression, Type* inferred_type
     return true;
 }
 
-static bool check_function_call( Expression* expression, Type* inferred_type )
+static bool check_function_call( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Token identifier_token = expression->function_call.identifier_token;
-    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
     if( original_declaration == NULL )
     {
         Error error = {
@@ -685,7 +700,7 @@ static bool check_function_call( Expression* expression, Type* inferred_type )
         Expression* arg = expression->function_call.args[ i ];
         Type arg_type;
 
-        bool is_arg_valid = check_rvalue( arg, &arg_type );
+        bool is_arg_valid = check_rvalue( context, arg, &arg_type );
         if( !is_arg_valid )
         {
             // no need to report error here because that is handled by check_rvalue
@@ -757,12 +772,12 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
     return is_valid;
 }
 
-static bool check_lvalue( Expression* expression, Type* out_type );
-static bool check_unary( Expression* expression, Type* inferred_type )
+static bool check_lvalue( SemanticContext* context, Expression* expression, Type* out_type );
+static bool check_unary( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Expression* operand = expression->unary.operand;
     Type operand_type;
-    bool is_operand_valid = check_rvalue( operand, &operand_type );
+    bool is_operand_valid = check_rvalue( context, operand, &operand_type );
     if( !is_operand_valid )
     {
         return false;
@@ -773,7 +788,7 @@ static bool check_unary( Expression* expression, Type* inferred_type )
     {
 
         // operand must be lvalue
-        bool operand_lvalue_check = check_lvalue( operand, &operand_type );
+        bool operand_lvalue_check = check_lvalue( context, operand, &operand_type );
         if( !operand_lvalue_check )
         {
             Error error = {
@@ -786,7 +801,7 @@ static bool check_unary( Expression* expression, Type* inferred_type )
         }
 
         // check if operand is in symbol table
-        Symbol* operand_symbol = symbol_lookup( operand->associated_token.identifier );
+        Symbol* operand_symbol = symbol_lookup( context, operand->associated_token.identifier );
         if( operand_symbol == NULL )
         {
             Error error = {
@@ -833,11 +848,11 @@ static bool check_unary( Expression* expression, Type* inferred_type )
     return true;
 }
 
-static bool check_array( Expression* expression, Type* inferred_type )
+static bool check_array( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Type declared_type = expression->array.type;
 
-    if( !check_type( declared_type, expression->array.type_token ) )
+    if( !check_type( context, declared_type, expression->array.type_token ) )
     {
         return false;
     }
@@ -879,7 +894,7 @@ static bool check_array( Expression* expression, Type* inferred_type )
     {
         Type element_type;
         Expression* element_rvalue = &expression->array.initialized_rvalues[ i ];
-        if( !check_rvalue( element_rvalue, &element_type ) )
+        if( !check_rvalue( context, element_rvalue, &element_type ) )
         {
             are_initializers_valid = false;
         }
@@ -914,7 +929,7 @@ static bool check_array( Expression* expression, Type* inferred_type )
     return true;
 }
 
-static bool check_rvalue( Expression* expression, Type* inferred_type )
+static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
     bool is_valid = true;
@@ -955,31 +970,31 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            is_valid = check_rvalue_identifier( expression, inferred_type );
+            is_valid = check_rvalue_identifier( context, expression, inferred_type );
             break;
         }
 
         case EXPRESSIONKIND_BINARY:
         {
-            is_valid = check_binary( expression, inferred_type );
+            is_valid = check_binary( context, expression, inferred_type );
             break;
         }
 
         case EXPRESSIONKIND_UNARY:
         {
-            is_valid = check_unary( expression, inferred_type );
+            is_valid = check_unary( context, expression, inferred_type );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            is_valid = check_function_call( expression, inferred_type );
+            is_valid = check_function_call( context, expression, inferred_type );
             break;
         }
 
         case EXPRESSIONKIND_ARRAY:
         {
-            is_valid = check_array( expression, inferred_type );
+            is_valid = check_array( context, expression, inferred_type );
             break;
         }
 
@@ -994,12 +1009,12 @@ static bool check_rvalue( Expression* expression, Type* inferred_type )
     return is_valid;
 }
 
-static bool check_variable_declaration( Expression* expression )
+static bool check_variable_declaration( SemanticContext* context, Expression* expression )
 {
     Token identifier_token = expression->variable_declaration.identifier_token;
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
     if( original_declaration != NULL )
     {
         Error error = {
@@ -1030,7 +1045,7 @@ static bool check_variable_declaration( Expression* expression )
     if( rvalue != NULL )
     {
         // infer type from value
-        bool is_valid = check_rvalue( rvalue, &inferred_type );
+        bool is_valid = check_rvalue( context, rvalue, &inferred_type );
         if( !is_valid )
         {
             return false;
@@ -1050,7 +1065,7 @@ static bool check_variable_declaration( Expression* expression )
         {
             found_type = inferred_type;
         }
-        else if( !check_type( found_type, expression->variable_declaration.type_token ) )
+        else if( !check_type( context, found_type, expression->variable_declaration.type_token ) )
         {
             return false;
         }
@@ -1086,22 +1101,22 @@ static bool check_variable_declaration( Expression* expression )
         .token = identifier_token,
         .type = found_type,
     };
-    add_symbol_to_scope( symbol );
+    add_symbol_to_scope( context, symbol );
 
     return true;
 }
 
-static bool check_compound( Expression* expression )
+static bool check_compound( SemanticContext* context, Expression* expression )
 {
     bool is_valid = true;
 
-    push_scope();
+    push_scope( context );
 
     size_t length = lvec_get_length( expression->compound.expressions );
     for( size_t i = 0; i < length; i++ )
     {
         Expression* e = expression->compound.expressions[ i ];
-        bool _is_valid = check_semantics( e );
+        bool _is_valid = check_semantics( context, e );
 
         if( !_is_valid )
         {
@@ -1109,17 +1124,17 @@ static bool check_compound( Expression* expression )
         }
     }
 
-    pop_scope();
+    pop_scope( context );
 
     return is_valid;
 }
 
-static bool check_function_declaration( Expression* expression, bool is_extern )
+static bool check_function_declaration( SemanticContext* context,Expression* expression, bool is_extern )
 {
     Token identifier_token = expression->function_declaration.identifier_token;
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
     if( original_declaration != NULL )
     {
         Error error = {
@@ -1148,21 +1163,21 @@ static bool check_function_declaration( Expression* expression, bool is_extern )
             }
         },
     };
-    add_symbol_to_scope( symbol );
+    add_symbol_to_scope( context, symbol );
 
     // check function params
-    push_scope();
+    push_scope( context );
     for( int i = 0; i < expression->function_declaration.param_count; i++ )
     {
         Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
         Type param_type = expression->function_declaration.param_types[ i ];
         Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
-        if( !check_type( param_type, param_type_token ) )
+        if( !check_type( context, param_type, param_type_token ) )
         {
             return false;
         }
 
-        Symbol* declaration = symbol_lookup( param_identifier_token.identifier );
+        Symbol* declaration = symbol_lookup( context, param_identifier_token.identifier );
         if( declaration != NULL )
         {
             Error error = {
@@ -1179,10 +1194,10 @@ static bool check_function_declaration( Expression* expression, bool is_extern )
             .token = param_identifier_token,
             .type = param_type,
         };
-        add_symbol_to_scope( symbol );
+        add_symbol_to_scope( context, symbol );
     }
 
-    push_return_type( *return_type );
+    push_return_type( context, *return_type );
 
     // check function body
     Expression* function_body = expression->function_declaration.body;
@@ -1208,11 +1223,11 @@ static bool check_function_declaration( Expression* expression, bool is_extern )
     bool is_body_valid = true;
     if( !is_extern )
     {
-        is_body_valid = check_compound( function_body );
+        is_body_valid = check_compound( context, function_body );
     }
 
-    pop_scope();
-    pop_return_type();
+    pop_scope( context );
+    pop_return_type( context );
 
     if( !is_body_valid )
     {
@@ -1222,12 +1237,12 @@ static bool check_function_declaration( Expression* expression, bool is_extern )
     return true;
 }
 
-bool check_return( Expression* expression )
+bool check_return( SemanticContext* context, Expression* expression )
 {
     Type found_return_type = ( Type ){ .kind = TYPEKIND_VOID };
     if( expression->return_expression.rvalue != NULL )
     {
-        bool is_return_value_valid = check_rvalue( expression->return_expression.rvalue, &found_return_type );
+        bool is_return_value_valid = check_rvalue( context, expression->return_expression.rvalue, &found_return_type );
 
         if( !is_return_value_valid )
         {
@@ -1237,7 +1252,7 @@ bool check_return( Expression* expression )
         }
     }
 
-    Type expected_return_type = get_top_return_type();
+    Type expected_return_type = get_top_return_type( context );
 
     Error error;
     bool are_types_compatible = check_type_compatibility( expected_return_type, &found_return_type, &error );
@@ -1261,7 +1276,7 @@ bool check_return( Expression* expression )
     return true;
 }
 
-static bool check_lvalue( Expression* expression, Type* out_type )
+static bool check_lvalue( SemanticContext* context, Expression* expression, Type* out_type )
 {
     bool is_valid;
     switch( expression->kind )
@@ -1270,7 +1285,7 @@ static bool check_lvalue( Expression* expression, Type* out_type )
         {
             // check if identifier exists
             Token identifier_token = expression->associated_token;
-            Symbol* original_declaration = symbol_lookup( identifier_token.identifier );
+            Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
             if( original_declaration == NULL )
             {
                 Error error = {
@@ -1290,7 +1305,7 @@ static bool check_lvalue( Expression* expression, Type* out_type )
         case EXPRESSIONKIND_UNARY:
         {
             Type lvalue_type;
-            bool is_unary_valid = check_unary( expression, &lvalue_type );
+            bool is_unary_valid = check_unary( context, expression, &lvalue_type );
             if( !is_unary_valid )
             {
                 // returning false here because error has already been reported in
@@ -1319,11 +1334,11 @@ static bool check_lvalue( Expression* expression, Type* out_type )
     return is_valid;
 }
 
-bool check_assignment( Expression* expression )
+bool check_assignment( SemanticContext* context, Expression* expression )
 {
     // check if lvalue is a valid lvalue
     Type found_lvalue_type;
-    bool is_lvalue_valid = check_lvalue( expression->assignment.lvalue, &found_lvalue_type );
+    bool is_lvalue_valid = check_lvalue( context, expression->assignment.lvalue, &found_lvalue_type );
     if( !is_lvalue_valid )
     {
         Error error = {
@@ -1336,7 +1351,7 @@ bool check_assignment( Expression* expression )
 
     // check if rvalue is a valid rvalue
     Type found_rvalue_type;
-    bool is_rvalue_valid = check_rvalue( expression->assignment.rvalue, &found_rvalue_type );
+    bool is_rvalue_valid = check_rvalue( context, expression->assignment.rvalue, &found_rvalue_type );
     if( !is_rvalue_valid )
     {
         // no need for error reporting here because that was already handled by
@@ -1358,11 +1373,11 @@ bool check_assignment( Expression* expression )
     return true;
 }
 
-static bool check_conditional( Expression* expression )
+static bool check_conditional( SemanticContext* context, Expression* expression )
 {
     // check the condition (must evaluate to bool type)
     Type condition_type;
-    bool condition_is_valid = check_rvalue( expression->conditional.condition, &condition_type );
+    bool condition_is_valid = check_rvalue( context, expression->conditional.condition, &condition_type );
     if( !condition_is_valid )
     {
         return false;
@@ -1396,11 +1411,11 @@ static bool check_conditional( Expression* expression )
     }
 
     // check true and false bodies (if applicable)
-    if( !check_semantics( expression->conditional.true_body ) )
+    if( !check_semantics( context, expression->conditional.true_body ) )
     {
         return false;
     }
-    if( false_body != NULL && !check_semantics( false_body ) )
+    if( false_body != NULL && !check_semantics( context, false_body ) )
     {
         return false;
     }
@@ -1408,94 +1423,57 @@ static bool check_conditional( Expression* expression )
     return true;
 }
 
-bool check_semantics( Expression* expression )
+bool check_semantics( SemanticContext* context, Expression* expression )
 {
-    // initialize semantic_context;
-    static bool is_context_initialized = false;
-    if( !is_context_initialized )
-    {
-        is_context_initialized = true;
-
-        context.symbol_table_stack = lvec_new( SymbolTable );
-        context.return_type_stack = lvec_new( Type );
-
-        Symbol true_symbol = {
-            .token = ( Token ){
-                .kind = TOKENKIND_IDENTIFIER,
-                .as_string = "true",
-                .identifier = "true",
-            },
-            .type = ( Type ){
-                .kind = TYPEKIND_BOOLEAN,
-            },
-        };
-
-        Symbol false_symbol = {
-            .token = ( Token ){
-                .kind = TOKENKIND_IDENTIFIER,
-                .as_string = "false",
-                .identifier = "false",
-            },
-            .type = ( Type ){
-                .kind = TYPEKIND_BOOLEAN,
-            },
-        };
-
-        push_scope();
-
-        add_symbol_to_scope( true_symbol );
-        add_symbol_to_scope( false_symbol );
-    }
-
     bool is_valid;
 
     switch( expression->kind )
     {
         case EXPRESSIONKIND_VARIABLEDECLARATION:
         {
-            is_valid = check_variable_declaration( expression );
+            is_valid = check_variable_declaration( context, expression );
             break;
         }
 
         case EXPRESSIONKIND_COMPOUND:
         {
-            is_valid = check_compound( expression );
+            is_valid = check_compound( context, expression );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
-            is_valid = check_function_declaration( expression, false );
+            is_valid = check_function_declaration( context, expression, false );
             break;
         }
 
         case EXPRESSIONKIND_RETURN:
         {
-            is_valid = check_return( expression );
+            is_valid = check_return( context, expression );
             break;
         }
 
         case EXPRESSIONKIND_ASSIGNMENT:
         {
-            is_valid = check_assignment( expression );
+            is_valid = check_assignment( context, expression );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            is_valid = check_function_call( expression, NULL );
+            is_valid = check_function_call( context, expression, NULL );
             break;
         }
 
         case EXPRESSIONKIND_EXTERN:
         {
-            is_valid = check_function_declaration( expression->extern_expression.function, true );
+            is_valid = check_function_declaration( context, expression->extern_expression.function, true );
             break;
         }
 
         case EXPRESSIONKIND_CONDITIONAL:
         {
-            is_valid = check_conditional( expression );
+            is_valid = check_conditional( context, expression );
             break;
         }
 
