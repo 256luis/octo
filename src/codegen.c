@@ -258,7 +258,7 @@ static void generate_function_declaration( FILE* file, SemanticContext* context,
     generate_type( file, return_type );
     append( file, " %s(", identifier );
 
-    if( param_count > 0)
+    if( param_count > 0 )
     {
         // append the first param
         Type param_type = param_types[ 0 ];
@@ -266,7 +266,7 @@ static void generate_function_declaration( FILE* file, SemanticContext* context,
         generate_type( file, param_type );
         append( file, " %s", param_identifier );
 
-        for( int i = 1; i < param_count - 1; i++ )
+        for( int i = 1; i < param_count; i++ )
         {
             Type param_type = param_types[ i ];
             char* param_identifier = param_identifiers[ i ];
