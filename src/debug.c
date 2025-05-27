@@ -69,6 +69,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_EXTERN ]              = "EXTERN",
     [ EXPRESSIONKIND_CONDITIONAL ]         = "CONDITIONAL",
     [ EXPRESSIONKIND_ARRAY ]               = "ARRAY",
+    [ EXPRESSIONKIND_ARRAYSUBSCRIPT ]      = "ARRAY SUBSCRIPT",
 };
 
 char* binary_operation_to_string[] = {
@@ -474,6 +475,20 @@ void expression_print( Expression* expression )
             printf( "\n");
             INDENT();
             printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_ARRAYSUBSCRIPT:
+        {
+            printf( " {\n" );
+            depth++;
+            INDENT();
+
+            printf( "identifier = %s\n", expression->array_subscript.identifier_token.as_string );
+
+            INDENT();
+            printf( "index = " );
+            expression_print( expression->array_subscript.index_rvalue );
             break;
         }
 

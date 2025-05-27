@@ -59,7 +59,7 @@ static bool _expect_next( Parser* parser, TokenKind* expected_token_kinds, size_
         printf( "ERROR CALLED FROM LINE %d\n", line );
         Error error = {
             .kind = ERRORKIND_UNEXPECTEDSYMBOL,
-            .offending_token = parser->current_token,
+            .offending_token = parser->next_token,
         };
         report_error( error );
     }
@@ -81,6 +81,7 @@ static BinaryOperation token_kind_to_binary_operation( TokenKind token_kind )
         case TOKENKIND_NOTEQUAL:     return BINARYOPERATION_NOTEQUAL;
         case TOKENKIND_GREATEREQUAL: return BINARYOPERATION_GREATEREQUAL;
         case TOKENKIND_LESSEQUAL:    return BINARYOPERATION_LESSEQUAL;
+            // case TOKENKIND_LEFTBRACKET:  return BINARYOPERATION_SUBSCRIPT;
         default: UNREACHABLE();
     }
 }
@@ -450,7 +451,7 @@ static Type parse_type( Parser* parser )
     return result;
 }
 
-static Expression* parse_array( Parser* parser )
+static Expression* parse_array_literal( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
@@ -509,6 +510,37 @@ static Expression* parse_array( Parser* parser )
     return expression;
 }
 
+static Expression* parse_lvalue( Parser* parser );
+static Expression* parse_array_subscript( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression ==  NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_ARRAYSUBSCRIPT;
+    expression->starting_token = parser->current_token;
+    expression->array_subscript.identifier_token = parser->current_token;
+
+    advance( parser );
+    // current token is left bracket
+
+    advance( parser );
+    Expression* index_rvalue = parse_rvalue( parser );
+    if( index_rvalue == NULL )
+    {
+        return NULL;
+    }
+
+    expression->array_subscript.index_rvalue = index_rvalue;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_RIGHTBRACKET ) )
+    {
+        return NULL;
+    }
+
+    return expression;
+}
+
 static Expression* parse_rvalue( Parser* parser )
 {
     if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
@@ -527,6 +559,13 @@ static Expression* parse_rvalue( Parser* parser )
             if( parser->next_token.kind == TOKENKIND_LEFTPAREN )
             {
                 expression = parse_function_call( parser );
+                break;
+            }
+
+            // check if array subscript
+            if( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
+            {
+                expression = parse_array_subscript( parser );
                 break;
             }
 
@@ -567,7 +606,7 @@ static Expression* parse_rvalue( Parser* parser )
 
         case TOKENKIND_LEFTBRACKET:
         {
-            expression = parse_array( parser );
+            expression = parse_array_literal( parser );
             break;
         }
 
@@ -878,7 +917,6 @@ static Expression* parse_return( Parser* parser )
     return expression;
 }
 
-static Expression* parse_lvalue( Parser* parser );
 static Expression* parse_assignment( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -886,9 +924,6 @@ static Expression* parse_assignment( Parser* parser )
 
     expression->kind = EXPRESSIONKIND_ASSIGNMENT;
     expression->starting_token = parser->current_token;
-    /* expression->assignment.identifier = parser->current_token.identifier; */
-    /* expression->assignment.identifier_token = parser->current_token; */
-
     expression->assignment.lvalue = parse_lvalue( parser );
 
     advance( parser );
@@ -1015,16 +1050,19 @@ Expression* parse( Parser* parser )
 
         case TOKENKIND_IDENTIFIER:
         {
-            if ( !EXPECT_NEXT( parser, TOKENKIND_LEFTPAREN, TOKENKIND_EQUAL ) )
+            if ( !EXPECT_NEXT( parser,
+                               TOKENKIND_LEFTPAREN,
+                               TOKENKIND_EQUAL,
+                               TOKENKIND_LEFTBRACKET ) )
             {
                 return NULL;
             }
 
             switch( parser->next_token.kind )
             {
+                // function call
                 case TOKENKIND_LEFTPAREN:
                 {
-                    // function call
                     expression = parse_function_call( parser );
                     advance( parser );
                     if ( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
@@ -1034,9 +1072,10 @@ Expression* parse( Parser* parser )
                     break;
                 }
 
+                // assignment
+                case TOKENKIND_LEFTBRACKET:
                 case TOKENKIND_EQUAL:
                 {
-                    // assignment
                     expression = parse_assignment( parser );
                     break;
                 }

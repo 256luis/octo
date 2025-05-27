@@ -71,6 +71,8 @@ typedef enum BinaryOperation
     BINARYOPERATION_DIVIDE,
 #define BINARYOPERATION_ARITHMETIC_END BINARYOPERATION_EQUAL
 
+    // BINARYOPERATION_SUBSCRIPT,
+
     // boolean
 #define BINARYOPERATION_BOOLEAN_START BINARYOPERATION_EQUAL
     BINARYOPERATION_EQUAL,
@@ -105,6 +107,7 @@ typedef enum ExpressionKind
     // can be lvalue or rvalue
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_UNARY, // only for dereference (will be checked in semantic analysis)
+    EXPRESSIONKIND_ARRAYSUBSCRIPT,
 
     // base statements
     EXPRESSIONKIND_VARIABLEDECLARATION,
@@ -234,6 +237,13 @@ typedef struct Expression
             int count_initialized; // number of values initialized in the array literal
             struct Expression* initialized_rvalues;
         } array;
+
+        struct
+        {
+            Token identifier_token;
+            // struct Expression* lvalue;
+            struct Expression* index_rvalue;
+        } array_subscript;
     };
 } Expression;
 
