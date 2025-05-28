@@ -133,6 +133,22 @@ static void generate_array( FILE* file, Expression* expression )
     append( file, "}" );
 }
 
+static void generate_array_subscript( FILE* file, Expression* expression )
+{
+    Type type = expression->array_subscript.type;
+    char* identifier = expression->array_subscript.identifier_token.as_string;
+    Expression* index_rvalue = expression->array_subscript.index_rvalue;
+
+    // example: hello[10]
+    //          *OctoArray_i32_at(hello, 10)
+
+    append( file, "*" );
+    generate_type( file, type );
+    append( file, "_at(%s, ", identifier );
+    generate_rvalue( file, index_rvalue );
+    append( file, ")" );
+}
+
 static void generate_function_call( FILE* file, Expression* expression );
 static void generate_rvalue( FILE* file, Expression* expression )
 {
@@ -221,6 +237,12 @@ static void generate_rvalue( FILE* file, Expression* expression )
         case EXPRESSIONKIND_ARRAY:
         {
             generate_array( file, expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_ARRAYSUBSCRIPT:
+        {
+            generate_array_subscript( file, expression );
             break;
         }
 
@@ -396,6 +418,29 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
             generate_type( file, base_type );
             append( file, ");\n" );
         }
+
+        // generate functions for array access
+        for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
+        {
+            Type base_type = context->array_types[ i ];
+            Type array_type = {
+                .kind = TYPEKIND_ARRAY,
+                .array.base_type = &base_type,
+            };
+            // example:
+            // i32* OctoArray_i32_at( OctoArray_i32 octo_array, u64 index )
+            // {
+            //     return octo_array.data + index;
+            // }
+
+            generate_type( file, base_type );
+            append( file, "* " );
+            generate_type( file, array_type );
+            append( file, "_at(" );
+            generate_type( file, array_type );
+            append( file, " octo_array, u64 index) { return octo_array.data + index; }\n" );
+        }
+
     }
 
     switch( expression->kind )

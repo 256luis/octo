@@ -906,10 +906,9 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
         return false;
     }
 
-    // check if arg types match param types
-    for( int i = 0; i < param_count; i++ )
+    // check if args are valid
+    for( int i = 0; i < arg_count; i++ )
     {
-        Type param_type = param_types[ i ];
         Expression* arg = expression->function_call.args[ i ];
         Type arg_type;
 
@@ -920,16 +919,21 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
             return false;
         }
 
-        Error error;
-        bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error );
-        if( !are_types_compatible )
+        if( i < param_count )
         {
-            error.offending_token = arg->starting_token;
-            report_error( error );
-            return false;
+            Type param_type = param_types[ i ];
+            Error error;
+            bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error );
+            if( !are_types_compatible )
+            {
+                error.offending_token = arg->starting_token;
+                report_error( error );
+                return false;
+            }
         }
-
     }
+
+
 
     if( inferred_type != NULL )
     {
@@ -1177,6 +1181,8 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
         report_error( error );
         return false;
     }
+
+    expression->array_subscript.type = identifier_symbol->type;
 
     *out_type = *identifier_symbol->type.array.base_type;
     return true;
