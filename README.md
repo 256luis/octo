@@ -1,59 +1,5 @@
 # The Octo Programming Language
 Octo is a statically, strongly-typed programming language that transpiles to C.
-```rust
-extern func puts(msg: &char) -> i32;
-
-func fib(n: i64) -> i64
-{
-    if n == 0 return 0;
-    if n == 1 return 1;
-
-    return fib(n - 1) + fib(n - 2);
-}
-
-func main() -> i32
-{
-    let n = 5;
-    let nth_fib = fib(n);
-
-    let i = 0;
-    while i < nth_fib
-    {
-        puts("the result of the fib function is the number of times this is printed");
-        i = i + 1;
-    }
-}
-
-```
-Note: Currently, the compiler calls `tcc` to build the generated C code but it is trivial to change it to a C compiler on your system.
-
-## Development Progress
-| | Tokenizing + Parsing | Semantic Analysis | Code Generation |
-|-|:-:|:-:|:-:|
-| Function declaration | ✅ | ✅ | ✅ |
-| Function call | ✅ | ✅ | ✅ |
-| Variable declaration | ✅ | ✅ | ✅ |
-| Variable reassignment | ✅ | ✅ | ✅ |
-| Type inference | ⬛ | ✅ | ✅ |
-| Pointers | ✅ | ⚠️ | ⚠️ |
-| Modules | ❌| ❌ | ❌ |
-| If-statements | ✅ | ✅ | ✅ |
-| If-expressions | ❌ | ❌ | ❌ |
-| Switch-statements | ❌ | ❌ | ❌ |
-| Switch-expressions | ❌ | ❌ | ❌ |
-| While-loops | ✅ | ✅ | ✅ |
-| For-loops | ❌ | ❌ | ❌ |
-| Structs | ❌ | ❌ | ❌ |
-| Unions | ❌ | ❌ | ❌ |
-| Enums | ❌ | ❌ | ❌ |
-| Tagged unions | ❌ | ❌ | ❌ |
-| Compile-time function execution | ❌ | ❌ | ❌ |
-| Generics | ❌ | ❌ | ❌ |
-| Closures | ❌ | ❌ | ❌ |
-| Out-of-order declarations | ⬛ | ❌ | ❌ |
-
-## Building from source
-This project uses CMake as its build system.
 # The Octo Programming Language
 Octo is a statically, strongly-typed programming language that transpiles to C.
 ```rust
@@ -75,18 +21,18 @@ func main() -> i32
 }
 
 ```
-Note: Currently, the compiler calls `tcc` to build the generated C code but it is trivial to change it to a C compiler on your system.
+Note: Currently, the compiler calls `gcc` to build the generated C code but it is trivial to change it to a C compiler on your system.
 
 ## Development Progress
 | | Tokenizing + Parsing | Semantic Analysis | Code Generation |
 |-|:-:|:-:|:-:|
 | Function declaration | ✅ | ✅ | ✅ |
 | Function call | ✅ | ✅ | ✅ |
-| Variadic functions | ✅ | ⚠️ | ⚠️ |
+| Variadic functions | ✅ | ✅ | ✅ |
 | Variable declaration | ✅ | ✅ | ✅ |
 | Variable reassignment | ✅ | ✅ | ✅ |
 | Type inference | ⬛ | ✅ | ✅ |
-| Pointers | ✅ | ⚠️ | ⚠️ |
+| Pointers | ✅ | ✅ | ✅ |
 | Arrays | ⚠️ | ⚠️ | ⚠️ |
 | Modules | ❌| ❌ | ❌ |
 | If-statements | ✅ | ✅ | ✅ |
@@ -94,7 +40,7 @@ Note: Currently, the compiler calls `tcc` to build the generated C code but it i
 | Switch-statements | ❌ | ❌ | ❌ |
 | Switch-expressions | ❌ | ❌ | ❌ |
 | While-loops | ✅ | ✅ | ✅ |
-| For-loops | ❌ | ❌ | ❌ |
+| For-loops | ✅ | ❌ | ❌ |
 | Structs | ❌ | ❌ | ❌ |
 | Unions | ❌ | ❌ | ❌ |
 | Enums | ❌ | ❌ | ❌ |
@@ -142,7 +88,7 @@ func <identifier>(<arg-identifier>: <arg-type>) -> <return-type>
 
 func add(a: i32, b: i32) -> i32
 {
-	return a + b;
+    return a + b;
 }
 ```
 Functions that don't return anything have to be explicitly declared as returning `void`.
@@ -172,13 +118,13 @@ if number > 10
 }
 else
 {
-	puts("mid sized number");
+    puts("mid sized number");
 }
 
 while number > 0
 {
-	puts("this will be printed 10 times");
-	number = number - 1;
+    puts("this will be printed 10 times");
+    number = number - 1;
 }
 ```
 The expression beside the `while` and `if` keywords must evaluate to a `bool`. Otherwise, the compiler will throw an error.

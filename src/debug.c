@@ -16,6 +16,8 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_IF ]           = "if",
     [ TOKENKIND_ELSE ]         = "else",
     [ TOKENKIND_WHILE ]        = "while",
+    [ TOKENKIND_FOR ]          = "for",
+    [ TOKENKIND_IN ]           = "in",
     [ TOKENKIND_INTEGER ]      = "INTEGER",
     [ TOKENKIND_FLOAT ]        = "FLOAT",
     [ TOKENKIND_IDENTIFIER ]   = "IDENTIFIER",
@@ -70,6 +72,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_CONDITIONAL ]         = "CONDITIONAL",
     [ EXPRESSIONKIND_ARRAY ]               = "ARRAY",
     [ EXPRESSIONKIND_ARRAYSUBSCRIPT ]      = "ARRAY SUBSCRIPT",
+    [ EXPRESSIONKIND_FORLOOP ]             = "FOR LOOP",
 };
 
 char* binary_operation_to_string[] = {
@@ -489,6 +492,25 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "index = " );
             expression_print( expression->array_subscript.index_rvalue );
+            break;
+        }
+
+        case EXPRESSIONKIND_FORLOOP:
+        {
+            printf( " {\n" );
+            depth++;
+            INDENT();
+
+            printf( "iterator = %s\n", expression->for_loop.iterator_token.as_string );
+
+            INDENT();
+            printf( "iterable = " );
+            expression_print( expression->for_loop.iterable_rvalue );
+
+            printf( "\n" );
+            INDENT();
+            printf( "body = " );
+            expression_print( expression->for_loop.body );
             break;
         }
 

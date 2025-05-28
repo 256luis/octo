@@ -102,6 +102,8 @@ static TokenKind word_symbol_to_token_kind( const char* word_symbol )
     if( strcmp( word_symbol, "if" ) == 0 )     return TOKENKIND_IF;
     if( strcmp( word_symbol, "else" ) == 0 )   return TOKENKIND_ELSE;
     if( strcmp( word_symbol, "while" ) == 0 )  return TOKENKIND_WHILE;
+    if( strcmp( word_symbol, "for" ) == 0 )    return TOKENKIND_FOR;
+    if( strcmp( word_symbol, "in" ) == 0 )     return TOKENKIND_IN;
 
     return TOKENKIND_IDENTIFIER;
 

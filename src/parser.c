@@ -710,6 +710,11 @@ static Expression* parse_variable_declaration( Parser* parser )
 
 static Expression* parse_compound( Parser* parser )
 {
+    if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
+    {
+        return NULL;
+    }
+
     Expression* compound_expression = calloc( 1, sizeof( Expression ) );
     if( compound_expression == NULL ) ALLOC_ERROR();
 
@@ -1023,6 +1028,46 @@ static Expression* parse_lvalue( Parser* parser )
     return expression;
 }
 
+static Expression* parse_for( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_FORLOOP;
+    expression->starting_token = parser->current_token;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
+
+    expression->for_loop.iterator_token = parser->current_token;
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_IN ) )
+    {
+        return NULL;
+    }
+
+    advance( parser );
+    Expression* iterable_rvalue = parse_rvalue( parser );
+    if( iterable_rvalue == NULL )
+    {
+        return NULL;
+    }
+    expression->for_loop.iterable_rvalue = iterable_rvalue;
+
+    advance( parser );
+    Expression* body = parse_compound( parser );
+    if( body == NULL )
+    {
+        return NULL;
+    }
+    expression->for_loop.body = body;
+
+    return expression;
+}
+
 Expression* parse( Parser* parser )
 {
     Expression* expression;
@@ -1118,6 +1163,12 @@ Expression* parse( Parser* parser )
         case TOKENKIND_IF:
         {
             expression = parse_conditional( parser );
+            break;
+        }
+
+        case TOKENKIND_FOR:
+        {
+            expression = parse_for( parser );
             break;
         }
 

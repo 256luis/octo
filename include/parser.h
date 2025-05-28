@@ -116,7 +116,8 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_RETURN,
     EXPRESSIONKIND_ASSIGNMENT,
     EXPRESSIONKIND_EXTERN,
-    EXPRESSIONKIND_CONDITIONAL,
+    EXPRESSIONKIND_CONDITIONAL, // if statements and while-loops
+    EXPRESSIONKIND_FORLOOP,
 } ExpressionKind;
 
 typedef struct Expression
@@ -245,6 +246,17 @@ typedef struct Expression
             // struct Expression* lvalue;
             struct Expression* index_rvalue;
         } array_subscript;
+
+        struct
+        {
+            // in "for num in nums"
+            // "num" is the iterator
+            // "nums" is the iterable
+
+            Token iterator_token;
+            struct Expression* iterable_rvalue;
+            struct Expression* body;
+        } for_loop;
     };
 } Expression;
 
