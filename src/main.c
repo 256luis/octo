@@ -38,15 +38,15 @@ int main( int argc, char* argv[] )
     }
     lvec_free( tokens );
 
-    expression_print( program );
+    // expression_print( program );
 
-    /* SemanticContext semantic_context; */
-    /* semantic_context_initialize( &semantic_context ); */
-    /* bool is_valid = check_semantics( &semantic_context, program ); */
-    /* if( !is_valid ) */
-    /* { */
-    /*     return 1; */
-    /* } */
+    SemanticContext semantic_context;
+    semantic_context_initialize( &semantic_context );
+    bool is_valid = check_semantics( &semantic_context, program );
+    if( !is_valid )
+    {
+        return 1;
+    }
 
     /* FILE* generated_c = fopen( "generated.c", "w+" ); */
     /* generate_code( generated_c, &semantic_context, program ); */

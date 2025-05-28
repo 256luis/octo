@@ -1676,6 +1676,61 @@ static bool check_conditional( SemanticContext* context, Expression* expression 
     return true;
 }
 
+static bool check_for_loop( SemanticContext* context, Expression* expression )
+{
+    // no symbol redeclarations!
+    Token iterator_token = expression->for_loop.iterator_token;
+    Symbol* iterator_symbol = symbol_lookup( context, iterator_token.identifier );
+    if( iterator_symbol != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = iterator_token,
+            .symbol_redeclaration.original_declaration_token = iterator_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    // check iterable and get type
+    Expression* iterable_rvalue = expression->for_loop.iterable_rvalue;
+    Type inferred_type;
+    if ( !check_rvalue( context, iterable_rvalue, &inferred_type ) )
+    {
+        return NULL;
+    }
+
+    if( inferred_type.kind != TYPEKIND_ARRAY )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTANITERATOR,
+            .offending_token = iterable_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    push_scope( context );
+
+    // add iterator to symbeol table
+    // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol
+    // because its a pointer and id have to either allocate memory or create
+    // a compound literal then get its address and i DONT WANNA DO EITHER OF THOSE
+    Symbol iterator_symbol2 = {
+        .token = iterator_token,
+        .type = *inferred_type.array.base_type
+    };
+    add_symbol_to_scope( context, iterator_symbol2 );
+
+    Expression* body = expression->for_loop.body;
+    if( !check_compound( context, body ) )
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool check_semantics( SemanticContext* context, Expression* expression )
 {
     bool is_valid;
@@ -1727,6 +1782,12 @@ bool check_semantics( SemanticContext* context, Expression* expression )
         case EXPRESSIONKIND_CONDITIONAL:
         {
             is_valid = check_conditional( context, expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_FORLOOP:
+        {
+            is_valid = check_for_loop( context, expression );
             break;
         }
 
