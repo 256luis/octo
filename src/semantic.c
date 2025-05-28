@@ -1144,6 +1144,44 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
     return true;
 }
 
+static bool check_array_subscript( SemanticContext* context, Expression* expression, Type* out_type )
+{
+    Token identifier_token = expression->array_subscript.identifier_token;
+    Expression* index_rvalue = expression->array_subscript.index_rvalue;
+
+    // check identifier
+    Symbol* identifier_symbol = symbol_lookup( context, identifier_token.identifier );
+    if( identifier_symbol == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = identifier_token,
+        };
+
+        report_error( error );
+        return false;
+    }
+
+    Type index_rvalue_type;
+    if( !check_rvalue( context, index_rvalue, &index_rvalue_type ) )
+    {
+        return false;
+    }
+
+    if( index_rvalue_type.kind != TYPEKIND_INTEGER )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDARRAYSUBSCRIPT,
+            .offending_token = index_rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    *out_type = *identifier_symbol->type.array.base_type;
+    return true;
+}
+
 static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
@@ -1210,6 +1248,12 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
         case EXPRESSIONKIND_ARRAY:
         {
             is_valid = check_array( context, expression, inferred_type );
+            break;
+        }
+
+        case EXPRESSIONKIND_ARRAYSUBSCRIPT:
+        {
+            is_valid = check_array_subscript( context, expression, inferred_type );
             break;
         }
 
@@ -1495,22 +1539,7 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
     {
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            // check if identifier exists
-            Token identifier_token = expression->associated_token;
-            Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
-            if( original_declaration == NULL )
-            {
-                Error error = {
-                    .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                    .offending_token = identifier_token,
-                };
-
-                report_error( error );
-                return false;
-            }
-
-            *out_type = original_declaration->type;
-            is_valid = true;
+            is_valid = check_rvalue_identifier( context, expression, out_type );
             break;
         }
 
@@ -1533,6 +1562,12 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
 
             *out_type = lvalue_type;
             is_valid = true;
+            break;
+        }
+
+        case EXPRESSIONKIND_ARRAYSUBSCRIPT:
+        {
+            is_valid = check_array_subscript( context, expression, out_type );
             break;
         }
 

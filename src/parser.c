@@ -925,6 +925,10 @@ static Expression* parse_assignment( Parser* parser )
     expression->kind = EXPRESSIONKIND_ASSIGNMENT;
     expression->starting_token = parser->current_token;
     expression->assignment.lvalue = parse_lvalue( parser );
+    if( expression->assignment.lvalue == NULL )
+    {
+        return NULL;
+    }
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_EQUAL ) )
