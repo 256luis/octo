@@ -267,13 +267,31 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
 
 static void generate_variable_declaration( FILE* file, SemanticContext* context, Expression* expression )
 {
-    generate_type( file, expression->variable_declaration.type );
-    append( file, " %s", expression->variable_declaration.identifier );
+    Type type = expression->variable_declaration.type;
+    char* identifier = expression->variable_declaration.identifier;
+    Expression* rvalue = expression->variable_declaration.rvalue;
 
-    if( expression->variable_declaration.rvalue != NULL )
+    generate_type( file, type );
+    append( file, " %s", identifier );
+
+    if( rvalue != NULL )
     {
         append( file, " = " );
-        generate_rvalue( file, context, expression->variable_declaration.rvalue );
+        generate_rvalue( file, context, rvalue );
+    }
+    else if( type.kind == TYPEKIND_ARRAY && rvalue == NULL )
+    {
+        Expression right_side = {
+            .kind = EXPRESSIONKIND_ARRAY,
+            .array = {
+                .type = type,
+                .count_initialized = 0,
+                .initialized_rvalues = NULL,
+            },
+        };
+
+        append( file, " = " );
+        generate_array( file, context, &right_side );
     }
 
     append( file, ";\n" );

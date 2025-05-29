@@ -410,6 +410,7 @@ static Type parse_type( Parser* parser )
     }
 
     Type result;
+    result.token = parser->current_token;
 
     switch( parser->current_token.kind )
     {
@@ -428,7 +429,6 @@ static Type parse_type( Parser* parser )
         case TOKENKIND_AMPERSAND: // pointers
         {
             result.kind = TYPEKIND_POINTER;
-            result.token = parser->current_token;
             advance( parser );
             if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
             {
@@ -461,7 +461,7 @@ static Expression* parse_array_literal( Parser* parser )
     expression->starting_token = parser->current_token;
 
     expression->array.type = parse_type( parser );
-    expression->array.type_token = parser->current_token;
+    // expression->array.type_token = parser->current_token;
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_LEFTBRACKET ) )
