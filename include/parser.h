@@ -13,6 +13,7 @@ typedef enum TypeKind
     TYPEKIND_BOOLEAN,
     TYPEKIND_FUNCTION,
     TYPEKIND_POINTER,
+    TYPEKIND_REFERENCE,
     TYPEKIND_ARRAY,
     TYPEKIND_CUSTOM,
     TYPEKIND_PRIMITIVE,
@@ -41,6 +42,11 @@ typedef struct Type
         {
             struct Type* base_type;
         } pointer;
+
+        struct
+        {
+            struct Type* base_type;
+        } reference;
 
         struct
         {
@@ -135,12 +141,17 @@ typedef struct Expression
         // base cases
         uint64_t integer;
         double floating;
-        char* identifier;
+        // char* identifier;
         char* string;
         char character;
         bool boolean;
 
-        // recursive expressions
+        struct
+        {
+            char* as_string;
+            Type type;
+        } identifier;
+
         struct
         {
             BinaryOperation operation;
@@ -253,6 +264,7 @@ typedef struct Expression
             // "num" is the iterator
             // "nums" is the iterable
 
+            Type iterator_type; // to be filled in during semantic analysis
             Token iterator_token;
             struct Expression* iterable_rvalue;
             struct Expression* body;

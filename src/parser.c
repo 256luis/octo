@@ -144,7 +144,8 @@ static Expression* parse_identifier( Parser* parser )
     if( expression ==  NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_IDENTIFIER;
-    expression->identifier = parser->current_token.identifier;
+    expression->identifier.as_string = parser->current_token.identifier;
+    expression->associated_token = parser->current_token;
 
     return expression;
 }

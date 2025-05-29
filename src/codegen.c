@@ -93,6 +93,13 @@ static void generate_type( FILE* file, Type type )
             break;
         }
 
+        case TYPEKIND_REFERENCE:
+        {
+            generate_type( file, *type.reference.base_type );
+            append( file, "*" );
+            break;
+        }
+
         case TYPEKIND_INVALID:
         case TYPEKIND_TOINFER:
         {
@@ -103,8 +110,8 @@ static void generate_type( FILE* file, Type type )
     }
 }
 
-static void generate_rvalue( FILE* file, Expression* expression );
-static void generate_array( FILE* file, Expression* expression )
+static void generate_rvalue( FILE* file, SemanticContext* context, Expression* expression );
+static void generate_array( FILE* file, SemanticContext* context, Expression* expression )
 {
     // ( OctoArray_T ){
     //     .length = <length>,
@@ -126,14 +133,14 @@ static void generate_array( FILE* file, Expression* expression )
     for( int i = 0; i < expression->array.count_initialized; i++ )
     {
         Expression* e = &expression->array.initialized_rvalues[ i ];
-        generate_rvalue( file, e );
+        generate_rvalue( file, context, e );
         append( file, ", " );
     }
     append( file, "}\n" );
     append( file, "}" );
 }
 
-static void generate_array_subscript( FILE* file, Expression* expression )
+static void generate_array_subscript( FILE* file, SemanticContext* context, Expression* expression )
 {
     Type type = expression->array_subscript.type;
     char* identifier = expression->array_subscript.identifier_token.as_string;
@@ -145,12 +152,12 @@ static void generate_array_subscript( FILE* file, Expression* expression )
     append( file, "*" );
     generate_type( file, type );
     append( file, "_at(%s, ", identifier );
-    generate_rvalue( file, index_rvalue );
+    generate_rvalue( file, context, index_rvalue );
     append( file, ")" );
 }
 
-static void generate_function_call( FILE* file, Expression* expression );
-static void generate_rvalue( FILE* file, Expression* expression )
+static void generate_function_call( FILE* file, SemanticContext* context, Expression* expression );
+static void generate_rvalue( FILE* file, SemanticContext* context, Expression* expression )
 {
     switch( expression->kind )
     {
@@ -168,7 +175,11 @@ static void generate_rvalue( FILE* file, Expression* expression )
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            append( file, "%s", expression->identifier );
+            if( expression->identifier.type.kind == TYPEKIND_REFERENCE )
+            {
+                append( file, "*" );
+            }
+            append( file, "%s", expression->identifier.as_string );
             break;
         }
 
@@ -193,7 +204,7 @@ static void generate_rvalue( FILE* file, Expression* expression )
         case EXPRESSIONKIND_BINARY:
         {
             append( file, "(" );
-            generate_rvalue( file, expression->binary.left );
+            generate_rvalue( file, context, expression->binary.left );
             switch( expression->binary.operation )
             {
                 case BINARYOPERATION_ADD:          append( file, " + " ); break;
@@ -208,7 +219,7 @@ static void generate_rvalue( FILE* file, Expression* expression )
                 case BINARYOPERATION_LESSEQUAL:    append( file, " <= " ); break;
             }
 
-            generate_rvalue( file, expression->binary.right );
+            generate_rvalue( file, context, expression->binary.right );
             append( file, ")" );
 
             break;
@@ -223,26 +234,26 @@ static void generate_rvalue( FILE* file, Expression* expression )
                 case UNARYOPERATION_ADDRESSOF:   append( file, "&" ); break;
                 case UNARYOPERATION_DEREFERENCE: append( file, "*" ); break;
             }
-            generate_rvalue( file, expression->unary.operand );
+            generate_rvalue( file, context, expression->unary.operand );
 
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            generate_function_call( file, expression );
+            generate_function_call( file, context, expression );
             break;
         }
 
         case EXPRESSIONKIND_ARRAY:
         {
-            generate_array( file, expression );
+            generate_array( file, context, expression );
             break;
         }
 
         case EXPRESSIONKIND_ARRAYSUBSCRIPT:
         {
-            generate_array_subscript( file, expression );
+            generate_array_subscript( file, context, expression );
             break;
         }
 
@@ -254,7 +265,7 @@ static void generate_rvalue( FILE* file, Expression* expression )
     }
 }
 
-static void generate_variable_declaration( FILE* file, Expression* expression )
+static void generate_variable_declaration( FILE* file, SemanticContext* context, Expression* expression )
 {
     generate_type( file, expression->variable_declaration.type );
     append( file, " %s", expression->variable_declaration.identifier );
@@ -262,7 +273,7 @@ static void generate_variable_declaration( FILE* file, Expression* expression )
     if( expression->variable_declaration.rvalue != NULL )
     {
         append( file, " = " );
-        generate_rvalue( file, expression->variable_declaration.rvalue );
+        generate_rvalue( file, context, expression->variable_declaration.rvalue );
     }
 
     append( file, ";\n" );
@@ -318,35 +329,35 @@ static void generate_function_declaration( FILE* file, SemanticContext* context,
     }
 }
 
-static void generate_return( FILE* file, Expression* expression )
+static void generate_return( FILE* file, SemanticContext* context, Expression* expression )
 {
     append( file, "return " );
 
     Expression* rvalue = expression->return_expression.rvalue;
     if ( rvalue != NULL )
     {
-        generate_rvalue( file, rvalue );
+        generate_rvalue( file, context, rvalue );
     }
 
     append( file, ";\n" );
 }
 
-static void generate_assignment( FILE* file, Expression* expression )
+static void generate_assignment( FILE* file, SemanticContext* context, Expression* expression )
 {
-    generate_rvalue( file, expression->assignment.lvalue );
+    generate_rvalue( file, context, expression->assignment.lvalue );
     append( file, " = ", expression->assignment.lvalue );
-    generate_rvalue( file, expression->assignment.rvalue );
+    generate_rvalue( file, context, expression->assignment.rvalue );
     append( file, ";\n" );
 }
 
-static void generate_function_call( FILE* file, Expression* expression )
+static void generate_function_call( FILE* file, SemanticContext* context, Expression* expression )
 {
     append( file, "%s(", expression->function_call.identifier );
 
     for( size_t i = 0; i < expression->function_call.arg_count; i++ )
     {
         Expression* arg = expression->function_call.args[ i ];
-        generate_rvalue( file, arg );
+        generate_rvalue( file, context, arg );
         /* generate_type( param_type ); */
         /* append( file, "%s ", param_identifier ); */
         if( i < expression->function_call.arg_count - 1 )
@@ -361,7 +372,7 @@ static void generate_function_call( FILE* file, Expression* expression )
 static void generate_conditional( FILE* file, SemanticContext* context, Expression* expression )
 {
     append( file, "%s (", expression->conditional.is_loop ? "while" : "if" );
-    generate_rvalue( file, expression->conditional.condition );
+    generate_rvalue( file, context, expression->conditional.condition );
     append( file, ")\n" );
     generate_code( file, context, expression->conditional.true_body );
 
@@ -370,6 +381,32 @@ static void generate_conditional( FILE* file, SemanticContext* context, Expressi
         append( file, "else " );
         generate_code( file, context, expression->conditional.false_body );
     }
+}
+
+static void generate_for_loop( FILE* file, SemanticContext* context, Expression* expression )
+{
+    Expression* iterable_rvalue = expression->for_loop.iterable_rvalue;
+    Token iterator_token = expression->for_loop.iterator_token;
+    Type iterator_type = expression->for_loop.iterator_type;
+
+    append( file, "for (u64 octo_index = 0; octo_index < ");
+    generate_rvalue( file, context, iterable_rvalue );
+    append( file, ".length; octo_index++)\n{\n");
+    generate_type( file, iterator_type );
+    append( file, " %s = ", iterator_token.identifier);
+    generate_rvalue( file, context, iterable_rvalue );
+    append( file, ".data + octo_index;\n");
+
+    Expression* body = expression->for_loop.body;
+
+    size_t length = lvec_get_length( body->compound.expressions );
+    for( size_t i = 0; i < length; i++ )
+    {
+        Expression* e = body->compound.expressions[ i ];
+        generate_code( file, context, e );
+    }
+
+    append( file, "}\n");
 }
 
 void generate_code( FILE* file, SemanticContext* context, Expression* expression )
@@ -447,7 +484,7 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
     {
         case EXPRESSIONKIND_VARIABLEDECLARATION:
         {
-            generate_variable_declaration( file, expression );
+            generate_variable_declaration( file, context, expression );
             break;
         }
 
@@ -465,19 +502,19 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
 
         case EXPRESSIONKIND_RETURN:
         {
-            generate_return( file, expression );
+            generate_return( file, context, expression );
             break;
         }
 
         case EXPRESSIONKIND_ASSIGNMENT:
         {
-            generate_assignment( file, expression );
+            generate_assignment( file, context, expression );
             break;
         }
 
         case EXPRESSIONKIND_FUNCTIONCALL:
         {
-            generate_function_call( file, expression );
+            generate_function_call( file, context, expression );
             append( file, ";\n" );
             break;
         }
@@ -491,6 +528,13 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
         case EXPRESSIONKIND_CONDITIONAL:
         {
             generate_conditional( file, context, expression );
+            break;
+
+        }
+
+        case EXPRESSIONKIND_FORLOOP:
+        {
+            generate_for_loop( file, context, expression );
             break;
         }
 

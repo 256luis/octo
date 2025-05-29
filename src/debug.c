@@ -202,7 +202,7 @@ void expression_print( Expression* expression )
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            printf( "(%s)", expression->identifier );
+            printf( "(%s)", expression->identifier.as_string );
             should_newline = false;
             break;
         }

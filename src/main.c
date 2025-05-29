@@ -48,11 +48,11 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    /* FILE* generated_c = fopen( "generated.c", "w+" ); */
-    /* generate_code( generated_c, &semantic_context, program ); */
-    /* fclose( generated_c ); */
+    FILE* generated_c = fopen( "generated.c", "w+" );
+    generate_code( generated_c, &semantic_context, program );
+    fclose( generated_c );
 
     // temporarily use this to test
-    // system("gcc generated.c -std=gnu99");
+    system("gcc generated.c -std=gnu99");
     // system("del generated.c");
 }

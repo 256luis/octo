@@ -383,7 +383,7 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
 {
     // implicit casts are only for numeric and pointer types
     static TypeKind implicitly_castable_type_kinds[] = {
-        TYPEKIND_INTEGER, TYPEKIND_FLOAT, TYPEKIND_POINTER
+        TYPEKIND_INTEGER, TYPEKIND_FLOAT, TYPEKIND_POINTER, TYPEKIND_REFERENCE
     };
     int implicitly_castable_type_kinds_length =
         sizeof( implicitly_castable_type_kinds ) / sizeof( *implicitly_castable_type_kinds );
@@ -524,6 +524,11 @@ bool check_type( SemanticContext* context, Type type )
             return check_type( context, *type.pointer.base_type );
         }
 
+        case TYPEKIND_REFERENCE:
+        {
+            return check_type( context, *type.reference.base_type );
+        }
+
         case TYPEKIND_ARRAY:
         {
             if( type.array.length == 0 )
@@ -572,6 +577,14 @@ bool check_type_compatibility( Type t1, Type* out_type, Error* out_error )
     if( type_equals( t1, *out_type ) )
     {
         return true;
+    }
+
+    if( t1.kind == TYPEKIND_REFERENCE || out_type->kind == TYPEKIND_REFERENCE )
+    {
+        Type reference_type = t1.kind == TYPEKIND_REFERENCE ? t1 : *out_type;
+        Type other_type = t1.kind == TYPEKIND_REFERENCE ? *out_type : t1;
+
+        return check_type_compatibility( *reference_type.reference.base_type, &other_type, out_error );
     }
 
     bool implicit_cast_attempt = try_implicit_cast( t1, out_type );
@@ -797,6 +810,12 @@ static bool check_binary( SemanticContext* context, Expression* expression, Type
     }
 
     BinaryOperation operation = expression->binary.operation;
+    if( left_type.kind == TYPEKIND_REFERENCE || right_type.kind == TYPEKIND_REFERENCE )
+    {
+        Type* reference_type = left_type.kind == TYPEKIND_REFERENCE ? &left_type : &right_type;
+        *reference_type = *reference_type->reference.base_type;
+    }
+
     bool is_operation_valid = is_binary_operation_valid( operation, left_type, right_type );
 
     if( !is_operation_valid )
@@ -857,6 +876,7 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
     }
 
     *inferred_type = original_declaration->type;
+    expression->identifier.type = *inferred_type;
 
     return true;
 }
@@ -1623,6 +1643,8 @@ bool check_assignment( SemanticContext* context, Expression* expression )
         return false;
     }
 
+    // expression->assignment.type = found_lvalue_type;
+
     return true;
 }
 
@@ -1716,17 +1738,27 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
     // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol
     // because its a pointer and id have to either allocate memory or create
     // a compound literal then get its address and i DONT WANNA DO EITHER OF THOSE
+    Type iterator_type = {
+        .kind = TYPEKIND_REFERENCE,
+        .reference.base_type = inferred_type.array.base_type
+    };
+    // *iterator_type.reference.base_type = *;
+
     Symbol iterator_symbol2 = {
         .token = iterator_token,
-        .type = *inferred_type.array.base_type
+        .type = iterator_type
     };
     add_symbol_to_scope( context, iterator_symbol2 );
+    expression->for_loop.iterator_type = iterator_type;
 
     Expression* body = expression->for_loop.body;
     if( !check_compound( context, body ) )
     {
+        pop_scope( context );
         return false;
     }
+
+    pop_scope( context );
 
     return true;
 }
