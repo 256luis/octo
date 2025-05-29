@@ -124,6 +124,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_EXTERN,
     EXPRESSIONKIND_CONDITIONAL, // if statements and while-loops
     EXPRESSIONKIND_FORLOOP,
+    EXPRESSIONKIND_TYPEDECLARATION,
 } ExpressionKind;
 
 typedef struct Expression
@@ -269,6 +270,15 @@ typedef struct Expression
             struct Expression* iterable_rvalue;
             struct Expression* body;
         } for_loop;
+
+        struct
+        {
+            bool is_struct; // if false, is union
+            Token* member_identifier_tokens;
+            Token type_identifier_token;
+            Type* member_types;
+            int member_count;
+        } type_declaration;
     };
 } Expression;
 

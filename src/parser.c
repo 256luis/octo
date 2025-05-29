@@ -1069,6 +1069,86 @@ static Expression* parse_for( Parser* parser )
     return expression;
 }
 
+static Expression* parse_type_declaration( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_TYPEDECLARATION;
+    expression->starting_token = parser->current_token;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_STRUCT, TOKENKIND_UNION ) )
+    {
+        return NULL;
+    }
+
+    expression->type_declaration.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
+
+    expression->type_declaration.type_identifier_token = parser->current_token;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
+    {
+        return NULL;
+    }
+
+    Token* member_identifier_tokens = lvec_new( Token );
+    Type* member_types = lvec_new( Type );
+
+    advance( parser );
+    while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+        {
+            return NULL;
+        }
+
+        Token member_identifier_token = parser->current_token;
+        lvec_append_aggregate( member_identifier_tokens, member_identifier_token );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_COLON ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        Type member_type = parse_type( parser );
+        if( member_type.kind == TYPEKIND_INVALID )
+        {
+            return NULL;
+        }
+        lvec_append_aggregate( member_types, member_type );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTBRACE ) )
+        {
+            return NULL;
+        }
+    }
+
+    // current token is right brace
+
+    expression->type_declaration.member_identifier_tokens = member_identifier_tokens;
+    expression->type_declaration.member_types = member_types;
+    expression->type_declaration.member_count = lvec_get_length( member_types );
+
+    return expression;
+}
+
 Expression* parse( Parser* parser )
 {
     Expression* expression;
@@ -1170,6 +1250,12 @@ Expression* parse( Parser* parser )
         case TOKENKIND_FOR:
         {
             expression = parse_for( parser );
+            break;
+        }
+
+        case TOKENKIND_TYPE:
+        {
+            expression = parse_type_declaration( parser );
             break;
         }
 

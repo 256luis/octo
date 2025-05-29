@@ -18,6 +18,9 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_WHILE ]        = "while",
     [ TOKENKIND_FOR ]          = "for",
     [ TOKENKIND_IN ]           = "in",
+    [ TOKENKIND_TYPE ]         = "type",
+    [ TOKENKIND_STRUCT ]       = "struct",
+    [ TOKENKIND_UNION ]        = "union",
     [ TOKENKIND_INTEGER ]      = "INTEGER",
     [ TOKENKIND_FLOAT ]        = "FLOAT",
     [ TOKENKIND_IDENTIFIER ]   = "IDENTIFIER",
@@ -73,6 +76,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_ARRAY ]               = "ARRAY",
     [ EXPRESSIONKIND_ARRAYSUBSCRIPT ]      = "ARRAY SUBSCRIPT",
     [ EXPRESSIONKIND_FORLOOP ]             = "FOR LOOP",
+    [ EXPRESSIONKIND_TYPEDECLARATION ]     = "TYPE DECLARATION",
 };
 
 char* binary_operation_to_string[] = {
@@ -492,6 +496,11 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "index = " );
             expression_print( expression->array_subscript.index_rvalue );
+
+            depth--;
+            printf( "\n");
+            INDENT();
+            printf( "}" );
             break;
         }
 
@@ -511,6 +520,39 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "body = " );
             expression_print( expression->for_loop.body );
+
+            depth--;
+            printf( "\n");
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_TYPEDECLARATION:
+        {
+            printf( "(%s) {\n",
+                    expression->type_declaration.is_struct ? "struct" : "union" );
+            depth++;
+            INDENT();
+
+            printf( "identifier = %s\n", expression->type_declaration.type_identifier_token.as_string );
+
+            for( int i = 0; i < expression->type_declaration.member_count; i++ )
+            {
+                char* member_identifier = expression->type_declaration.member_identifier_tokens[ i ].as_string;
+                Type member_type = expression->type_declaration.member_types[ i ];
+
+                INDENT();
+                // printf( "param[%d] = %s: %d\n", i, param_identifier, param_type.kind );
+                printf( "member[%d] = %s: ", i, member_identifier );
+                debug_print_type( member_type );
+                putchar( '\n' );
+            }
+
+            depth--;
+            printf( "\n");
+            INDENT();
+            printf( "}" );
             break;
         }
 
