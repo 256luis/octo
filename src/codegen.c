@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "lvec.h"
 #include "semantic.h"
+#include "symboltable.h"
 
 #define INDENTATION_WIDTH 4
 
@@ -427,6 +428,25 @@ static void generate_for_loop( FILE* file, SemanticContext* context, Expression*
     append( file, "}\n");
 }
 
+static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
+{
+    bool is_struct = expression->type_declaration.is_struct;
+    char* type_identifier = expression->type_declaration.type_identifier_token.as_string;
+    append( file, "typedef %s %s\n{\n",
+            is_struct ? "struct" : "union",
+            type_identifier );
+
+    SymbolTable* member_symbol_table = symbol_table_lookup( context->symbol_table, type_identifier )->type.custom.member_symbols;
+    for( int i = 0; i < member_symbol_table->length; i++ )
+    {
+        Symbol member_symbol = member_symbol_table->symbols[ i ];
+        generate_type( file, member_symbol.type );
+        append( file, " %s;\n", member_symbol.token.as_string );
+    }
+
+    append( file, "} %s;\n", type_identifier );
+}
+
 void generate_code( FILE* file, SemanticContext* context, Expression* expression )
 {
     // temporary
@@ -553,6 +573,12 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
         case EXPRESSIONKIND_FORLOOP:
         {
             generate_for_loop( file, context, expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_TYPEDECLARATION:
+        {
+            generate_type_declaration( file, context, expression );
             break;
         }
 
