@@ -1,7 +1,5 @@
 # The Octo Programming Language
 Octo is a statically, strongly-typed programming language that transpiles to C.
-# The Octo Programming Language
-Octo is a statically, strongly-typed programming language that transpiles to C.
 ```rust
 extern func printf(format: &char, ..) -> i32;
 
@@ -40,9 +38,9 @@ Note: Currently, the compiler calls `gcc` to build the generated C code but it i
 | Switch-statements | ❌ | ❌ | ❌ |
 | Switch-expressions | ❌ | ❌ | ❌ |
 | While-loops | ✅ | ✅ | ✅ |
-| For-loops | ✅ | ❌ | ❌ |
-| Structs | ❌ | ❌ | ❌ |
-| Unions | ❌ | ❌ | ❌ |
+| For-loops | ✅ | ✅ | ✅ |
+| Structs | ⚠️ | ⚠️ | ⚠️ |
+| Unions | ⚠️ | ⚠️ | ⚠️ |
 | Enums | ❌ | ❌ | ❌ |
 | Tagged unions | ❌ | ❌ | ❌ |
 | Compile-time function execution | ❌ | ❌ | ❌ |
