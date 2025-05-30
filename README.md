@@ -1,7 +1,5 @@
 # The Octo Programming Language
 Octo is a statically, strongly-typed programming language that transpiles to C.
-# The Octo Programming Language
-Octo is a statically, strongly-typed programming language that transpiles to C.
 ```rust
 extern func printf(format: &char, ..) -> i32;
 
