@@ -362,7 +362,7 @@ static Type parse_base_type( Parser* parser )
     else // custom type
     {
         result.kind = TYPEKIND_CUSTOM;
-        result.custom_identifier = type_identifier;
+        result.custom.identifier = type_identifier;
     }
 
     return result;

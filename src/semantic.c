@@ -5,6 +5,7 @@
 #include "error.h"
 #include "parser.h"
 #include "lvec.h"
+#include "symboltable.h"
 #include "tokenizer.h"
 #include "semantic.h"
 
@@ -36,32 +37,9 @@ Type get_top_return_type( SemanticContext* context )
     return context->return_type_stack[ last_index ];
 }
 
-void push_scope( SemanticContext* context )
-{
-    SymbolTable st = {
-        .symbols = lvec_new( Symbol ),
-        .length = 0,
-    };
-    lvec_append_aggregate( context->symbol_table_stack, st );
-}
-
-void pop_scope( SemanticContext* context )
-{
-    lvec_remove_last( context->symbol_table_stack );
-}
-
-void add_symbol_to_scope( SemanticContext* context, Symbol symbol )
-{
-    int symbol_table_stack_top_index = lvec_get_length( context->symbol_table_stack ) - 1;
-    SymbolTable* current_scope_table = &context->symbol_table_stack[ symbol_table_stack_top_index ];
-
-    lvec_append_aggregate( current_scope_table->symbols, symbol );
-    current_scope_table->length++;
-}
-
 void semantic_context_initialize( SemanticContext* context )
 {
-    context->symbol_table_stack = lvec_new( SymbolTable );
+    symbol_table_initialize( &context->symbol_table );
     context->return_type_stack = lvec_new( Type );
     context->array_types = lvec_new( Type );
     context->pointer_types = lvec_new( Type );
@@ -220,45 +198,22 @@ void semantic_context_initialize( SemanticContext* context )
         },
     };
 
-    push_scope( context );
+    symbol_table_push_scope( &context->symbol_table );
 
-    add_symbol_to_scope( context, true_symbol );
-    add_symbol_to_scope( context, false_symbol );
-    add_symbol_to_scope( context, i8_symbol );
-    add_symbol_to_scope( context, i16_symbol );
-    add_symbol_to_scope( context, i32_symbol );
-    add_symbol_to_scope( context, i64_symbol );
-    add_symbol_to_scope( context, u8_symbol );
-    add_symbol_to_scope( context, u16_symbol );
-    add_symbol_to_scope( context, u32_symbol );
-    add_symbol_to_scope( context, u64_symbol );
-    add_symbol_to_scope( context, f32_symbol );
-    add_symbol_to_scope( context, f64_symbol );
-    add_symbol_to_scope( context, bool_symbol );
-    add_symbol_to_scope( context, char_symbol );
-}
-
-// searches the entire symbol table stack backwards for identifier
-Symbol* symbol_lookup( SemanticContext* context, char* identifier )
-{
-    int symbol_stack_length = lvec_get_length( context->symbol_table_stack );
-    for( int i = 0; i < symbol_stack_length ; i++ )
-    {
-        SymbolTable current_scope_table = context->symbol_table_stack[ i ];
-
-        for( int j = 0; j < current_scope_table.length; j++ )
-        {
-            Symbol* symbol = &current_scope_table.symbols[ j ];
-
-            // if identifier matches entry in symbol table
-            if( strcmp( identifier, symbol->token.identifier ) == 0 )
-            {
-                return symbol;
-            }
-        }
-    }
-
-    return NULL;
+    symbol_table_push_symbol( &context->symbol_table, true_symbol );
+    symbol_table_push_symbol( &context->symbol_table, false_symbol );
+    symbol_table_push_symbol( &context->symbol_table, i8_symbol );
+    symbol_table_push_symbol( &context->symbol_table, i16_symbol );
+    symbol_table_push_symbol( &context->symbol_table, i32_symbol );
+    symbol_table_push_symbol( &context->symbol_table, i64_symbol );
+    symbol_table_push_symbol( &context->symbol_table, u8_symbol );
+    symbol_table_push_symbol( &context->symbol_table, u16_symbol );
+    symbol_table_push_symbol( &context->symbol_table, u32_symbol );
+    symbol_table_push_symbol( &context->symbol_table, u64_symbol );
+    symbol_table_push_symbol( &context->symbol_table, f32_symbol );
+    symbol_table_push_symbol( &context->symbol_table, f64_symbol );
+    symbol_table_push_symbol( &context->symbol_table, bool_symbol );
+    symbol_table_push_symbol( &context->symbol_table, char_symbol );
 }
 
 bool is_type_numeric( Type type )
@@ -298,7 +253,7 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_CUSTOM:
         {
-            return strcmp( t1.custom_identifier, t2.custom_identifier ) == 0;
+            return strcmp( t1.custom.identifier, t2.custom.identifier ) == 0;
         }
 
         case TYPEKIND_POINTER:
@@ -548,7 +503,7 @@ bool check_type( SemanticContext* context, Type type )
 
         case TYPEKIND_CUSTOM:
         {
-            Symbol* symbol = symbol_lookup( context, type.custom_identifier );
+            Symbol* symbol = symbol_table_lookup( context->symbol_table, type.custom.identifier );
             if( symbol == NULL )
             {
                 Error error = {
@@ -863,7 +818,7 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
     Token identifier_token = expression->associated_token;
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
     if( original_declaration == NULL )
     {
         Error error = {
@@ -884,7 +839,7 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
 static bool check_function_call( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Token identifier_token = expression->function_call.identifier_token;
-    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
     if( original_declaration == NULL )
     {
         Error error = {
@@ -952,8 +907,6 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
             }
         }
     }
-
-
 
     if( inferred_type != NULL )
     {
@@ -1038,7 +991,7 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
         }
 
         // check if operand is in symbol table
-        Symbol* operand_symbol = symbol_lookup( context, operand->associated_token.identifier );
+        Symbol* operand_symbol = symbol_table_lookup( context->symbol_table, operand->associated_token.identifier );
         if( operand_symbol == NULL )
         {
             Error error = {
@@ -1174,7 +1127,7 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
     Expression* index_rvalue = expression->array_subscript.index_rvalue;
 
     // check identifier
-    Symbol* identifier_symbol = symbol_lookup( context, identifier_token.identifier );
+    Symbol* identifier_symbol = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
     if( identifier_symbol == NULL )
     {
         Error error = {
@@ -1299,7 +1252,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     Token identifier_token = expression->variable_declaration.identifier_token;
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
     if( original_declaration != NULL )
     {
         Error error = {
@@ -1381,7 +1334,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         .token = identifier_token,
         .type = found_type,
     };
-    add_symbol_to_scope( context, symbol );
+    symbol_table_push_symbol( &context->symbol_table, symbol );
 
     return true;
 }
@@ -1390,7 +1343,7 @@ static bool check_compound( SemanticContext* context, Expression* expression )
 {
     bool is_valid = true;
 
-    push_scope( context );
+    symbol_table_push_scope( &context->symbol_table );
 
     size_t length = lvec_get_length( expression->compound.expressions );
     for( size_t i = 0; i < length; i++ )
@@ -1404,7 +1357,7 @@ static bool check_compound( SemanticContext* context, Expression* expression )
         }
     }
 
-    pop_scope( context );
+    symbol_table_pop_scope( &context->symbol_table );
 
     return is_valid;
 }
@@ -1414,7 +1367,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
     Token identifier_token = expression->function_declaration.identifier_token;
 
     // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_lookup( context, identifier_token.identifier );
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
     if( original_declaration != NULL )
     {
         Error error = {
@@ -1445,10 +1398,10 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
             }
         },
     };
-    add_symbol_to_scope( context, symbol );
+    symbol_table_push_symbol( &context->symbol_table, symbol );
 
     // check function params
-    push_scope( context );
+    symbol_table_push_scope( &context->symbol_table );
     for( int i = 0; i < expression->function_declaration.param_count; i++ )
     {
         Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
@@ -1459,7 +1412,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
             return false;
         }
 
-        Symbol* declaration = symbol_lookup( context, param_identifier_token.identifier );
+        Symbol* declaration = symbol_table_lookup( context->symbol_table, param_identifier_token.identifier );
         if( declaration != NULL )
         {
             Error error = {
@@ -1476,7 +1429,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
             .token = param_identifier_token,
             .type = param_type,
         };
-        add_symbol_to_scope( context, symbol );
+        symbol_table_push_symbol( &context->symbol_table, symbol );
     }
 
     push_return_type( context, *return_type );
@@ -1508,7 +1461,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
         is_body_valid = check_compound( context, function_body );
     }
 
-    pop_scope( context );
+    symbol_table_pop_scope( &context->symbol_table );
     pop_return_type( context );
 
     if( !is_body_valid )
@@ -1702,7 +1655,7 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
 {
     // no symbol redeclarations!
     Token iterator_token = expression->for_loop.iterator_token;
-    Symbol* iterator_symbol = symbol_lookup( context, iterator_token.identifier );
+    Symbol* iterator_symbol = symbol_table_lookup( context->symbol_table, iterator_token.identifier );
     if( iterator_symbol != NULL )
     {
         Error error = {
@@ -1732,7 +1685,7 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
         return false;
     }
 
-    push_scope( context );
+    symbol_table_push_scope( &context->symbol_table );
 
     // add iterator to symbeol table
     // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol
@@ -1748,18 +1701,87 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
         .token = iterator_token,
         .type = iterator_type
     };
-    add_symbol_to_scope( context, iterator_symbol2 );
+    symbol_table_push_symbol( &context->symbol_table, iterator_symbol2 );
     expression->for_loop.iterator_type = iterator_type;
 
     Expression* body = expression->for_loop.body;
     if( !check_compound( context, body ) )
     {
-        pop_scope( context );
+        symbol_table_pop_scope( &context->symbol_table );
         return false;
     }
 
-    pop_scope( context );
+    symbol_table_pop_scope( &context->symbol_table );
 
+    return true;
+}
+
+static bool check_type_declaration( SemanticContext* context, Expression* expression )
+{
+    // check if type name is already in symbol table
+    Token identifier_token = expression->type_declaration.type_identifier_token;
+    Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string );
+    if( symbol != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+            .symbol_redeclaration.original_declaration_token = identifier_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    // symbol table to put in the type information
+    SymbolTable* member_symbols = malloc( sizeof( SymbolTable ) );
+    symbol_table_initialize( member_symbols );
+
+    Type* member_types = expression->type_declaration.member_types;
+    Token* member_identifier_tokens = expression->type_declaration.member_identifier_tokens;
+    int member_count = expression->type_declaration.member_count;
+    for( int i = 0; i < member_count; i++ )
+    {
+        Type member_type = member_types[ i ];
+        Token member_identifier_token = member_identifier_tokens[ i ];
+        if( !check_type( context, member_type ) )
+        {
+            return false;
+        }
+
+        // check if symbol already declared in the type definition
+        Symbol* lookup_result = symbol_table_lookup( *member_symbols, member_identifier_token.as_string );
+        if( lookup_result != NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_SYMBOLREDECLARATION,
+                .offending_token = member_identifier_token,
+                .symbol_redeclaration.original_declaration_token = lookup_result->token,
+            };
+            report_error( error );
+            return false;
+        }
+
+        // create symbol and add to the type's scope
+        Symbol member_symbol = {
+            .token = member_identifier_token,
+            .type = member_type
+        };
+        symbol_table_push_symbol( member_symbols, member_symbol );
+    }
+
+    Symbol type_declaration_symbol = {
+        .token = identifier_token,
+        .type = ( Type ){
+            .kind = TYPEKIND_CUSTOM,
+            .token = identifier_token,
+            .custom = {
+                .identifier = identifier_token.as_string,
+                .member_symbols = member_symbols
+            }
+        },
+    };
+
+    symbol_table_push_symbol( &context->symbol_table, type_declaration_symbol );
     return true;
 }
 
@@ -1820,6 +1842,12 @@ bool check_semantics( SemanticContext* context, Expression* expression )
         case EXPRESSIONKIND_FORLOOP:
         {
             is_valid = check_for_loop( context, expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_TYPEDECLARATION:
+        {
+            is_valid = check_type_declaration( context, expression );
             break;
         }
 

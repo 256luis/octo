@@ -163,7 +163,7 @@ void print_type( Type type )
 
         case TYPEKIND_CUSTOM:
         {
-            printf( "%s", type.custom_identifier );
+            printf( "%s", type.custom.identifier );
             break;
         }
 

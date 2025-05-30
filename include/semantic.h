@@ -2,22 +2,24 @@
 #define SEMANTIC_H
 
 #include "parser.h"
+#include "symboltable.h"
 
-typedef struct Symbol
-{
-    Token token;
-    Type type;
-} Symbol;
+/* typedef struct Symbol */
+/* { */
+/*     Token token; */
+/*     Type type; */
+/* } Symbol; */
 
-typedef struct SymbolTable
-{
-    Symbol* symbols;
-    int length;
-} SymbolTable;
+/* typedef struct SymbolTable */
+/* { */
+/*     Symbol* symbols; */
+/*     int length; */
+/* } SymbolTable; */
 
 typedef struct SemanticContext
 {
-    SymbolTable* symbol_table_stack;
+    // SymbolTable* symbol_table_stack;
+    SymbolTable symbol_table;
     Type* return_type_stack;
     Type* pointer_types;
     Type* array_types;

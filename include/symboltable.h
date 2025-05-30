@@ -2,7 +2,7 @@
 #define SYMBOLTABLE_H
 
 #include "tokenizer.h"
-#include "parser.h"
+#include "type.h"
 
 typedef struct Symbol
 {

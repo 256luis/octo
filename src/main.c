@@ -6,6 +6,7 @@
 #include "error.h"
 #include "lvec.h"
 #include "parser.h"
+#include "symboltable.h"
 #include "tokenizer.h"
 #include "semantic.h"
 
@@ -38,7 +39,7 @@ int main( int argc, char* argv[] )
     }
     lvec_free( tokens );
 
-    // expression_print( program );
+    /* expression_print( program ); */
 
     SemanticContext semantic_context;
     semantic_context_initialize( &semantic_context );

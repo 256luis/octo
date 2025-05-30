@@ -68,7 +68,7 @@ static void generate_type( FILE* file, Type type )
 
         case TYPEKIND_CUSTOM:
         {
-            append( file, "%s", type.custom_identifier );
+            append( file, "%s", type.custom.identifier );
             break;
         }
 
