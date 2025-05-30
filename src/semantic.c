@@ -1123,18 +1123,22 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
 
 static bool check_array_subscript( SemanticContext* context, Expression* expression, Type* out_type )
 {
-    Token identifier_token = expression->array_subscript.identifier_token;
     Expression* index_rvalue = expression->array_subscript.index_rvalue;
+    Expression* lvalue = expression->array_subscript.lvalue;
 
-    // check identifier
-    Symbol* identifier_symbol = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
-    if( identifier_symbol == NULL )
+    Type lvalue_type;
+    if( !check_lvalue( context, lvalue, &lvalue_type ) )
+    {
+        return false;
+    }
+
+    // only arrays can be subscripted
+    if( lvalue_type.kind != TYPEKIND_ARRAY )
     {
         Error error = {
-            .kind = ERRORKIND_UNDECLAREDSYMBOL,
-            .offending_token = identifier_token,
+            .kind = ERRORKIND_NOTANARRAY,
+            .offending_token = lvalue->starting_token,
         };
-
         report_error( error );
         return false;
     }
@@ -1155,9 +1159,9 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
         return false;
     }
 
-    expression->array_subscript.type = identifier_symbol->type;
+    expression->array_subscript.type = lvalue_type;
+    *out_type = *lvalue_type.array.base_type;
 
-    *out_type = *identifier_symbol->type.array.base_type;
     return true;
 }
 

@@ -191,8 +191,7 @@ typedef struct Expression
         struct
         {
             Type type; // to be filled in during semantic analysis
-            Token identifier_token;
-            // struct Expression* lvalue;
+            struct Expression* lvalue;
             struct Expression* index_rvalue;
         } array_subscript;
 

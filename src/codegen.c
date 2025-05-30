@@ -144,7 +144,7 @@ static void generate_array( FILE* file, SemanticContext* context, Expression* ex
 static void generate_array_subscript( FILE* file, SemanticContext* context, Expression* expression )
 {
     Type type = expression->array_subscript.type;
-    char* identifier = expression->array_subscript.identifier_token.as_string;
+    Expression* lvalue = expression->array_subscript.lvalue;
     Expression* index_rvalue = expression->array_subscript.index_rvalue;
 
     // example: hello[10]
@@ -152,7 +152,9 @@ static void generate_array_subscript( FILE* file, SemanticContext* context, Expr
 
     append( file, "*" );
     generate_type( file, type );
-    append( file, "_at(%s, ", identifier );
+    append( file, "_at(" );
+    generate_rvalue( file, context, lvalue );
+    append( file, ", " );
     generate_rvalue( file, context, index_rvalue );
     append( file, ")" );
 }
