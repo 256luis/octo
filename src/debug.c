@@ -77,6 +77,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_ARRAYSUBSCRIPT ]      = "ARRAY SUBSCRIPT",
     [ EXPRESSIONKIND_FORLOOP ]             = "FOR LOOP",
     [ EXPRESSIONKIND_TYPEDECLARATION ]     = "TYPE DECLARATION",
+    [ EXPRESSIONKIND_MEMBERACCESS ]        = "MEMBER ACCESS",
 };
 
 char* binary_operation_to_string[] = {
@@ -200,6 +201,13 @@ void expression_print( Expression* expression )
         case EXPRESSIONKIND_FLOAT:
         {
             printf( "(%lf)", expression->floating );
+            should_newline = false;
+            break;
+        }
+
+        case EXPRESSIONKIND_BOOLEAN:
+        {
+            printf( "(%s)", expression->boolean ? "true" : "false" );
             should_newline = false;
             break;
         }
@@ -550,6 +558,26 @@ void expression_print( Expression* expression )
                 debug_print_type( member_type );
                 putchar( '\n' );
             }
+
+            depth--;
+            printf( "\n");
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_MEMBERACCESS:
+        {
+            printf( " {\n" );
+            depth++;
+            INDENT();
+
+            printf( "lvalue = " );
+            expression_print( expression->member_access.lvalue );
+            printf( "\n" );
+            INDENT();
+
+            printf( "member identifier = %s\n", expression->member_access.member_identifier_token.as_string );
 
             depth--;
             printf( "\n");

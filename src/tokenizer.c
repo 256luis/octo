@@ -245,7 +245,7 @@ static void finalize_symbol( Tokenizer* tokenizer, Token** tokens )
                     }
                     else if( token.kind == TOKENKIND_BOOLEAN )
                     {
-                        token.boolean = strcmp( token.as_string, "true" ) ? true : false;
+                        token.boolean = ( strcmp( token.as_string, "true" ) == 0 ) ? true : false;
                     }
 
                     break;

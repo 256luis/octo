@@ -15,8 +15,6 @@ typedef enum BinaryOperation
     BINARYOPERATION_DIVIDE,
 #define BINARYOPERATION_ARITHMETIC_END BINARYOPERATION_EQUAL
 
-    // BINARYOPERATION_SUBSCRIPT,
-
     // boolean
 #define BINARYOPERATION_BOOLEAN_START BINARYOPERATION_EQUAL
     BINARYOPERATION_EQUAL,
@@ -52,6 +50,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_IDENTIFIER,
     EXPRESSIONKIND_UNARY, // only for dereference (will be checked in semantic analysis)
     EXPRESSIONKIND_ARRAYSUBSCRIPT,
+    EXPRESSIONKIND_MEMBERACCESS,
 
     // base statements
     EXPRESSIONKIND_VARIABLEDECLARATION,
@@ -215,6 +214,12 @@ typedef struct Expression
             Type* member_types;
             int member_count;
         } type_declaration;
+
+        struct
+        {
+            struct Expression* lvalue;
+            Token member_identifier_token;
+        } member_access;
     };
 } Expression;
 

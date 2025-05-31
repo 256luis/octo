@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,7 +210,7 @@ static Expression* parse_base_expression( Parser* parser)
     return expression;
 }
 
-static Expression* parse_rvalue( Parser* parser );
+static Expression* parse_atom( Parser* parser );
 static Expression* parse_unary( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -220,11 +221,12 @@ static Expression* parse_unary( Parser* parser )
     expression->unary.operator_token = parser->current_token;
 
     advance( parser );
-    expression->unary.operand = parse_rvalue( parser );
+    expression->unary.operand = parse_atom( parser );
 
     return expression;
 }
 
+static Expression* parse_rvalue( Parser* parser );
 static Expression* parse_function_call( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -539,13 +541,8 @@ static Expression* parse_array_subscript( Parser* parser, Expression* lvalue )
     return expression;
 }
 
-static Expression* parse_rvalue( Parser* parser )
+static Expression* parse_atom( Parser* parser )
 {
-    if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
     Expression* expression;
     Token starting_token = parser->current_token;
 
@@ -608,6 +605,67 @@ static Expression* parse_rvalue( Parser* parser )
         }
     }
 
+    expression->starting_token = starting_token;
+    return expression;
+}
+
+static Expression* parse_member_access( Parser* parser, Expression* lvalue )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_MEMBERACCESS;
+    expression->starting_token = parser->current_token;
+    expression->member_access.lvalue = lvalue;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
+
+    expression->member_access.member_identifier_token = parser->current_token;
+
+    return expression;
+}
+
+static Expression* parse_postfix( Parser* parser, Expression* left )
+{
+    Expression* expression;
+    switch( parser->current_token.kind )
+    {
+        case TOKENKIND_LEFTBRACKET:
+        {
+            expression = parse_array_subscript( parser, left );
+            break;
+        }
+
+        case TOKENKIND_PERIOD:
+        {
+            expression = parse_member_access( parser, left );
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
+    }
+
+    return expression;
+}
+
+static Expression* parse_rvalue( Parser* parser )
+{
+    if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
+    Token starting_token = parser->current_token;
+    Expression* expression = parse_atom( parser );
+
     if( expression == NULL )
     {
         return NULL;
@@ -615,22 +673,21 @@ static Expression* parse_rvalue( Parser* parser )
 
     expression->starting_token = starting_token;
 
-    // if array subscript
-    if( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
+    bool is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS );
+    while( is_next_token_kind_postfix_operator )
     {
-        while( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
-        {
-            advance( parser );
+        advance( parser );
 
-            Expression* lvalue = calloc( 1, sizeof( Expression ) );
-            if( lvalue == NULL ) ALLOC_ERROR();
+        Expression* lvalue = calloc( 1, sizeof( Expression ) );
+        if( lvalue == NULL ) ALLOC_ERROR();
 
-            memcpy( lvalue, expression, sizeof( Expression ) );
-            memset( expression, 0, sizeof( Expression ) );
+        memcpy( lvalue, expression, sizeof( Expression ) );
+        memset( expression, 0, sizeof( Expression ) );
 
-            expression = parse_array_subscript( parser, lvalue );
-        }
+        expression = parse_postfix( parser, lvalue );
+        is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS );
     }
+
 
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
     if( is_next_token_kind_binary_operator )
