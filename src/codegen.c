@@ -159,6 +159,15 @@ static void generate_array_subscript( FILE* file, SemanticContext* context, Expr
     append( file, ")" );
 }
 
+static void generate_member_access( FILE* file, SemanticContext* context, Expression* expression )
+{
+    Expression* lvalue = expression->member_access.lvalue;
+    generate_rvalue( file, context, lvalue );
+
+    char* member_identifier = expression->member_access.member_identifier_token.as_string;
+    append( file, ".%s", member_identifier );
+}
+
 static void generate_function_call( FILE* file, SemanticContext* context, Expression* expression );
 static void generate_rvalue( FILE* file, SemanticContext* context, Expression* expression )
 {
@@ -257,6 +266,12 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
         case EXPRESSIONKIND_ARRAYSUBSCRIPT:
         {
             generate_array_subscript( file, context, expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_MEMBERACCESS:
+        {
+            generate_member_access( file, context, expression );
             break;
         }
 
