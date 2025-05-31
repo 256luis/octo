@@ -7,6 +7,7 @@
 #include "lvec.h"
 #include "symboltable.h"
 #include "tokenizer.h"
+#include "type.h"
 #include "semantic.h"
 
 #define MAX(a,b) ( ( ( a ) > ( b ) ) ? ( a ) : ( b ) )
@@ -431,9 +432,9 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
     return result;
 }
 
-bool check_type( SemanticContext* context, Type type )
+bool check_type( SemanticContext* context, Type* out_type )
 {
-    switch( type.kind )
+    switch( out_type->kind )
     {
         case TYPEKIND_INTEGER:
         case TYPEKIND_FLOAT:
@@ -447,7 +448,7 @@ bool check_type( SemanticContext* context, Type type )
         {
             Error error = {
                 .kind = ERRORKIND_VOIDVARIABLE,
-                .offending_token = type.token,
+                .offending_token = out_type->token,
             };
             report_error( error );
             return false;
@@ -458,16 +459,16 @@ bool check_type( SemanticContext* context, Type type )
             bool is_valid = true;
 
             // check params
-            for( int i = 0; i < type.function.param_count; i++ )
+            for( int i = 0; i < out_type->function.param_count; i++ )
             {
-                Type t = type.function.param_types[ i ];
+                Type* t = &out_type->function.param_types[ i ];
                 is_valid = is_valid && check_type( context, t );
             }
 
             // void is allowed
-            if( type.function.return_type->kind != TYPEKIND_VOID )
+            if( out_type->function.return_type->kind != TYPEKIND_VOID )
             {
-                is_valid = is_valid && check_type( context, *type.function.return_type );
+                is_valid = is_valid && check_type( context, out_type->function.return_type );
             }
             return is_valid;
         }
@@ -475,44 +476,47 @@ bool check_type( SemanticContext* context, Type type )
         case TYPEKIND_POINTER:
         {
             // lvec_append_aggregate( context->pointer_types, *type.pointer.base_type );
-            add_pointer_type( context, *type.pointer.base_type );
-            return check_type( context, *type.pointer.base_type );
+            add_pointer_type( context, *out_type->pointer.base_type );
+            return check_type( context, out_type->pointer.base_type );
         }
 
         case TYPEKIND_REFERENCE:
         {
-            return check_type( context, *type.reference.base_type );
+            return check_type( context, out_type->reference.base_type );
         }
 
         case TYPEKIND_ARRAY:
         {
-            if( type.array.length == 0 )
+            if( out_type->array.length == 0 )
             {
                 Error error = {
                     .kind = ERRORKIND_ZEROLENGTHARRAY,
-                    .offending_token = type.token,
+                    .offending_token = out_type->token,
                 };
                 report_error( error );
                 return false;
             }
 
             // lvec_append_aggregate( context->array_types, *type.array.base_type );
-            add_array_type( context, *type.array.base_type );
-            return check_type( context, *type.array.base_type );
+            add_array_type( context, *out_type->array.base_type );
+            return check_type( context, out_type->array.base_type );
         }
 
         case TYPEKIND_CUSTOM:
         {
-            Symbol* symbol = symbol_table_lookup( context->symbol_table, type.custom.identifier );
+            Symbol* symbol = symbol_table_lookup( context->symbol_table, out_type->custom.identifier );
             if( symbol == NULL )
             {
                 Error error = {
                     .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                    .offending_token = type.token,
+                    .offending_token = out_type->token,
                 };
                 report_error( error );
                 return false;
             }
+
+            *out_type = symbol->type;
+
             return true;
         }
 
@@ -1043,7 +1047,7 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
 {
     Type declared_type = expression->array.type;
 
-    if( !check_type( context, declared_type ) )
+    if( !check_type( context, &declared_type ) )
     {
         return false;
     }
@@ -1165,6 +1169,38 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
     return true;
 }
 
+static bool check_member_access( SemanticContext* context, Expression* expression, Type* inferred_type )
+{
+    Expression* lvalue = expression->member_access.lvalue;
+    Type lvalue_type;
+    if( !check_lvalue( context, lvalue, &lvalue_type ) )
+    {
+        return false;
+    }
+
+    if( lvalue_type.kind != TYPEKIND_CUSTOM )
+    {
+        return false;
+    }
+
+    Token member_identifier_token = expression->member_access.member_identifier_token;
+    Symbol* member_symbol = symbol_table_lookup( *lvalue_type.custom.member_symbols, member_identifier_token.as_string );
+    if( member_symbol == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_MISSINGMEMBER,
+            .offending_token = member_identifier_token,
+            .missing_member.parent_type = lvalue_type,
+        };
+        report_error( error );
+        return false;
+    }
+
+    *inferred_type = member_symbol->type;
+
+    return true;
+}
+
 static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     // initialized to true for the base cases
@@ -1240,6 +1276,12 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
             break;
         }
 
+        case EXPRESSIONKIND_MEMBERACCESS:
+        {
+            is_valid = check_member_access( context, expression, inferred_type );
+            break;
+        }
+
         default:
         {
             // not rvalue expressions
@@ -1270,10 +1312,15 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     }
 
     Type found_type = expression->variable_declaration.type;
-    if( found_type.kind != TYPEKIND_TOINFER && !check_type( context, found_type ) )
+    if( found_type.kind != TYPEKIND_TOINFER && !check_type( context, &found_type ) )
     {
         return false;
     }
+    /* else if( found_type.kind == TYPEKIND_CUSTOM ) */
+    /* { */
+    /*     Symbol* custom_type_symbol = symbol_table_lookup( context->symbol_table, found_type.custom.identifier ); */
+    /*     found_type = custom_type_symbol->type; */
+    /* } */
 
     // check if the type at the left hand side matches the type on the right hand
     // side, or if there is an implicit cast possible.
@@ -1302,7 +1349,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         {
             found_type = inferred_type;
         }
-        else if( !check_type( context, found_type ) )
+        else if( !check_type( context, &found_type ) )
         {
             return false;
         }
@@ -1411,7 +1458,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
         Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
         Type param_type = expression->function_declaration.param_types[ i ];
         // Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
-        if( !check_type( context, param_type ) )
+        if( !check_type( context, &param_type ) )
         {
             return false;
         }
@@ -1520,9 +1567,11 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
     bool is_valid;
     switch( expression->kind )
     {
+        case EXPRESSIONKIND_MEMBERACCESS:
+        case EXPRESSIONKIND_ARRAYSUBSCRIPT:
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            is_valid = check_rvalue_identifier( context, expression, out_type );
+            is_valid = check_rvalue( context, expression, out_type );
             break;
         }
 
@@ -1545,12 +1594,6 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
 
             *out_type = lvalue_type;
             is_valid = true;
-            break;
-        }
-
-        case EXPRESSIONKIND_ARRAYSUBSCRIPT:
-        {
-            is_valid = check_array_subscript( context, expression, out_type );
             break;
         }
 
@@ -1599,8 +1642,6 @@ bool check_assignment( SemanticContext* context, Expression* expression )
         report_error( error );
         return false;
     }
-
-    // expression->assignment.type = found_lvalue_type;
 
     return true;
 }
@@ -1747,7 +1788,7 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
     {
         Type member_type = member_types[ i ];
         Token member_identifier_token = member_identifier_tokens[ i ];
-        if( !check_type( context, member_type ) )
+        if( !check_type( context, &member_type ) )
         {
             return false;
         }

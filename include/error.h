@@ -35,6 +35,7 @@ typedef enum ErrorKind
     ERRORKIND_INVALIDARRAYSUBSCRIPT,
     ERRORKIND_NOTANITERATOR,
     ERRORKIND_NOTANARRAY,
+    ERRORKIND_MISSINGMEMBER,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -93,6 +94,11 @@ typedef struct Error
             int expected;
             int found;
         } array_length_mismatch;
+
+        struct
+        {
+            Type parent_type;
+        } missing_member;
     };
 } Error;
 

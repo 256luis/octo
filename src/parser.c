@@ -1247,7 +1247,8 @@ Expression* parse( Parser* parser )
             if ( !EXPECT_NEXT( parser,
                                TOKENKIND_LEFTPAREN,
                                TOKENKIND_EQUAL,
-                               TOKENKIND_LEFTBRACKET ) )
+                               TOKENKIND_LEFTBRACKET,
+                               TOKENKIND_PERIOD ) )
             {
                 return NULL;
             }
@@ -1268,6 +1269,7 @@ Expression* parse( Parser* parser )
 
                 // assignment
                 case TOKENKIND_LEFTBRACKET:
+                case TOKENKIND_PERIOD:
                 case TOKENKIND_EQUAL:
                 {
                     expression = parse_assignment( parser );
