@@ -615,6 +615,23 @@ static Expression* parse_rvalue( Parser* parser )
 
     expression->starting_token = starting_token;
 
+    // if array subscript
+    if( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
+    {
+        while( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
+        {
+            advance( parser );
+
+            Expression* lvalue = calloc( 1, sizeof( Expression ) );
+            if( lvalue == NULL ) ALLOC_ERROR();
+
+            memcpy( lvalue, expression, sizeof( Expression ) );
+            memset( expression, 0, sizeof( Expression ) );
+
+            expression = parse_array_subscript( parser, lvalue );
+        }
+    }
+
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
     if( is_next_token_kind_binary_operator )
     {
@@ -636,22 +653,6 @@ static Expression* parse_rvalue( Parser* parser )
         if( expression->binary.right == NULL )
         {
             return NULL;
-        }
-    }
-    // if array subscript
-    else if( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
-    {
-        while( parser->next_token.kind == TOKENKIND_LEFTBRACKET )
-        {
-            advance( parser );
-
-            Expression* lvalue = calloc( 1, sizeof( Expression ) );
-            if( lvalue == NULL ) ALLOC_ERROR();
-
-            memcpy( lvalue, expression, sizeof( Expression ) );
-            memset( expression, 0, sizeof( Expression ) );
-
-            expression = parse_array_subscript( parser, lvalue );
         }
     }
 
