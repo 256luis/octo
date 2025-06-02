@@ -541,6 +541,53 @@ static Expression* parse_array_subscript( Parser* parser, Expression* lvalue )
     return expression;
 }
 
+static Expression* parse_member_access( Parser* parser, Expression* lvalue )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_MEMBERACCESS;
+    expression->starting_token = parser->current_token;
+    expression->member_access.lvalue = lvalue;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
+
+    expression->member_access.member_identifier_token = parser->current_token;
+
+    return expression;
+}
+
+static Expression* parse_postfix( Parser* parser, Expression* left )
+{
+    Expression* expression;
+    switch( parser->current_token.kind )
+    {
+        case TOKENKIND_LEFTBRACKET:
+        {
+            expression = parse_array_subscript( parser, left );
+            break;
+        }
+
+        case TOKENKIND_PERIOD:
+        {
+            expression = parse_member_access( parser, left );
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
+    }
+
+    return expression;
+}
+
 static Expression* parse_atom( Parser* parser )
 {
     Expression* expression;
@@ -605,52 +652,26 @@ static Expression* parse_atom( Parser* parser )
         }
     }
 
-    expression->starting_token = starting_token;
-    return expression;
-}
-
-static Expression* parse_member_access( Parser* parser, Expression* lvalue )
-{
-    Expression* expression = calloc( 1, sizeof( Expression ) );
-    if( expression == NULL ) ALLOC_ERROR();
-
-    expression->kind = EXPRESSIONKIND_MEMBERACCESS;
-    expression->starting_token = parser->current_token;
-    expression->member_access.lvalue = lvalue;
-
-    advance( parser );
-    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+    if( expression == NULL )
     {
         return NULL;
     }
 
-    expression->member_access.member_identifier_token = parser->current_token;
+    expression->starting_token = starting_token;
 
-    return expression;
-}
-
-static Expression* parse_postfix( Parser* parser, Expression* left )
-{
-    Expression* expression;
-    switch( parser->current_token.kind )
+    bool is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS );
+    while( is_next_token_kind_postfix_operator )
     {
-        case TOKENKIND_LEFTBRACKET:
-        {
-            expression = parse_array_subscript( parser, left );
-            break;
-        }
+        advance( parser );
 
-        case TOKENKIND_PERIOD:
-        {
-            expression = parse_member_access( parser, left );
-            break;
-        }
+        Expression* lvalue = calloc( 1, sizeof( Expression ) );
+        if( lvalue == NULL ) ALLOC_ERROR();
 
-        default:
-        {
-            UNREACHABLE();
-            break;
-        }
+        memcpy( lvalue, expression, sizeof( Expression ) );
+        memset( expression, 0, sizeof( Expression ) );
+
+        expression = parse_postfix( parser, lvalue );
+        is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS );
     }
 
     return expression;
@@ -673,20 +694,20 @@ static Expression* parse_rvalue( Parser* parser )
 
     expression->starting_token = starting_token;
 
-    bool is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS );
-    while( is_next_token_kind_postfix_operator )
-    {
-        advance( parser );
+    /* bool is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS ); */
+    /* while( is_next_token_kind_postfix_operator ) */
+    /* { */
+    /*     advance( parser ); */
 
-        Expression* lvalue = calloc( 1, sizeof( Expression ) );
-        if( lvalue == NULL ) ALLOC_ERROR();
+    /*     Expression* lvalue = calloc( 1, sizeof( Expression ) ); */
+    /*     if( lvalue == NULL ) ALLOC_ERROR(); */
 
-        memcpy( lvalue, expression, sizeof( Expression ) );
-        memset( expression, 0, sizeof( Expression ) );
+    /*     memcpy( lvalue, expression, sizeof( Expression ) ); */
+    /*     memset( expression, 0, sizeof( Expression ) ); */
 
-        expression = parse_postfix( parser, lvalue );
-        is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS );
-    }
+    /*     expression = parse_postfix( parser, lvalue ); */
+    /*     is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS ); */
+    /* } */
 
 
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
