@@ -562,42 +562,14 @@ static Expression* parse_member_access( Parser* parser, Expression* lvalue )
     return expression;
 }
 
-static Expression* parse_postfix( Parser* parser, Expression* left )
-{
-    Expression* expression;
-    switch( parser->current_token.kind )
-    {
-        case TOKENKIND_LEFTBRACKET:
-        {
-            expression = parse_array_subscript( parser, left );
-            break;
-        }
-
-        case TOKENKIND_PERIOD:
-        {
-            expression = parse_member_access( parser, left );
-            break;
-        }
-
-        default:
-        {
-            UNREACHABLE();
-            break;
-        }
-    }
-
-    return expression;
-}
-
-static Expression* parse_compound_literal( Parser* parser )
+static Expression* parse_compound_literal( Parser* parser, Expression* lvalue )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_COMPOUNDLITERAL;
-    expression->starting_token = parser->current_token;
-
-    expression->compound_literal.type_identifier_token = parser->current_token;
+    expression->starting_token = lvalue->starting_token;
+    expression->compound_literal.type_identifier_token = lvalue->starting_token;
 
     advance( parser );
     // current token is left brace
@@ -634,6 +606,11 @@ static Expression* parse_compound_literal( Parser* parser )
 
         advance( parser );
         Expression* initialized_member_rvalue = parse_rvalue( parser );
+        if( initialized_member_rvalue == NULL )
+        {
+            return NULL;
+        }
+
         lvec_append_aggregate( initialized_member_rvalues, *initialized_member_rvalue );
 
         advance( parser );
@@ -660,6 +637,47 @@ static Expression* parse_compound_literal( Parser* parser )
     return expression;
 }
 
+static Expression* parse_postfix( Parser* parser, Expression* left )
+{
+    Expression* expression;
+    switch( parser->current_token.kind )
+    {
+        case TOKENKIND_LEFTBRACKET:
+        {
+            expression = parse_array_subscript( parser, left );
+            break;
+        }
+
+        case TOKENKIND_PERIOD:
+        {
+            if( !EXPECT_NEXT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_LEFTBRACE) )
+            {
+                return NULL;
+            }
+
+            if( parser->next_token.kind == TOKENKIND_IDENTIFIER )
+            {
+                expression = parse_member_access( parser, left );
+            }
+            // left brace || compound literal
+            else
+            {
+                expression = parse_compound_literal( parser, left );
+            }
+
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+            break;
+        }
+    }
+
+    return expression;
+}
+
 static Expression* parse_atom( Parser* parser )
 {
     Expression* expression;
@@ -676,12 +694,12 @@ static Expression* parse_atom( Parser* parser )
                 break;
             }
 
-            // if struct/union instantiation
-            if( parser->next_token.kind == TOKENKIND_LEFTBRACE)
-            {
-                expression = parse_compound_literal( parser );
-                break;
-            }
+            /* // if struct/union instantiation */
+            /* if( parser->next_token.kind == TOKENKIND_LEFTBRACE) */
+            /* { */
+            /*     expression = parse_compound_literal( parser ); */
+            /*     break; */
+            /* } */
 
             [[ fallthrough ]];
         }

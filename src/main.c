@@ -39,8 +39,6 @@ int main( int argc, char* argv[] )
     }
     lvec_free( tokens );
 
-    /* expression_print( program ); */
-
     SemanticContext semantic_context;
     semantic_context_initialize( &semantic_context );
     bool is_valid = check_semantics( &semantic_context, program );
@@ -49,11 +47,13 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    FILE* generated_c = fopen( "generated.c", "w+" );
-    generate_code( generated_c, &semantic_context, program );
-    fclose( generated_c );
+    expression_print( program );
 
-    // temporarily use this to test
-    system("gcc generated.c -std=gnu99");
-    // system("del generated.c");
+    /* FILE* generated_c = fopen( "generated.c", "w+" ); */
+    /* generate_code( generated_c, &semantic_context, program ); */
+    /* fclose( generated_c ); */
+
+    /* // temporarily use this to test */
+    // system("gcc generated.c -std=gnu99");
+    /* // system("del generated.c"); */
 }

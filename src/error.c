@@ -180,6 +180,12 @@ void print_type( Type type )
             print_type( *type.array.base_type );
             break;
         }
+
+        case TYPEKIND_DEFINITION:
+        {
+            printf( "type" );
+            break;
+        }
     }
 }
 

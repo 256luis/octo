@@ -611,7 +611,7 @@ bool check_type( SemanticContext* context, Type* out_type )
                 return false;
             }
 
-            *out_type = symbol->type;
+            *out_type = *symbol->type.definition.info;
 
             return true;
         }
@@ -1317,7 +1317,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     {
         Error error = {
             .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
-            .offending_token = type.token,
+            .offending_token = type_identifier_token,
         };
         report_error( error );
         return false;
@@ -1752,6 +1752,7 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
     bool is_valid;
     switch( expression->kind )
     {
+        case EXPRESSIONKIND_COMPOUNDLITERAL:
         case EXPRESSIONKIND_MEMBERACCESS:
         case EXPRESSIONKIND_ARRAYSUBSCRIPT:
         case EXPRESSIONKIND_IDENTIFIER:
