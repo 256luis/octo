@@ -212,7 +212,8 @@ typedef struct Expression
             bool is_struct; // if false, is union
             Token type_identifier_token;
             Token* member_identifier_tokens;
-            Type* member_types;
+            Token* member_type_identifier_tokens;
+            // Type* member_types; // to n
             int member_count;
         } type_declaration;
 

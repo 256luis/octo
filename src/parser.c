@@ -1248,7 +1248,7 @@ static Expression* parse_type_declaration( Parser* parser )
     }
 
     Token* member_identifier_tokens = lvec_new( Token );
-    Type* member_types = lvec_new( Type );
+    Token* member_type_identifier_tokens = lvec_new( Token );
 
     advance( parser );
     while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
@@ -1268,12 +1268,13 @@ static Expression* parse_type_declaration( Parser* parser )
         }
 
         advance( parser );
-        Type member_type = parse_type( parser );
-        if( member_type.kind == TYPEKIND_INVALID )
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
         {
             return NULL;
         }
-        lvec_append_aggregate( member_types, member_type );
+
+        Token member_type_identifier_token = parser->current_token;
+        lvec_append_aggregate( member_type_identifier_tokens, member_type_identifier_token );
 
         advance( parser );
         if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
@@ -1291,8 +1292,8 @@ static Expression* parse_type_declaration( Parser* parser )
     // current token is right brace
 
     expression->type_declaration.member_identifier_tokens = member_identifier_tokens;
-    expression->type_declaration.member_types = member_types;
-    expression->type_declaration.member_count = lvec_get_length( member_types );
+    expression->type_declaration.member_type_identifier_tokens = member_type_identifier_tokens;
+    expression->type_declaration.member_count = lvec_get_length( member_identifier_tokens );
 
     return expression;
 }

@@ -67,6 +67,85 @@ void semantic_context_initialize( SemanticContext* context )
         },
     };
 
+    static Type i8_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 8,
+            .is_signed = true,
+        },
+    };
+    static Type i16_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 16,
+            .is_signed = true,
+        },
+    };
+    static Type i32_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 32,
+            .is_signed = true,
+        },
+    };
+    static Type i64_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 64,
+            .is_signed = true,
+        },
+    };
+
+    static Type u8_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 8,
+            .is_signed = false,
+        },
+    };
+    static Type u16_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 16,
+            .is_signed = false,
+        },
+    };
+    static Type u32_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 32,
+            .is_signed = false,
+        },
+    };
+    static Type u64_type_info = {
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 64,
+            .is_signed = false,
+        },
+    };
+
+    static Type f32_type_info = {
+        .kind = TYPEKIND_FLOAT,
+        .floating = {
+            .bit_count = 32,
+        },
+    };
+    static Type f64_type_info = {
+        .kind = TYPEKIND_FLOAT,
+        .floating = {
+            .bit_count = 64,
+        },
+    };
+
+    static Type bool_type_info = {
+        .kind = TYPEKIND_BOOLEAN
+    };
+
+    static Type char_type_info = {
+        .kind = TYPEKIND_CHARACTER
+    };
+
     Symbol i8_symbol = {
         .token = ( Token ){
             .kind = TOKENKIND_IDENTIFIER,
@@ -74,7 +153,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "i8",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &i8_type_info,
         },
     };
 
@@ -85,7 +165,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "i16",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &i16_type_info
         },
     };
 
@@ -96,7 +177,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "i32",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &i32_type_info
         },
     };
 
@@ -107,7 +189,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "i64",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &i64_type_info
         },
     };
 
@@ -118,7 +201,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "u8",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &u8_type_info
         },
     };
 
@@ -129,7 +213,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "u16",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &u16_type_info
         },
     };
 
@@ -140,7 +225,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "u32",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &u32_type_info
         },
     };
 
@@ -151,7 +237,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "u64",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &u64_type_info
         },
     };
 
@@ -162,7 +249,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "f32",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &f32_type_info,
         },
     };
 
@@ -173,7 +261,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "f64",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &f64_type_info
         },
     };
 
@@ -184,7 +273,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "bool",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &bool_type_info
         },
     };
 
@@ -195,7 +285,8 @@ void semantic_context_initialize( SemanticContext* context )
             .identifier = "char",
         },
         .type = ( Type ){
-            .kind = TYPEKIND_PRIMITIVE,
+            .kind = TYPEKIND_DEFINITION,
+            .definition.info = &char_type_info
         },
     };
 
@@ -295,6 +386,11 @@ bool type_equals( Type t1, Type t2 )
             bool are_base_types_equal = type_equals( *t1.array.base_type, *t2.array.base_type );
 
             return are_lengths_equal && are_base_types_equal;
+        }
+
+        case TYPEKIND_DEFINITION:
+        {
+            return type_equals( *t1.definition.info, *t2.definition.info );
         }
 
         default: // TOINFER and INVALID
@@ -1217,12 +1313,18 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     }
 
     Type type = type_symbol->type;
-    if( !check_type( context, &type ) )
+    if( type.kind != TYPEKIND_DEFINITION )
     {
+        Error error = {
+            .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
+            .offending_token = type.token,
+        };
+        report_error( error );
         return false;
     }
 
-    if( type.kind != TYPEKIND_CUSTOM )
+    Type type_info = *type.definition.info;
+    if( type_info.kind != TYPEKIND_CUSTOM )
     {
         Error error = {
             .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
@@ -1236,7 +1338,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     for( int i = 0; i < initialized_count; i++ )
     {
         Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ];
-        Symbol* member_symbol = symbol_table_lookup( *type.custom.member_symbols, member_identifier_token.as_string );
+        Symbol* member_symbol = symbol_table_lookup( *type_info.custom.member_symbols, member_identifier_token.as_string );
         if( member_symbol == NULL )
         {
             Error error = {
@@ -1264,7 +1366,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
         }
     }
 
-    *inferred_type = type_symbol->type;
+    *inferred_type = type_info;
 
     return true;
 }
@@ -1413,6 +1515,15 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         {
             Error error = {
                 .kind = ERRORKIND_VOIDVARIABLE,
+                .offending_token = expression->variable_declaration.rvalue->starting_token,
+            };
+            report_error( error );
+            return false;
+        }
+        else if( inferred_type.kind == TYPEKIND_DEFINITION )
+        {
+            Error error = {
+                .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
                 .offending_token = expression->variable_declaration.rvalue->starting_token,
             };
             report_error( error );
@@ -1706,6 +1817,16 @@ bool check_assignment( SemanticContext* context, Expression* expression )
         return false;
     }
 
+    if( found_rvalue_type.kind == TYPEKIND_DEFINITION )
+    {
+        Error error = {
+            .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
+            .offending_token = expression->assignment.rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
     // check if types match with original declaration
     Type expected_type = found_lvalue_type;
     Error error;
@@ -1855,19 +1976,35 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
     SymbolTable* member_symbols = malloc( sizeof( SymbolTable ) );
     symbol_table_initialize( member_symbols );
 
-    Type* member_types = expression->type_declaration.member_types;
+    // Type* member_types = expression->type_declaration.member_types;
+    Token* member_type_identifier_tokens = expression->type_declaration.member_type_identifier_tokens;
     Token* member_identifier_tokens = expression->type_declaration.member_identifier_tokens;
     int member_count = expression->type_declaration.member_count;
     for( int i = 0; i < member_count; i++ )
     {
-        Type member_type = member_types[ i ];
-        Token member_identifier_token = member_identifier_tokens[ i ];
-        if( !check_type( context, &member_type ) )
+        Token member_type_identifier_token = member_type_identifier_tokens[ i ];
+        Symbol* type_symbol = symbol_table_lookup( context->symbol_table, member_type_identifier_token.as_string );
+        if( type_symbol == NULL )
         {
+            Error error = {
+                .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                .offending_token = member_type_identifier_token,
+            };
+            report_error( error );
             return false;
         }
 
-        // check if symbol already declared in the type definition
+        /* if( type_symbol->type.kind != TYPEKIND_DEFINITION ) */
+        /* { */
+        /*     Error error = { */
+        /*         .kind = ERRORKIND_NOTATYPE, */
+        /*         .offending_token = member_type_identifier_token, */
+        /*     }; */
+        /*     report_error( error ); */
+        /*     return false; */
+        /* } */
+
+        Token member_identifier_token = member_identifier_tokens[ i ];
         Symbol* lookup_result = symbol_table_lookup( *member_symbols, member_identifier_token.as_string );
         if( lookup_result != NULL )
         {
@@ -1883,20 +2020,27 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
         // create symbol and add to the type's scope
         Symbol member_symbol = {
             .token = member_identifier_token,
-            .type = member_type
+            .type = *type_symbol->type.definition.info
         };
         symbol_table_push_symbol( member_symbols, member_symbol );
     }
 
+    Type* info = malloc( sizeof( Type ) );
+    *info = ( Type ){
+        .kind = TYPEKIND_CUSTOM,
+        .token = identifier_token,
+        .custom = {
+            .identifier = identifier_token.as_string,
+            .member_symbols = member_symbols,
+        }
+    };
+
     Symbol type_declaration_symbol = {
         .token = identifier_token,
         .type = ( Type ){
-            .kind = TYPEKIND_CUSTOM,
+            .kind = TYPEKIND_DEFINITION,
             .token = identifier_token,
-            .custom = {
-                .identifier = identifier_token.as_string,
-                .member_symbols = member_symbols
-            }
+            .definition.info = info
         },
     };
 

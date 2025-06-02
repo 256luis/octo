@@ -19,6 +19,7 @@ typedef enum TypeKind
     TYPEKIND_ARRAY,
     TYPEKIND_CUSTOM,
     TYPEKIND_PRIMITIVE,
+    TYPEKIND_DEFINITION,
 
     TYPEKIND_TOINFER,
     TYPEKIND_INVALID,
@@ -31,7 +32,11 @@ typedef struct Type
 
     union
     {
-        // char* custom_identifier;
+        struct
+        {
+            struct Type* info;
+        } definition;
+
         struct
         {
             char* identifier;
