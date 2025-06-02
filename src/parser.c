@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "error.h"
 #include "lvec.h"
+#include "type.h"
 
 #define EXPECT( parser_ptr, ... )\
     _expect( parser_ptr, ( TokenKind[] ){ __VA_ARGS__ },\
@@ -588,6 +589,77 @@ static Expression* parse_postfix( Parser* parser, Expression* left )
     return expression;
 }
 
+static Expression* parse_compound_literal( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_COMPOUNDLITERAL;
+    expression->starting_token = parser->current_token;
+
+    expression->compound_literal.type_identifier_token = parser->current_token;
+
+    advance( parser );
+    // current token is left brace
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_PERIOD, TOKENKIND_RIGHTBRACE ) )
+    {
+        return NULL;
+    }
+
+    Token* member_identifier_tokens = lvec_new( Token );
+    Expression* initialized_member_rvalues = lvec_new( Expression );
+
+    while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( parser, TOKENKIND_PERIOD ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+        {
+            return NULL;
+        }
+
+        lvec_append_aggregate( member_identifier_tokens, parser->current_token );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_EQUAL ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        Expression* initialized_member_rvalue = parse_rvalue( parser );
+        lvec_append_aggregate( initialized_member_rvalues, *initialized_member_rvalue );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
+        {
+            return NULL;
+        }
+
+        if( parser->current_token.kind != TOKENKIND_RIGHTBRACE)
+        {
+            advance( parser );
+        }
+    }
+
+    expression->compound_literal.initialized_member_rvalues = initialized_member_rvalues;
+    expression->compound_literal.member_identifier_tokens = member_identifier_tokens;
+    expression->compound_literal.initialized_count = lvec_get_length( initialized_member_rvalues );
+
+    if( !EXPECT( parser, TOKENKIND_RIGHTBRACE ) )
+    {
+        return NULL;
+    }
+
+    return expression;
+}
+
 static Expression* parse_atom( Parser* parser )
 {
     Expression* expression;
@@ -601,6 +673,13 @@ static Expression* parse_atom( Parser* parser )
             if( parser->next_token.kind == TOKENKIND_LEFTPAREN )
             {
                 expression = parse_function_call( parser );
+                break;
+            }
+
+            // if struct/union instantiation
+            if( parser->next_token.kind == TOKENKIND_LEFTBRACE)
+            {
+                expression = parse_compound_literal( parser );
                 break;
             }
 
@@ -693,22 +772,6 @@ static Expression* parse_rvalue( Parser* parser )
     }
 
     expression->starting_token = starting_token;
-
-    /* bool is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS ); */
-    /* while( is_next_token_kind_postfix_operator ) */
-    /* { */
-    /*     advance( parser ); */
-
-    /*     Expression* lvalue = calloc( 1, sizeof( Expression ) ); */
-    /*     if( lvalue == NULL ) ALLOC_ERROR(); */
-
-    /*     memcpy( lvalue, expression, sizeof( Expression ) ); */
-    /*     memset( expression, 0, sizeof( Expression ) ); */
-
-    /*     expression = parse_postfix( parser, lvalue ); */
-    /*     is_next_token_kind_postfix_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_POSTFIX_OPERATORS ); */
-    /* } */
-
 
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
     if( is_next_token_kind_binary_operator )

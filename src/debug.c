@@ -78,6 +78,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_FORLOOP ]             = "FOR LOOP",
     [ EXPRESSIONKIND_TYPEDECLARATION ]     = "TYPE DECLARATION",
     [ EXPRESSIONKIND_MEMBERACCESS ]        = "MEMBER ACCESS",
+    [ EXPRESSIONKIND_COMPOUNDLITERAL ]     = "COMPOUND LITERAL",
 };
 
 char* binary_operation_to_string[] = {
@@ -578,6 +579,39 @@ void expression_print( Expression* expression )
             INDENT();
 
             printf( "member identifier = %s\n", expression->member_access.member_identifier_token.as_string );
+
+            depth--;
+            printf( "\n");
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_COMPOUNDLITERAL:
+        {
+            printf( " {\n" );
+            depth++;
+            INDENT();
+
+            printf( "type name = %s\n", expression->compound_literal.type_identifier_token.as_string );
+            INDENT();
+
+            printf( "initialized members = {\n" );
+            depth++;
+            for( int i = 0; i < expression->compound_literal.initialized_count; i++ )
+            {
+                char* member_identifier = expression->compound_literal.member_identifier_tokens[ i ].as_string;
+                Expression initialized_member_rvalue = expression->compound_literal.initialized_member_rvalues[ i ];
+
+                INDENT();
+                // printf( "param[%d] = %s: %d\n", i, param_identifier, param_type.kind );
+                printf( ".%s = ", member_identifier );
+                expression_print( &initialized_member_rvalue );
+                putchar( '\n' );
+            }
+            depth--;
+            INDENT();
+            printf( "}\n" );
 
             depth--;
             printf( "\n");

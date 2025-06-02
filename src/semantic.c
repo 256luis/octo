@@ -1200,6 +1200,74 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
 
     return true;
 }
+static bool check_compound_literal( SemanticContext* context, Expression* expression, Type* inferred_type )
+{
+    Token type_identifier_token = expression->compound_literal.type_identifier_token;
+
+    // check if type has been declared
+    Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier_token.as_string );
+    if( type_symbol == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = type_identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    Type type = type_symbol->type;
+    if( !check_type( context, &type ) )
+    {
+        return false;
+    }
+
+    if( type.kind != TYPEKIND_CUSTOM )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
+            .offending_token = type.token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    int initialized_count = expression->compound_literal.initialized_count;
+    for( int i = 0; i < initialized_count; i++ )
+    {
+        Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ];
+        Symbol* member_symbol = symbol_table_lookup( *type.custom.member_symbols, member_identifier_token.as_string );
+        if( member_symbol == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                .offending_token = member_identifier_token,
+            };
+            report_error( error );
+            return false;
+        }
+
+        Expression rvalue = expression->compound_literal.initialized_member_rvalues[ i ];
+        Type rvalue_type;
+        if( !check_rvalue( context, &rvalue, &rvalue_type ) )
+        {
+            return false;
+        }
+
+        Error error;
+        bool are_types_compatible = check_type_compatibility( member_symbol->type, &rvalue_type, &error );
+        if( !are_types_compatible )
+        {
+            error.offending_token = rvalue.starting_token;
+            report_error( error );
+            return false;
+        }
+    }
+
+    *inferred_type = type_symbol->type;
+
+    return true;
+}
 
 static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
@@ -1279,6 +1347,12 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
         case EXPRESSIONKIND_MEMBERACCESS:
         {
             is_valid = check_member_access( context, expression, inferred_type );
+            break;
+        }
+
+        case EXPRESSIONKIND_COMPOUNDLITERAL:
+        {
+            is_valid = check_compound_literal( context, expression, inferred_type );
             break;
         }
 

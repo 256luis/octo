@@ -45,6 +45,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_FUNCTIONCALL,
     EXPRESSIONKIND_BOOLEAN,
     EXPRESSIONKIND_ARRAY,
+    EXPRESSIONKIND_COMPOUNDLITERAL,
 
     // can be lvalue or rvalue
     EXPRESSIONKIND_IDENTIFIER,
@@ -220,6 +221,14 @@ typedef struct Expression
             struct Expression* lvalue;
             Token member_identifier_token;
         } member_access;
+
+        struct
+        {
+            Token type_identifier_token;
+            Token* member_identifier_tokens;
+            struct Expression* initialized_member_rvalues;
+            int initialized_count;
+        } compound_literal;
     };
 } Expression;
 

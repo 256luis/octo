@@ -441,6 +441,14 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_INVALIDCOMPOUNDLITERAL:
+        {
+            printf( "compound literal syntax cannot be used with non-compound type\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
         /* default: */
         /* { */
         /*     UNIMPLEMENTED(); */
