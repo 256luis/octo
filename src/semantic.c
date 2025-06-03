@@ -44,6 +44,7 @@ void semantic_context_initialize( SemanticContext* context )
     context->return_type_stack = lvec_new( Type );
     context->array_types = lvec_new( Type );
     context->pointer_types = lvec_new( Type );
+    context->depth = 0;
 
     Symbol true_symbol = {
         .token = ( Token ){
@@ -1580,6 +1581,7 @@ static bool check_compound( SemanticContext* context, Expression* expression )
     bool is_valid = true;
 
     symbol_table_push_scope( &context->symbol_table );
+    context->depth++;
 
     size_t length = lvec_get_length( expression->compound.expressions );
     for( size_t i = 0; i < length; i++ )
@@ -1593,7 +1595,11 @@ static bool check_compound( SemanticContext* context, Expression* expression )
         }
     }
 
-    symbol_table_pop_scope( &context->symbol_table );
+    if( context->depth > 1 )
+    {
+        symbol_table_pop_scope( &context->symbol_table );
+        context->depth++;
+    }
 
     return is_valid;
 }

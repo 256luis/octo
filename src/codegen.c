@@ -168,6 +168,26 @@ static void generate_member_access( FILE* file, SemanticContext* context, Expres
     append( file, ".%s", member_identifier );
 }
 
+static void generate_compound_literal( FILE* file, SemanticContext* context, Expression* expression )
+{
+    char* type_identifier = expression->compound_literal.type_identifier_token.as_string;
+    append( file, "(%s){\n", type_identifier );
+
+    int initialized_count = expression->compound_literal.initialized_count;
+    for( int i = 0; i < initialized_count; i++ )
+    {
+        char* member_identifier = expression->compound_literal.member_identifier_tokens[ i ].as_string;
+        append( file, ".%s = ", member_identifier );
+
+        Expression initialized_member_rvalue = expression->compound_literal.initialized_member_rvalues[ i ];
+        generate_rvalue( file, context, &initialized_member_rvalue );
+
+        append( file, ",\n" );
+    }
+
+    append( file, "}" );
+}
+
 static void generate_function_call( FILE* file, SemanticContext* context, Expression* expression );
 static void generate_rvalue( FILE* file, SemanticContext* context, Expression* expression )
 {
@@ -272,6 +292,12 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
         case EXPRESSIONKIND_MEMBERACCESS:
         {
             generate_member_access( file, context, expression );
+            break;
+        }
+
+        case EXPRESSIONKIND_COMPOUNDLITERAL:
+        {
+            generate_compound_literal( file, context, expression );
             break;
         }
 
@@ -453,7 +479,8 @@ static void generate_type_declaration( FILE* file, SemanticContext* context, Exp
             is_struct ? "struct" : "union",
             type_identifier );
 
-    SymbolTable* member_symbol_table = symbol_table_lookup( context->symbol_table, type_identifier )->type.custom.member_symbols;
+    Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier );
+    SymbolTable* member_symbol_table = type_symbol->type.definition.info->custom.member_symbols;
     for( int i = 0; i < member_symbol_table->length; i++ )
     {
         Symbol member_symbol = member_symbol_table->symbols[ i ];
