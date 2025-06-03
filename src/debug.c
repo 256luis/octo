@@ -551,10 +551,11 @@ void expression_print( Expression* expression )
             for( int i = 0; i < expression->type_declaration.member_count; i++ )
             {
                 char* member_identifier = expression->type_declaration.member_identifier_tokens[ i ].as_string;
-                char* member_type_identifier = expression->type_declaration.member_type_identifier_tokens[ i ].as_string;
+                Type member_type = expression->type_declaration.member_types[ i ];
 
                 INDENT();
-                printf( "member[%d] = %s: %s", i, member_identifier, member_type_identifier );
+                printf( "member[%d] = %s: ", i, member_identifier );
+                debug_print_type( member_type );
                 putchar( '\n' );
             }
 

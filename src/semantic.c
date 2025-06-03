@@ -612,6 +612,16 @@ bool check_type( SemanticContext* context, Type* out_type )
                 return false;
             }
 
+            if( symbol->type.kind != TYPEKIND_DEFINITION )
+            {
+                Error error = {
+                    .kind = ERRORKIND_NOTATYPE,
+                    .offending_token = out_type->token,
+                };
+                report_error( error );
+                return false;
+            }
+
             *out_type = *symbol->type.definition.info;
 
             return true;
@@ -1983,33 +1993,16 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
     SymbolTable* member_symbols = malloc( sizeof( SymbolTable ) );
     symbol_table_initialize( member_symbols );
 
-    // Type* member_types = expression->type_declaration.member_types;
-    Token* member_type_identifier_tokens = expression->type_declaration.member_type_identifier_tokens;
+    Type* member_types = expression->type_declaration.member_types;
     Token* member_identifier_tokens = expression->type_declaration.member_identifier_tokens;
     int member_count = expression->type_declaration.member_count;
     for( int i = 0; i < member_count; i++ )
     {
-        Token member_type_identifier_token = member_type_identifier_tokens[ i ];
-        Symbol* type_symbol = symbol_table_lookup( context->symbol_table, member_type_identifier_token.as_string );
-        if( type_symbol == NULL )
+        Type member_type = member_types[ i ];
+        if( !check_type( context, &member_type ) )
         {
-            Error error = {
-                .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                .offending_token = member_type_identifier_token,
-            };
-            report_error( error );
             return false;
         }
-
-        /* if( type_symbol->type.kind != TYPEKIND_DEFINITION ) */
-        /* { */
-        /*     Error error = { */
-        /*         .kind = ERRORKIND_NOTATYPE, */
-        /*         .offending_token = member_type_identifier_token, */
-        /*     }; */
-        /*     report_error( error ); */
-        /*     return false; */
-        /* } */
 
         Token member_identifier_token = member_identifier_tokens[ i ];
         Symbol* lookup_result = symbol_table_lookup( *member_symbols, member_identifier_token.as_string );
@@ -2027,7 +2020,7 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
         // create symbol and add to the type's scope
         Symbol member_symbol = {
             .token = member_identifier_token,
-            .type = *type_symbol->type.definition.info
+            .type = member_type
         };
         symbol_table_push_symbol( member_symbols, member_symbol );
     }
