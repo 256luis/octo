@@ -38,7 +38,7 @@ void symbol_table_pop_scope( SymbolTable* table )
 {
     int scope_index_stack_top_index = lvec_get_length( table->scope_index_stack ) - 1;
     int scope_index_stack_top = table->scope_index_stack[ scope_index_stack_top_index ];
-    while( table->length > scope_index_stack_top )
+    while( table->length >= scope_index_stack_top )
     {
         lvec_remove_last( table->symbols );
         table->length--;
