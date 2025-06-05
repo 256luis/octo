@@ -646,22 +646,13 @@ bool check_type( SemanticContext* context, Type* out_type )
 {
     switch( out_type->kind )
     {
+        case TYPEKIND_VOID:
         case TYPEKIND_INTEGER:
         case TYPEKIND_FLOAT:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         {
             return true;
-        }
-
-        case TYPEKIND_VOID:
-        {
-            Error error = {
-                .kind = ERRORKIND_VOIDVARIABLE,
-                .offending_token = out_type->token,
-            };
-            report_error( error );
-            return false;
         }
 
         case TYPEKIND_FUNCTION:
@@ -685,7 +676,11 @@ bool check_type( SemanticContext* context, Type* out_type )
 
         case TYPEKIND_POINTER:
         {
-            // lvec_append_aggregate( context->pointer_types, *type.pointer.base_type );
+            if( !check_type( context, out_type->pointer.base_type ) )
+            {
+                return false;
+            }
+
             Type definition_type = get_definition_type( context, *out_type );
             add_pointer_type( definition_type, *out_type->pointer.base_type );
             return check_type( context, out_type->pointer.base_type );
@@ -708,8 +703,17 @@ bool check_type( SemanticContext* context, Type* out_type )
                 return false;
             }
 
-            // lvec_append_aggregate( context->array_types, *type.array.base_type );
+            if( !check_type( context, out_type->array.base_type ) )
+            {
+                return false;
+            }
+
             Type definition_type = get_definition_type( context, *out_type );
+            if( !check_type( context, &definition_type ) )
+            {
+                return false;
+            }
+
             add_array_type( definition_type, *out_type->array.base_type );
             return check_type( context, out_type->array.base_type );
         }
@@ -740,6 +744,11 @@ bool check_type( SemanticContext* context, Type* out_type )
             *out_type = *symbol->type.definition.info;
 
             return true;
+        }
+
+        case TYPEKIND_DEFINITION:
+        {
+            return check_type( context, out_type->definition.info );
         }
 
         default: // TOINFER and INVALID
@@ -1633,11 +1642,16 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     {
         return false;
     }
-    /* else if( found_type.kind == TYPEKIND_CUSTOM ) */
-    /* { */
-    /*     Symbol* custom_type_symbol = symbol_table_lookup( context->symbol_table, found_type.custom.identifier ); */
-    /*     found_type = custom_type_symbol->type; */
-    /* } */
+
+    if( found_type.kind == TYPEKIND_VOID )
+    {
+        Error error = {
+            .kind = ERRORKIND_VOIDVARIABLE,
+            .offending_token = found_type.token,
+        };
+        report_error( error );
+        return false;
+    }
 
     // check if the type at the left hand side matches the type on the right hand
     // side, or if there is an implicit cast possible.
@@ -1789,6 +1803,16 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
         // Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
         if( !check_type( context, &param_type ) )
         {
+            return false;
+        }
+
+        if( param_type.kind == TYPEKIND_VOID )
+        {
+            Error error = {
+                .kind = ERRORKIND_VOIDVARIABLE,
+                .offending_token = param_type.token,
+            };
+            report_error( error );
             return false;
         }
 
@@ -2130,6 +2154,16 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
         Type member_type = member_types[ i ];
         if( !check_type( context, &member_type ) )
         {
+            return false;
+        }
+
+        if( member_type.kind == TYPEKIND_VOID )
+        {
+            Error error = {
+                .kind = ERRORKIND_VOIDVARIABLE,
+                .offending_token = member_type.token,
+            };
+            report_error( error );
             return false;
         }
 
