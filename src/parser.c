@@ -1016,6 +1016,10 @@ static Expression* parse_function_declaration( Parser* parser )
             if( parser->current_token.kind == TOKENKIND_COMMA )
             {
                 advance( parser );
+                if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_DOUBLEPERIOD ) )
+                {
+                    return NULL;
+                }
             }
         }
 
