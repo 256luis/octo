@@ -15,6 +15,7 @@ typedef struct SymbolTable
     Symbol* symbols;
     int length;
     int* scope_index_stack;
+    int scope_depth;
 } SymbolTable;
 
 void symbol_table_initialize( SymbolTable* table );

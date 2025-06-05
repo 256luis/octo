@@ -6,6 +6,7 @@
 #include "lvec.h"
 #include "semantic.h"
 #include "symboltable.h"
+#include "type.h"
 
 #define INDENTATION_WIDTH 4
 
@@ -207,11 +208,12 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
+            append( file, "(" );
             if( expression->identifier.type.kind == TYPEKIND_REFERENCE )
             {
                 append( file, "*" );
             }
-            append( file, "%s", expression->identifier.as_string );
+            append( file, "%s)", expression->identifier.as_string );
             break;
         }
 
@@ -259,6 +261,7 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
 
         case EXPRESSIONKIND_UNARY:
         {
+            append( file, "(" );
             switch( expression->unary.operation )
             {
                 case UNARYOPERATION_NEGATIVE:    append( file, "-" ); break;
@@ -267,6 +270,7 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
                 case UNARYOPERATION_DEREFERENCE: append( file, "*" ); break;
             }
             generate_rvalue( file, context, expression->unary.operand );
+            append( file, ")" );
 
             break;
         }
@@ -471,6 +475,22 @@ static void generate_for_loop( FILE* file, SemanticContext* context, Expression*
     append( file, "}\n");
 }
 
+static void generate_pointer_type_definition( FILE* file, Type base_type )
+{
+    append( file, "#define OctoPtr_" );
+    generate_type( file, base_type );
+    append( file, " ");
+    generate_type( file, base_type );
+    append( file, "*\n");
+}
+
+static void generate_array_type_definition( FILE* file, Type base_type )
+{
+    append( file, "OCTO_DEFINE_ARRAY(" );
+    generate_type( file, base_type );
+    append( file, ")\n" );
+}
+
 static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
 {
     bool is_struct = expression->type_declaration.is_struct;
@@ -480,15 +500,41 @@ static void generate_type_declaration( FILE* file, SemanticContext* context, Exp
             type_identifier );
 
     Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier );
-    SymbolTable* member_symbol_table = type_symbol->type.definition.info->custom.member_symbols;
+    Type type = type_symbol->type;
+    SymbolTable* member_symbol_table = type.definition.info->custom.member_symbols;
     for( int i = 0; i < member_symbol_table->length; i++ )
     {
         Symbol member_symbol = member_symbol_table->symbols[ i ];
         generate_type( file, member_symbol.type );
         append( file, " %s;\n", member_symbol.token.as_string );
     }
-
     append( file, "} %s;\n", type_identifier );
+
+    // generate all pointer and array types associated with the declared type
+    Type* pointer_types = type.definition.pointer_types;
+    int pointer_types_length = lvec_get_length( pointer_types );
+    for( int j = pointer_types_length - 1; j >= 0; j-- )
+    {
+        Type base_type = pointer_types[ j ];
+        /* append( file, "#define OctoPtr_" ); */
+        /* generate_type( file, base_type ); */
+        /* append( file, " "); */
+        /* generate_type( file, base_type ); */
+        /* append( file, "*\n"); */
+        generate_pointer_type_definition( file, base_type );
+    }
+
+    // generate typedefs for arrays
+    Type* array_types = type.definition.array_types;
+    int array_types_length = lvec_get_length( array_types );
+    for( int j = array_types_length - 1; j >= 0; j-- )
+    {
+        Type base_type = array_types[ j ];
+        /* append( file, "OCTO_DEFINE_ARRAY(" ); */
+        /* generate_type( file, base_type ); */
+        /* append( file, ")\n" ); */
+        generate_array_type_definition( file, base_type );
+    }
 }
 
 void generate_code( FILE* file, SemanticContext* context, Expression* expression )
@@ -501,65 +547,46 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
 
         append( file, "#include \"octoruntime/types.h\"\n" );
 
-        // generate forward declarations of array types
-        for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
+        // generate code for pointers and arrays for primitive types
+        for( int i = 0; i < context->symbol_table.length; i++ )
         {
-            // "typedef struct OctoArray_T OctoArray_T; "
+            Type type = context->symbol_table.symbols[ i ].type;
+            if( type.kind != TYPEKIND_DEFINITION )
+            {
+                continue;
+            }
 
-            Type base_type = context->array_types[ i ];
-            append( file, "typedef struct OctoArray_" );
-            generate_type( file, base_type );
-            append( file, " OctoArray_" );
-            generate_type( file, base_type );
-            append( file, ";\n" );
+            if( type.definition.info->kind == TYPEKIND_CUSTOM )
+            {
+                continue;
+            }
+
+            // generate typedefs for pointers
+            Type* pointer_types = type.definition.pointer_types;
+            int pointer_types_length = lvec_get_length( pointer_types );
+            for( int j = pointer_types_length - 1; j >= 0; j-- )
+            {
+                Type base_type = pointer_types[ j ];
+                /* append( file, "#define OctoPtr_" ); */
+                /* generate_type( file, base_type ); */
+                /* append( file, " "); */
+                /* generate_type( file, base_type ); */
+                /* append( file, "*\n"); */
+                generate_pointer_type_definition( file, base_type );
+            }
+
+            // generate typedefs for arrays
+            Type* array_types = type.definition.array_types;
+            int array_types_length = lvec_get_length( array_types );
+            for( int j = array_types_length - 1; j >= 0; j-- )
+            {
+                Type base_type = array_types[ j ];
+                /* append( file, "OCTO_DEFINE_ARRAY(" ); */
+                /* generate_type( file, base_type ); */
+                /* append( file, ")\n" ); */
+                generate_array_type_definition( file, base_type );
+            }
         }
-
-        // generate definitions for pointer types
-        for( size_t i = 0; i < lvec_get_length( context->pointer_types ); i++ )
-        {
-            // "typedef T* T_ptr;"
-
-            Type base_type = context->pointer_types[ i ];
-            append( file, "#define OctoPtr_" );
-            generate_type( file, base_type );
-            append( file, " ");
-            generate_type( file, base_type );
-            append( file, "*\n");
-        }
-
-        // generate definitions for array_types
-        for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
-        {
-            // "OCTO_DEFINE_ARRAY(T);"
-
-            Type base_type = context->array_types[ i ];
-            append( file, "OCTO_DEFINE_ARRAY(" );
-            generate_type( file, base_type );
-            append( file, ");\n" );
-        }
-
-        // generate functions for array access
-        for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
-        {
-            Type base_type = context->array_types[ i ];
-            Type array_type = {
-                .kind = TYPEKIND_ARRAY,
-                .array.base_type = &base_type,
-            };
-            // example:
-            // i32* OctoArray_i32_at( OctoArray_i32 octo_array, u64 index )
-            // {
-            //     return octo_array.data + index;
-            // }
-
-            generate_type( file, base_type );
-            append( file, "* " );
-            generate_type( file, array_type );
-            append( file, "_at(" );
-            generate_type( file, array_type );
-            append( file, " octo_array, u64 index) { return octo_array.data + index; }\n" );
-        }
-
     }
 
     switch( expression->kind )

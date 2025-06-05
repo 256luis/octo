@@ -5,7 +5,12 @@
     {\
         u64 length;\
         typeof( T )* data;\
-    } OctoArray_##T
+    } OctoArray_##T;\
+    T* OctoArray_##T##_at(OctoArray_##T octo_array, u64 index)\
+    {\
+        return octo_array.data + index;\
+    }
+
 
 typedef signed char        i8;
 typedef short              i16;

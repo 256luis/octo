@@ -42,9 +42,6 @@ void semantic_context_initialize( SemanticContext* context )
 {
     symbol_table_initialize( &context->symbol_table );
     context->return_type_stack = lvec_new( Type );
-    context->array_types = lvec_new( Type );
-    context->pointer_types = lvec_new( Type );
-    context->depth = 0;
 
     Symbol true_symbol = {
         .token = ( Token ){
@@ -66,6 +63,10 @@ void semantic_context_initialize( SemanticContext* context )
         .type = ( Type ){
             .kind = TYPEKIND_BOOLEAN,
         },
+    };
+
+    static Type void_type_info = {
+        .kind = TYPEKIND_VOID,
     };
 
     static Type i8_type_info = {
@@ -147,6 +148,22 @@ void semantic_context_initialize( SemanticContext* context )
         .kind = TYPEKIND_CHARACTER
     };
 
+    Symbol void_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "void",
+            .identifier = "void",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_DEFINITION,
+            .definition = {
+                .info = &void_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
+        },
+    };
+
     Symbol i8_symbol = {
         .token = ( Token ){
             .kind = TOKENKIND_IDENTIFIER,
@@ -155,7 +172,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &i8_type_info,
+            .definition = {
+                .info = &i8_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -167,7 +188,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &i16_type_info
+            .definition = {
+                .info = &i16_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -179,7 +204,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &i32_type_info
+            .definition = {
+                .info = &i32_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -191,7 +220,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &i64_type_info
+            .definition = {
+                .info = &i64_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -203,7 +236,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &u8_type_info
+            .definition = {
+                .info = &u8_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -215,7 +252,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &u16_type_info
+            .definition = {
+                .info = &u16_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -227,7 +268,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &u32_type_info
+            .definition = {
+                .info = &u32_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -239,7 +284,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &u64_type_info
+            .definition = {
+                .info = &u64_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -251,7 +300,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &f32_type_info,
+            .definition = {
+                .info = &f32_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -263,7 +316,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &f64_type_info
+            .definition = {
+                .info = &f64_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -275,7 +332,11 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &bool_type_info
+            .definition = {
+                .info = &bool_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
@@ -287,14 +348,19 @@ void semantic_context_initialize( SemanticContext* context )
         },
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
-            .definition.info = &char_type_info
+            .definition = {
+                .info = &char_type_info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 
-    symbol_table_push_scope( &context->symbol_table );
+    // symbol_table_push_scope( &context->symbol_table );
 
     symbol_table_push_symbol( &context->symbol_table, true_symbol );
     symbol_table_push_symbol( &context->symbol_table, false_symbol );
+    symbol_table_push_symbol( &context->symbol_table, void_symbol );
     symbol_table_push_symbol( &context->symbol_table, i8_symbol );
     symbol_table_push_symbol( &context->symbol_table, i16_symbol );
     symbol_table_push_symbol( &context->symbol_table, i32_symbol );
@@ -402,34 +468,81 @@ bool type_equals( Type t1, Type t2 )
     }
 }
 
-void add_array_type( SemanticContext* context, Type base_type )
+Type get_definition_type( SemanticContext* context, Type type )
 {
-    // check if type is already in array
-    for( size_t i = 0; i < lvec_get_length( context->array_types ); i++ )
+    switch( type.kind )
     {
-        Type t = context->array_types[ i ];
-        if( type_equals( t, base_type ) )
+        case TYPEKIND_VOID:
+        case TYPEKIND_INTEGER:
+        case TYPEKIND_FLOAT:
+        case TYPEKIND_CHARACTER:
+        case TYPEKIND_BOOLEAN:
+        case TYPEKIND_FUNCTION:
+        case TYPEKIND_CUSTOM:
         {
-            return;
+            Symbol* symbol = symbol_table_lookup( context->symbol_table, type.token.as_string );
+            return symbol->type;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            return get_definition_type( context, *type.pointer.base_type );
+        }
+
+        case TYPEKIND_REFERENCE:
+        {
+            return get_definition_type( context, *type.reference.base_type );
+        }
+
+        case TYPEKIND_ARRAY:
+        {
+            return get_definition_type( context, *type.array.base_type );
+        }
+
+        case TYPEKIND_DEFINITION:
+        {
+            return get_definition_type( context, *type.definition.info );
+        }
+
+        default: // invalid and toinfer
+        {
+            UNREACHABLE();
         }
     }
-
-    lvec_append_aggregate( context->array_types, base_type );
 }
 
-void add_pointer_type( SemanticContext* context, Type base_type )
+void add_array_type( Type definition_type, Type array_base_type )
 {
     // check if type is already in array
-    for( size_t i = 0; i < lvec_get_length( context->pointer_types ); i++ )
+    Type* pointer_types = definition_type.definition.array_types;
+
+    for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ )
     {
-        Type t = context->pointer_types[ i ];
-        if( type_equals( t, base_type ) )
+        Type t = pointer_types[ i ];
+        if( type_equals( t, array_base_type ) )
         {
             return;
         }
     }
 
-    lvec_append_aggregate( context->pointer_types, base_type );
+    lvec_append_aggregate( definition_type.definition.array_types, array_base_type );
+}
+
+void add_pointer_type( Type definition_type, Type pointer_base_type )
+{
+    // check if type is already in array
+    Type* pointer_types = definition_type.definition.pointer_types;
+
+    for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ )
+    {
+        Type t = pointer_types[ i ];
+        if( type_equals( t, pointer_base_type ) )
+        {
+            return;
+        }
+    }
+
+    lvec_append_aggregate( definition_type.definition.pointer_types, pointer_base_type );
 }
 
 static bool try_implicit_cast( Type destination_type, Type* out_type )
@@ -573,7 +686,8 @@ bool check_type( SemanticContext* context, Type* out_type )
         case TYPEKIND_POINTER:
         {
             // lvec_append_aggregate( context->pointer_types, *type.pointer.base_type );
-            add_pointer_type( context, *out_type->pointer.base_type );
+            Type definition_type = get_definition_type( context, *out_type );
+            add_pointer_type( definition_type, *out_type->pointer.base_type );
             return check_type( context, out_type->pointer.base_type );
         }
 
@@ -595,7 +709,8 @@ bool check_type( SemanticContext* context, Type* out_type )
             }
 
             // lvec_append_aggregate( context->array_types, *type.array.base_type );
-            add_array_type( context, *out_type->array.base_type );
+            Type definition_type = get_definition_type( context, *out_type );
+            add_array_type( definition_type, *out_type->array.base_type );
             return check_type( context, out_type->array.base_type );
         }
 
@@ -1118,7 +1233,10 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
             .kind = TYPEKIND_POINTER,
             .pointer.base_type = &operand_symbol->type,
         };
-        add_pointer_type( context, *inferred_type->pointer.base_type );
+
+        Type operand_type_definition = get_definition_type( context, operand_symbol->type );
+
+        add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type );
     }
     else
     {
@@ -1224,7 +1342,10 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
     inferred_type->kind = TYPEKIND_ARRAY;
     inferred_type->array.length = found_length;
     inferred_type->array.base_type = declared_type.array.base_type;
-    add_array_type( context, *inferred_type->array.base_type );
+
+    Type definition_type = get_definition_type( context, *inferred_type );
+
+    add_array_type( definition_type, *inferred_type->array.base_type );
 
     // for AST printing in debug.c
     expression->array.type = *inferred_type;
@@ -1284,6 +1405,15 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
     {
         return false;
     }
+
+    while( lvalue_type.kind == TYPEKIND_REFERENCE )
+    {
+        lvalue_type = *lvalue_type.reference.base_type;
+    }
+    /* if( lvalue_type.kind == TYPEKIND_REFERENCE ) */
+    /* { */
+
+    /* } */
 
     if( lvalue_type.kind != TYPEKIND_CUSTOM )
     {
@@ -1591,7 +1721,6 @@ static bool check_compound( SemanticContext* context, Expression* expression )
     bool is_valid = true;
 
     symbol_table_push_scope( &context->symbol_table );
-    context->depth++;
 
     size_t length = lvec_get_length( expression->compound.expressions );
     for( size_t i = 0; i < length; i++ )
@@ -1605,10 +1734,9 @@ static bool check_compound( SemanticContext* context, Expression* expression )
         }
     }
 
-    if( context->depth > 1 )
+    if( context->symbol_table.scope_depth > 1 )
     {
         symbol_table_pop_scope( &context->symbol_table );
-        context->depth++;
     }
 
     return is_valid;
@@ -1683,6 +1811,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
         };
         symbol_table_push_symbol( &context->symbol_table, symbol );
     }
+    // symbol_table_pop_scope( &context->symbol_table );
 
     push_return_type( context, *return_type );
 
@@ -2040,7 +2169,11 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
         .type = ( Type ){
             .kind = TYPEKIND_DEFINITION,
             .token = identifier_token,
-            .definition.info = info
+            .definition = {
+                .info = info,
+                .pointer_types = lvec_new( Type ),
+                .array_types = lvec_new( Type ),
+            }
         },
     };
 

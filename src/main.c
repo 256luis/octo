@@ -47,13 +47,19 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    expression_print( program );
+    // expression_print( program );
 
-    /* FILE* generated_c = fopen( "generated.c", "w+" ); */
-    /* generate_code( generated_c, &semantic_context, program ); */
-    /* fclose( generated_c ); */
+    for( int i = 0; i < semantic_context.symbol_table.length; i++ )
+    {
+        Symbol s = semantic_context.symbol_table.symbols[ i ];
+        printf("%s: %s\n", s.token.as_string, s.type.token.as_string );
+    }
 
-    /* // temporarily use this to test */
-    // system("gcc generated.c -std=gnu99");
-    /* // system("del generated.c"); */
+    FILE* generated_c = fopen( "generated.c", "w+" );
+    generate_code( generated_c, &semantic_context, program );
+    fclose( generated_c );
+
+    // temporarily use this to test
+    system("gcc generated.c -std=gnu99");
+    // system("del generated.c");
 }

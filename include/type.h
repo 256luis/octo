@@ -14,11 +14,12 @@ typedef enum TypeKind
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
     TYPEKIND_FUNCTION,
+    TYPEKIND_CUSTOM,
+
+    // referential types
     TYPEKIND_POINTER,
     TYPEKIND_REFERENCE,
     TYPEKIND_ARRAY,
-    TYPEKIND_CUSTOM,
-    TYPEKIND_PRIMITIVE,
     TYPEKIND_DEFINITION,
 
     TYPEKIND_TOINFER,
@@ -35,6 +36,8 @@ typedef struct Type
         struct
         {
             struct Type* info;
+            struct Type* pointer_types;
+            struct Type* array_types;
         } definition;
 
         struct
