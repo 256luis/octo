@@ -6,9 +6,9 @@
 #include "error.h"
 #include "lvec.h"
 #include "parser.h"
-#include "symboltable.h"
 #include "tokenizer.h"
 #include "semantic.h"
+#include "whereami.h"
 
 SourceCode g_source_code;
 
@@ -47,19 +47,34 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    // expression_print( program );
-
-    /* for( int i = 0; i < semantic_context.symbol_table.length; i++ ) */
-    /* { */
-    /*     Symbol s = semantic_context.symbol_table.symbols[ i ]; */
-    /*     printf("%s: %s\n", s.token.as_string, s.type.token.as_string ); */
-    /* } */
-
-    FILE* generated_c = fopen( "generated.c", "w+" );
+    char file_name[256];
+    sprintf( file_name, "%s.c", g_source_code.path );
+    FILE* generated_c = fopen( file_name, "w+" );
     generate_code( generated_c, &semantic_context, program );
     fclose( generated_c );
 
+    int octo_exe_path_length = wai_getExecutablePath( NULL, 0, NULL );
+    char* octo_exe_dir = calloc( 1, octo_exe_path_length + 1 );
+    wai_getExecutablePath( octo_exe_dir, octo_exe_path_length, NULL );
+
+    // get only the directory
+    for( int i = octo_exe_path_length; i >= 0; i-- )
+    {
+        char* c = &octo_exe_dir[ i ];
+        if( *c == '\\' || *c == '/' )
+        {
+            *c = 0;
+            break;
+        }
+    }
+
+    char command[1024];
+    sprintf( command, "gcc %s -I%s/.. -o main.exe -std=gnu99 -Wall -Wextra && del %s",
+             file_name,
+             octo_exe_dir,
+             file_name );
+
     // temporarily use this to test
-    system("gcc generated.c -std=gnu99");
+    system( command );
     // system("del generated.c");
 }

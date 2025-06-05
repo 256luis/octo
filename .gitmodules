@@ -1,3 +1,6 @@
 [submodule "lvec.c"]
 	path = lvec.c
 	url = https://github.com/256luis/lvec.c.git
+[submodule "whereami"]
+	path = whereami
+	url = https://github.com/gpakosz/whereami.git

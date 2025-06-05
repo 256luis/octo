@@ -42,6 +42,7 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/src/semantic.c
                ${CMAKE_CURRENT_LIST_DIR}/src/codegen.c
                ${CMAKE_CURRENT_LIST_DIR}/src/symboltable.c
+               ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.c
 
                ${CMAKE_CURRENT_LIST_DIR}/include/debug.h
                ${CMAKE_CURRENT_LIST_DIR}/include/parser.h
@@ -49,9 +50,12 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/include/error.h
                ${CMAKE_CURRENT_LIST_DIR}/include/semantic.h
                ${CMAKE_CURRENT_LIST_DIR}/include/codegen.h
-               ${CMAKE_CURRENT_LIST_DIR}/include/symboltable.h)
+               ${CMAKE_CURRENT_LIST_DIR}/include/symboltable.h
+               ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.h)
 
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC
+                           ${CMAKE_CURRENT_LIST_DIR}/include
+                           ${CMAKE_CURRENT_LIST_DIR}/whereami/src)
 target_link_libraries(${PROJECT_NAME} PUBLIC lvec)
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
