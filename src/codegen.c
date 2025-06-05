@@ -68,9 +68,9 @@ static void generate_type( FILE* file, Type type )
             break;
         }
 
-        case TYPEKIND_CUSTOM:
+        case TYPEKIND_COMPOUND:
         {
-            append( file, "%s", type.custom.identifier );
+            append( file, "%s", type.compound.identifier );
             break;
         }
 
@@ -501,7 +501,7 @@ static void generate_type_declaration( FILE* file, SemanticContext* context, Exp
 
     Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier );
     Type type = type_symbol->type;
-    SymbolTable* member_symbol_table = type.definition.info->custom.member_symbols;
+    SymbolTable* member_symbol_table = type.definition.info->compound.member_symbols;
     for( int i = 0; i < member_symbol_table->length; i++ )
     {
         Symbol member_symbol = member_symbol_table->symbols[ i ];
@@ -556,7 +556,7 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
                 continue;
             }
 
-            if( type.definition.info->kind == TYPEKIND_CUSTOM )
+            if( type.definition.info->kind == TYPEKIND_COMPOUND )
             {
                 continue;
             }

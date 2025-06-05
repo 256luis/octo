@@ -4,6 +4,7 @@
 #include "lvec.h"
 #include "parser.h"
 #include "tokenizer.h"
+#include "type.h"
 #include <stdbool.h>
 
 #define INDENT() for( int i = 0; i < depth; i++ ) printf( "    " )
@@ -107,7 +108,7 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_FLOAT ]     = "float",
     [ TYPEKIND_CHARACTER ] = "char",
     [ TYPEKIND_BOOLEAN ]   = "bool",
-    [ TYPEKIND_CUSTOM ]    = "CUSTOM",
+    [ TYPEKIND_COMPOUND ]    = "COMPOUND",
     [ TYPEKIND_POINTER ]   = "POINTER",
     [ TYPEKIND_FUNCTION ]  = "FUNCTION",
     [ TYPEKIND_ARRAY ]     = "ARRAY",
@@ -143,9 +144,9 @@ void debug_print_type( Type type )
             break;
         }
 
-        case TYPEKIND_CUSTOM:
+        case TYPEKIND_COMPOUND:
         {
-            printf( "(%s)", type.custom.identifier );
+            printf( "(%s)", type.compound.identifier );
             break;
         }
 

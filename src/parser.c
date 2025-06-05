@@ -362,10 +362,10 @@ static Type parse_base_type( Parser* parser )
     {
         result.kind = TYPEKIND_VOID;
     }
-    else // custom type
+    else // compound type
     {
-        result.kind = TYPEKIND_CUSTOM;
-        result.custom.identifier = type_identifier;
+        result.kind = TYPEKIND_COMPOUND;
+        result.compound.identifier = type_identifier;
     }
 
     return result;

@@ -14,7 +14,7 @@ typedef enum TypeKind
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
     TYPEKIND_FUNCTION,
-    TYPEKIND_CUSTOM,
+    TYPEKIND_COMPOUND,
 
     // referential types
     TYPEKIND_POINTER,
@@ -44,7 +44,7 @@ typedef struct Type
         {
             char* identifier;
             SymbolTable* member_symbols;
-        } custom;
+        } compound;
 
         struct
         {

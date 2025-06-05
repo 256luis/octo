@@ -161,9 +161,9 @@ void print_type( Type type )
             break;
         }
 
-        case TYPEKIND_CUSTOM:
+        case TYPEKIND_COMPOUND:
         {
-            printf( "%s", type.custom.identifier );
+            printf( "%s", type.compound.identifier );
             break;
         }
 

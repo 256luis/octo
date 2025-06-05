@@ -410,9 +410,9 @@ bool type_equals( Type t1, Type t2 )
             return t1.integer.bit_count == t2.integer.bit_count;
         }
 
-        case TYPEKIND_CUSTOM:
+        case TYPEKIND_COMPOUND:
         {
-            return strcmp( t1.custom.identifier, t2.custom.identifier ) == 0;
+            return strcmp( t1.compound.identifier, t2.compound.identifier ) == 0;
         }
 
         case TYPEKIND_POINTER:
@@ -478,7 +478,7 @@ Type get_definition_type( SemanticContext* context, Type type )
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
         case TYPEKIND_FUNCTION:
-        case TYPEKIND_CUSTOM:
+        case TYPEKIND_COMPOUND:
         {
             Symbol* symbol = symbol_table_lookup( context->symbol_table, type.token.as_string );
             return symbol->type;
@@ -718,9 +718,9 @@ bool check_type( SemanticContext* context, Type* out_type )
             return check_type( context, out_type->array.base_type );
         }
 
-        case TYPEKIND_CUSTOM:
+        case TYPEKIND_COMPOUND:
         {
-            Symbol* symbol = symbol_table_lookup( context->symbol_table, out_type->custom.identifier );
+            Symbol* symbol = symbol_table_lookup( context->symbol_table, out_type->compound.identifier );
             if( symbol == NULL )
             {
                 Error error = {
@@ -1424,13 +1424,13 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
 
     /* } */
 
-    if( lvalue_type.kind != TYPEKIND_CUSTOM )
+    if( lvalue_type.kind != TYPEKIND_COMPOUND )
     {
         return false;
     }
 
     Token member_identifier_token = expression->member_access.member_identifier_token;
-    Symbol* member_symbol = symbol_table_lookup( *lvalue_type.custom.member_symbols, member_identifier_token.as_string );
+    Symbol* member_symbol = symbol_table_lookup( *lvalue_type.compound.member_symbols, member_identifier_token.as_string );
     if( member_symbol == NULL )
     {
         Error error = {
@@ -1474,7 +1474,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     }
 
     Type type_info = *type.definition.info;
-    if( type_info.kind != TYPEKIND_CUSTOM )
+    if( type_info.kind != TYPEKIND_COMPOUND )
     {
         Error error = {
             .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
@@ -1488,7 +1488,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     for( int i = 0; i < initialized_count; i++ )
     {
         Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ];
-        Symbol* member_symbol = symbol_table_lookup( *type_info.custom.member_symbols, member_identifier_token.as_string );
+        Symbol* member_symbol = symbol_table_lookup( *type_info.compound.member_symbols, member_identifier_token.as_string );
         if( member_symbol == NULL )
         {
             Error error = {
@@ -2190,9 +2190,9 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
 
     Type* info = malloc( sizeof( Type ) );
     *info = ( Type ){
-        .kind = TYPEKIND_CUSTOM,
+        .kind = TYPEKIND_COMPOUND,
         .token = identifier_token,
-        .custom = {
+        .compound = {
             .identifier = identifier_token.as_string,
             .member_symbols = member_symbols,
         }

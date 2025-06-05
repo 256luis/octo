@@ -49,11 +49,11 @@ int main( int argc, char* argv[] )
 
     // expression_print( program );
 
-    for( int i = 0; i < semantic_context.symbol_table.length; i++ )
-    {
-        Symbol s = semantic_context.symbol_table.symbols[ i ];
-        printf("%s: %s\n", s.token.as_string, s.type.token.as_string );
-    }
+    /* for( int i = 0; i < semantic_context.symbol_table.length; i++ ) */
+    /* { */
+    /*     Symbol s = semantic_context.symbol_table.symbols[ i ]; */
+    /*     printf("%s: %s\n", s.token.as_string, s.type.token.as_string ); */
+    /* } */
 
     FILE* generated_c = fopen( "generated.c", "w+" );
     generate_code( generated_c, &semantic_context, program );
