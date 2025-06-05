@@ -1258,8 +1258,7 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
             .pointer.base_type = &operand_symbol->type,
         };
 
-        Type operand_type_definition = get_definition_type( context, operand_symbol->type );
-
+        Type operand_type_definition = get_definition_type( context, *inferred_type->pointer.base_type );
         add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type );
     }
     else
@@ -1563,6 +1562,9 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
             // default int type is i32
             inferred_type->integer.bit_count = 32;
             inferred_type->integer.is_signed = true;
+            inferred_type->token = ( Token ){
+                .as_string = "i32"
+            };
             break;
         }
 
@@ -1572,6 +1574,9 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
 
             // default float type is f32
             inferred_type->integer.bit_count = 32;
+            inferred_type->token = ( Token ){
+                .as_string = "f32"
+            };
             break;
         }
 
