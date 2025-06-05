@@ -22,6 +22,8 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_TYPE ]         = "type",
     [ TOKENKIND_STRUCT ]       = "struct",
     [ TOKENKIND_UNION ]        = "union",
+    [ TOKENKIND_AND ]          = "and",
+    [ TOKENKIND_OR ]           = "or",
     [ TOKENKIND_INTEGER ]      = "INTEGER",
     [ TOKENKIND_FLOAT ]        = "FLOAT",
     [ TOKENKIND_IDENTIFIER ]   = "IDENTIFIER",
@@ -33,6 +35,7 @@ char* token_kind_to_string[] = {
     [ TOKENKIND_DOUBLECOLON ]  = "::",
     [ TOKENKIND_PERIOD ]       = ".",
     [ TOKENKIND_DOUBLEPERIOD ] = "..",
+    [ TOKENKIND_MODULO ]       = "%",
     [ TOKENKIND_COMMA ]        = ",",
     [ TOKENKIND_PLUS ]         = "+",
     [ TOKENKIND_MINUS ]        = "-",
@@ -93,6 +96,9 @@ char* binary_operation_to_string[] = {
     [ BINARYOPERATION_NOTEQUAL ]     = "NOTEQUAL",
     [ BINARYOPERATION_GREATEREQUAL ] = "GREATEREQUAL",
     [ BINARYOPERATION_LESSEQUAL ]    = "LESSEQUAL",
+    [ BINARYOPERATION_MODULO ]       = "MODULO",
+    [ BINARYOPERATION_AND ]          = "AND",
+    [ BINARYOPERATION_OR ]           = "OR",
 };
 
 char* unary_operation_to_string[] = {

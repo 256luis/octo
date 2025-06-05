@@ -42,7 +42,7 @@ static CharacterType get_character_type(char c)
 
 static char* valid_special_symbols[] = {
     ";", ":", "::", ".", ",",
-    "+", "-", "*", "/", "=", "->",
+    "%", "+", "-", "*", "/", "=", "->",
     "!", ">", "<", "==", "!=", ">=", "<=",
     "(", ")",
     "{", "}",
@@ -60,6 +60,7 @@ static TokenKind special_symbol_to_token_kind( const char* special_symbol )
     if( strcmp( special_symbol, "." ) == 0 )  return TOKENKIND_PERIOD;
     if( strcmp( special_symbol, "," ) == 0 )  return TOKENKIND_COMMA;
 
+    if( strcmp( special_symbol, "%" ) == 0 )  return TOKENKIND_MODULO;
     if( strcmp( special_symbol, "+" ) == 0 )  return TOKENKIND_PLUS;
     if( strcmp( special_symbol, "-" ) == 0 )  return TOKENKIND_MINUS;
     if( strcmp( special_symbol, "*" ) == 0 )  return TOKENKIND_STAR;
@@ -107,6 +108,8 @@ static TokenKind word_symbol_to_token_kind( const char* word_symbol )
     if( strcmp( word_symbol, "type" ) == 0 )   return TOKENKIND_TYPE;
     if( strcmp( word_symbol, "struct" ) == 0 ) return TOKENKIND_STRUCT;
     if( strcmp( word_symbol, "union" ) == 0 )  return TOKENKIND_UNION;
+    if( strcmp( word_symbol, "and" ) == 0 )    return TOKENKIND_AND;
+    if( strcmp( word_symbol, "or" ) == 0 )     return TOKENKIND_OR;
 
     return TOKENKIND_IDENTIFIER;
 

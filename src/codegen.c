@@ -245,12 +245,15 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
                 case BINARYOPERATION_SUBTRACT:     append( file, " - " ); break;
                 case BINARYOPERATION_MULTIPLY:     append( file, " * " ); break;
                 case BINARYOPERATION_DIVIDE:       append( file, " / " ); break;
+                case BINARYOPERATION_MODULO:       append( file, " % " ); break;
                 case BINARYOPERATION_EQUAL:        append( file, " == " ); break;
                 case BINARYOPERATION_GREATER:      append( file, " > " ); break;
                 case BINARYOPERATION_LESS:         append( file, " < " ); break;
                 case BINARYOPERATION_NOTEQUAL:     append( file, " != " ); break;
                 case BINARYOPERATION_GREATEREQUAL: append( file, " >= " ); break;
                 case BINARYOPERATION_LESSEQUAL:    append( file, " <= " ); break;
+                case BINARYOPERATION_AND:    append( file, " && " ); break;
+                case BINARYOPERATION_OR:    append( file, " || " ); break;
             }
 
             generate_rvalue( file, context, expression->binary.right );

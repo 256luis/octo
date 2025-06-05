@@ -882,6 +882,11 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
             TYPEKINDPAIR_TERMINATOR,
         },
 
+        [ BINARYOPERATION_MODULO ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
         [ BINARYOPERATION_EQUAL ] = ( TypeKindPair[] ){
             ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_INTEGER },
             ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_FLOAT },
@@ -933,6 +938,16 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
             ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
             ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
             ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_AND ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
+            TYPEKINDPAIR_TERMINATOR,
+        },
+
+        [ BINARYOPERATION_OR ] = ( TypeKindPair[] ){
+            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
             TYPEKINDPAIR_TERMINATOR,
         },
     };

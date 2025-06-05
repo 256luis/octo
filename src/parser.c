@@ -83,6 +83,9 @@ static BinaryOperation token_kind_to_binary_operation( TokenKind token_kind )
         case TOKENKIND_NOTEQUAL:     return BINARYOPERATION_NOTEQUAL;
         case TOKENKIND_GREATEREQUAL: return BINARYOPERATION_GREATEREQUAL;
         case TOKENKIND_LESSEQUAL:    return BINARYOPERATION_LESSEQUAL;
+        case TOKENKIND_MODULO:       return BINARYOPERATION_MODULO;
+        case TOKENKIND_AND:          return BINARYOPERATION_AND;
+        case TOKENKIND_OR:           return BINARYOPERATION_OR;
             // case TOKENKIND_LEFTBRACKET:  return BINARYOPERATION_SUBSCRIPT;
         default: UNREACHABLE();
     }
