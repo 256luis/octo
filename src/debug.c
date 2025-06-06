@@ -575,11 +575,11 @@ void expression_print( Expression* expression )
             for( int i = 0; i < expression->compound_definition.member_count; i++ )
             {
                 char* member_identifier = expression->compound_definition.member_identifier_tokens[ i ].as_string;
-                Type member_type = expression->compound_definition.member_types[ i ];
+                Expression member_type_rvalue = expression->compound_definition.member_type_rvalues[ i ];
 
                 INDENT();
                 printf( "member[%d] = %s: ", i, member_identifier );
-                debug_print_type( member_type );
+                expression_print( &member_type_rvalue );
                 putchar( '\n' );
             }
             depth--;

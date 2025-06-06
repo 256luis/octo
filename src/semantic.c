@@ -1461,6 +1461,7 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
 
     return true;
 }
+
 static bool check_compound_literal( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Token type_identifier_token = expression->compound_literal.type_identifier_token;
@@ -2147,20 +2148,29 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
     return true;
 }
 
-static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, SymbolTable* member_symbols )
+static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
+static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
-    Type* member_types = type_rvalue->compound_definition.member_types;
+    bool is_struct = type_rvalue->compound_definition.is_struct;
+    Expression* member_type_rvalues = type_rvalue->compound_definition.member_type_rvalues;
     Token* member_identifier_tokens = type_rvalue->compound_definition.member_identifier_tokens;
     int member_count = type_rvalue->compound_definition.member_count;
+
+    SymbolTable* member_symbol_table = malloc( sizeof( SymbolTable ) );
+    symbol_table_initialize( member_symbol_table );
+
     for( int i = 0; i < member_count; i++ )
     {
-        Type member_type = member_types[ i ];
-        if( !check_type( context, &member_type ) )
+        // check type of member
+        Expression member_type_rvalue = member_type_rvalues[ i ];
+        Type member_type;
+        if( !check_type_rvalue( context, &member_type_rvalue, &member_type ) )
         {
             return false;
         }
 
-        if( member_type.kind == TYPEKIND_VOID )
+        // void members are not allowed in struct types
+        if( member_type.kind == TYPEKIND_VOID && is_struct )
         {
             Error error = {
                 .kind = ERRORKIND_VOIDVARIABLE,
@@ -2170,8 +2180,9 @@ static bool check_compound_definition( SemanticContext* context, Expression* typ
             return false;
         }
 
+        // check if member is already declared within the struct
         Token member_identifier_token = member_identifier_tokens[ i ];
-        Symbol* lookup_result = symbol_table_lookup( *member_symbols, member_identifier_token.as_string );
+        Symbol* lookup_result = symbol_table_lookup( *member_symbol_table, member_identifier_token.as_string );
         if( lookup_result != NULL )
         {
             Error error = {
@@ -2183,25 +2194,62 @@ static bool check_compound_definition( SemanticContext* context, Expression* typ
             return false;
         }
 
-        // create symbol and add to the type's scope
         Symbol member_symbol = {
             .token = member_identifier_token,
             .type = member_type
         };
-        symbol_table_push_symbol( member_symbols, member_symbol );
+        symbol_table_push_symbol( member_symbol_table, member_symbol );
     }
+
+    Type* info = malloc( sizeof( Type ) );
+    *info = ( Type ){
+        .kind = TYPEKIND_COMPOUND,
+        .token = ( Token ){ .as_string = "<anonymous>"},
+        .compound = {
+            .identifier = "<anonymous>",
+            .member_symbols = member_symbol_table,
+        }
+    };
+
+    *out_type = ( Type ){
+        .kind = TYPEKIND_DEFINITION,
+        .definition = {
+            .info = info,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
 
     return true;
 }
 
-static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, SymbolTable* member_symbols )
+static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
     bool is_valid;
     switch( type_rvalue->kind )
     {
         case EXPRESSIONKIND_COMPOUNDDEFINITION:
         {
-            is_valid = check_compound_definition( context, type_rvalue, member_symbols );
+            is_valid = check_compound_definition( context, type_rvalue, out_type );
+            break;
+        }
+
+        case EXPRESSIONKIND_IDENTIFIER:
+        {
+            Type type_definition;
+            is_valid = check_rvalue_identifier( context, type_rvalue, &type_definition );
+            if( type_definition.kind != TYPEKIND_DEFINITION )
+            {
+                Error error = {
+                    .kind = ERRORKIND_NOTATYPE,
+                    .offending_token = type_rvalue->starting_token,
+                };
+                report_error( error );
+                return false;
+            }
+
+            *out_type = *type_definition.definition.info;
+
             break;
         }
 
@@ -2235,32 +2283,19 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
     symbol_table_initialize( member_symbols );
 
     Expression* type_rvalue = expression->type_declaration.rvalue;
-    if( !check_type_rvalue( context, type_rvalue, member_symbols ) )
+    Type type_rvalue_type;
+    if( !check_type_rvalue( context, type_rvalue, &type_rvalue_type ) )
     {
         return false;
     }
 
-    Type* info = malloc( sizeof( Type ) );
-    *info = ( Type ){
-        .kind = TYPEKIND_COMPOUND,
-        .token = identifier_token,
-        .compound = {
-            .identifier = identifier_token.as_string,
-            .member_symbols = member_symbols,
-        }
-    };
+    type_rvalue_type.token = identifier_token;
+    type_rvalue_type.definition.info->token = identifier_token;
+    type_rvalue_type.definition.info->compound.identifier = identifier_token.as_string;
 
     Symbol type_declaration_symbol = {
         .token = identifier_token,
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .token = identifier_token,
-            .definition = {
-                .info = info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
-            }
-        },
+        .type = type_rvalue_type
     };
 
     symbol_table_push_symbol( &context->symbol_table, type_declaration_symbol );

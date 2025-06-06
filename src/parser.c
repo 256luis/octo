@@ -151,6 +151,7 @@ static Expression* parse_identifier( Parser* parser )
     expression->kind = EXPRESSIONKIND_IDENTIFIER;
     expression->identifier.as_string = parser->current_token.identifier;
     expression->associated_token = parser->current_token;
+    expression->starting_token = parser->current_token;
 
     return expression;
 }
@@ -821,6 +822,111 @@ static Expression* parse_rvalue( Parser* parser )
     return expression;
 }
 
+static Expression* parse_type_rvalue( Parser* parser );
+static Expression* parse_compound_definition( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_COMPOUNDDEFINITION;
+    expression->starting_token = parser->current_token;
+    expression->compound_definition.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
+    {
+        return NULL;
+    }
+
+    Token* member_identifier_tokens = lvec_new( Token );
+    Expression* member_type_rvalues = lvec_new( Expression );
+
+    advance( parser );
+    while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+        {
+            return NULL;
+        }
+
+        Token member_identifier_token = parser->current_token;
+        lvec_append_aggregate( member_identifier_tokens, member_identifier_token );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_COLON ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        Expression* member_type_rvalue = parse_type_rvalue( parser );
+        if( member_type_rvalue == NULL )
+        {
+            return NULL;
+        }
+        lvec_append_aggregate( member_type_rvalues, *member_type_rvalue );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTBRACE ) )
+        {
+            return NULL;
+        }
+    }
+
+    // current token is right brace
+
+    expression->compound_definition.member_identifier_tokens = member_identifier_tokens;
+    expression->compound_definition.member_type_rvalues = member_type_rvalues;
+    expression->compound_definition.member_count = lvec_get_length( member_identifier_tokens );
+
+    return expression;
+}
+
+static Expression* parse_type_rvalue( Parser* parser )
+{
+    if( !EXPECT( parser, TOKENKIND_TYPE_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
+    Expression* expression;
+
+    switch( parser->current_token.kind )
+    {
+        case TOKENKIND_STRUCT:
+        case TOKENKIND_UNION:
+        {
+            expression = parse_compound_definition( parser );
+            break;
+        }
+
+        case TOKENKIND_IDENTIFIER:
+        {
+            expression = parse_identifier( parser );
+            break;
+        }
+
+        // todo
+        /* case TOKENKIND_ENUM: */
+        /* { */
+        /*     break; */
+        /* } */
+
+        default:
+        {
+            UNREACHABLE();
+        }
+    }
+
+    return expression;
+}
+
 static Expression* parse_variable_declaration( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
@@ -1238,104 +1344,6 @@ static Expression* parse_for( Parser* parser )
         return NULL;
     }
     expression->for_loop.body = body;
-
-    return expression;
-}
-
-static Expression* parse_compound_definition( Parser* parser )
-{
-    Expression* expression = calloc( 1, sizeof( Expression ) );
-    if( expression == NULL ) ALLOC_ERROR();
-
-    expression->kind = EXPRESSIONKIND_COMPOUNDDEFINITION;
-    expression->starting_token = parser->current_token;
-    expression->compound_definition.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
-
-    advance( parser );
-    if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
-    {
-        return NULL;
-    }
-
-    Token* member_identifier_tokens = lvec_new( Token );
-    Type* member_types = lvec_new( Type );
-
-    advance( parser );
-    while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
-    {
-        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
-        {
-            return NULL;
-        }
-
-        Token member_identifier_token = parser->current_token;
-        lvec_append_aggregate( member_identifier_tokens, member_identifier_token );
-
-        advance( parser );
-        if( !EXPECT( parser, TOKENKIND_COLON ) )
-        {
-            return NULL;
-        }
-
-        advance( parser );
-        Type member_type = parse_type( parser );
-        if( member_type.kind == TYPEKIND_INVALID )
-        {
-            return NULL;
-        }
-        lvec_append_aggregate( member_types, member_type );
-
-        advance( parser );
-        if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
-        {
-            return NULL;
-        }
-
-        advance( parser );
-        if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTBRACE ) )
-        {
-            return NULL;
-        }
-    }
-
-    // current token is right brace
-
-    expression->compound_definition.member_identifier_tokens = member_identifier_tokens;
-    expression->compound_definition.member_types = member_types;
-    expression->compound_definition.member_count = lvec_get_length( member_identifier_tokens );
-
-    return expression;
-}
-
-static Expression* parse_type_rvalue( Parser* parser )
-{
-    if( !EXPECT( parser, TOKENKIND_TYPE_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
-    Expression* expression;
-
-    switch( parser->current_token.kind )
-    {
-        case TOKENKIND_STRUCT:
-        case TOKENKIND_UNION:
-        {
-            expression = parse_compound_definition( parser );
-            break;
-        }
-
-        // todo
-        /* case TOKENKIND_ENUM: */
-        /* { */
-        /*     break; */
-        /* } */
-
-        default:
-        {
-            UNREACHABLE();
-        }
-    }
 
     return expression;
 }

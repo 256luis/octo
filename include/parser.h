@@ -230,7 +230,7 @@ typedef struct Expression
             bool is_struct; // if false, is union
             int member_count;
             Token* member_identifier_tokens;
-            Type* member_types;
+            struct Expression* member_type_rvalues;
         } compound_definition;
 
         struct
