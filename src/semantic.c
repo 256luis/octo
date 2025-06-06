@@ -1433,13 +1433,14 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
     {
         lvalue_type = *lvalue_type.reference.base_type;
     }
-    /* if( lvalue_type.kind == TYPEKIND_REFERENCE ) */
-    /* { */
-
-    /* } */
 
     if( lvalue_type.kind != TYPEKIND_COMPOUND )
     {
+        Error error = {
+            .kind = ERRORKIND_NOTCOMPOUND,
+            .offending_token = lvalue->starting_token,
+        };
+        report_error( error );
         return false;
     }
 
@@ -2146,29 +2147,11 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
     return true;
 }
 
-static bool check_type_declaration( SemanticContext* context, Expression* expression )
+static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, SymbolTable* member_symbols )
 {
-    // check if type name is already in symbol table
-    Token identifier_token = expression->type_declaration.type_identifier_token;
-    Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string );
-    if( symbol != NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_SYMBOLREDECLARATION,
-            .offending_token = identifier_token,
-            .symbol_redeclaration.original_declaration_token = identifier_token
-        };
-        report_error( error );
-        return false;
-    }
-
-    // symbol table to put in the type information
-    SymbolTable* member_symbols = malloc( sizeof( SymbolTable ) );
-    symbol_table_initialize( member_symbols );
-
-    Type* member_types = expression->type_declaration.member_types;
-    Token* member_identifier_tokens = expression->type_declaration.member_identifier_tokens;
-    int member_count = expression->type_declaration.member_count;
+    Type* member_types = type_rvalue->compound_definition.member_types;
+    Token* member_identifier_tokens = type_rvalue->compound_definition.member_identifier_tokens;
+    int member_count = type_rvalue->compound_definition.member_count;
     for( int i = 0; i < member_count; i++ )
     {
         Type member_type = member_types[ i ];
@@ -2206,6 +2189,55 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
             .type = member_type
         };
         symbol_table_push_symbol( member_symbols, member_symbol );
+    }
+
+    return true;
+}
+
+static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, SymbolTable* member_symbols )
+{
+    bool is_valid;
+    switch( type_rvalue->kind )
+    {
+        case EXPRESSIONKIND_COMPOUNDDEFINITION:
+        {
+            is_valid = check_compound_definition( context, type_rvalue, member_symbols );
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+        }
+    }
+
+    return is_valid;
+}
+
+static bool check_type_declaration( SemanticContext* context, Expression* expression )
+{
+    // check if type name is already in symbol table
+    Token identifier_token = expression->type_declaration.identifier_token;
+    Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string );
+    if( symbol != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+            .symbol_redeclaration.original_declaration_token = identifier_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    // symbol table to put in the type information
+    SymbolTable* member_symbols = malloc( sizeof( SymbolTable ) );
+    symbol_table_initialize( member_symbols );
+
+    Expression* type_rvalue = expression->type_declaration.rvalue;
+    if( !check_type_rvalue( context, type_rvalue, member_symbols ) )
+    {
+        return false;
     }
 
     Type* info = malloc( sizeof( Type ) );

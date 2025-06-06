@@ -494,48 +494,56 @@ static void generate_array_type_definition( FILE* file, Type base_type )
     append( file, ")\n" );
 }
 
-static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
+static void generate_compound_definition( FILE* file,  Expression* expression, Type type_definition )
 {
-    bool is_struct = expression->type_declaration.is_struct;
-    char* type_identifier = expression->type_declaration.type_identifier_token.as_string;
-    append( file, "typedef %s %s\n{\n",
-            is_struct ? "struct" : "union",
-            type_identifier );
+    bool is_struct = expression->compound_definition.is_struct;
+    append( file, "typedef %s {\n", is_struct ? "struct" : "union" );
 
-    Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier );
-    Type type = type_symbol->type;
-    SymbolTable* member_symbol_table = type.definition.info->compound.member_symbols;
+    SymbolTable* member_symbol_table = type_definition.definition.info->compound.member_symbols;
     for( int i = 0; i < member_symbol_table->length; i++ )
     {
         Symbol member_symbol = member_symbol_table->symbols[ i ];
         generate_type( file, member_symbol.type );
         append( file, " %s;\n", member_symbol.token.as_string );
     }
-    append( file, "} %s;\n", type_identifier );
+    append( file, "} %s;\n", type_definition.token.as_string );
+}
+
+static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
+{
+    char* type_identifier = expression->type_declaration.identifier_token.as_string;
+    Type type_definition = symbol_table_lookup( context->symbol_table, type_identifier )->type;
+
+    Expression* type_rvalue = expression->type_declaration.rvalue;
+    switch( type_rvalue->kind )
+    {
+        case EXPRESSIONKIND_COMPOUNDDEFINITION:
+        {
+            generate_compound_definition( file, type_rvalue, type_definition );
+            break;
+        }
+
+        default:
+        {
+            UNREACHABLE();
+        }
+    }
 
     // generate all pointer and array types associated with the declared type
-    Type* pointer_types = type.definition.pointer_types;
+    Type* pointer_types = type_definition.definition.pointer_types;
     int pointer_types_length = lvec_get_length( pointer_types );
     for( int j = pointer_types_length - 1; j >= 0; j-- )
     {
         Type base_type = pointer_types[ j ];
-        /* append( file, "#define OctoPtr_" ); */
-        /* generate_type( file, base_type ); */
-        /* append( file, " "); */
-        /* generate_type( file, base_type ); */
-        /* append( file, "*\n"); */
         generate_pointer_type_definition( file, base_type );
     }
 
     // generate typedefs for arrays
-    Type* array_types = type.definition.array_types;
+    Type* array_types = type_definition.definition.array_types;
     int array_types_length = lvec_get_length( array_types );
     for( int j = array_types_length - 1; j >= 0; j-- )
     {
         Type base_type = array_types[ j ];
-        /* append( file, "OCTO_DEFINE_ARRAY(" ); */
-        /* generate_type( file, base_type ); */
-        /* append( file, ")\n" ); */
         generate_array_type_definition( file, base_type );
     }
 }
@@ -570,11 +578,6 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
             for( int j = pointer_types_length - 1; j >= 0; j-- )
             {
                 Type base_type = pointer_types[ j ];
-                /* append( file, "#define OctoPtr_" ); */
-                /* generate_type( file, base_type ); */
-                /* append( file, " "); */
-                /* generate_type( file, base_type ); */
-                /* append( file, "*\n"); */
                 generate_pointer_type_definition( file, base_type );
             }
 
@@ -584,9 +587,6 @@ void generate_code( FILE* file, SemanticContext* context, Expression* expression
             for( int j = array_types_length - 1; j >= 0; j-- )
             {
                 Type base_type = array_types[ j ];
-                /* append( file, "OCTO_DEFINE_ARRAY(" ); */
-                /* generate_type( file, base_type ); */
-                /* append( file, ")\n" ); */
                 generate_array_type_definition( file, base_type );
             }
         }

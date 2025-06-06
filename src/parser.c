@@ -1242,29 +1242,14 @@ static Expression* parse_for( Parser* parser )
     return expression;
 }
 
-static Expression* parse_type_declaration( Parser* parser )
+static Expression* parse_compound_definition( Parser* parser )
 {
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression == NULL ) ALLOC_ERROR();
 
-    expression->kind = EXPRESSIONKIND_TYPEDECLARATION;
+    expression->kind = EXPRESSIONKIND_COMPOUNDDEFINITION;
     expression->starting_token = parser->current_token;
-
-    advance( parser );
-    if( !EXPECT( parser, TOKENKIND_STRUCT, TOKENKIND_UNION ) )
-    {
-        return NULL;
-    }
-
-    expression->type_declaration.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
-
-    advance( parser );
-    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
-    {
-        return NULL;
-    }
-
-    expression->type_declaration.type_identifier_token = parser->current_token;
+    expression->compound_definition.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
@@ -1315,9 +1300,76 @@ static Expression* parse_type_declaration( Parser* parser )
 
     // current token is right brace
 
-    expression->type_declaration.member_identifier_tokens = member_identifier_tokens;
-    expression->type_declaration.member_types = member_types;
-    expression->type_declaration.member_count = lvec_get_length( member_identifier_tokens );
+    expression->compound_definition.member_identifier_tokens = member_identifier_tokens;
+    expression->compound_definition.member_types = member_types;
+    expression->compound_definition.member_count = lvec_get_length( member_identifier_tokens );
+
+    return expression;
+}
+
+static Expression* parse_type_rvalue( Parser* parser )
+{
+    if( !EXPECT( parser, TOKENKIND_TYPE_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
+    Expression* expression;
+
+    switch( parser->current_token.kind )
+    {
+        case TOKENKIND_STRUCT:
+        case TOKENKIND_UNION:
+        {
+            expression = parse_compound_definition( parser );
+            break;
+        }
+
+        // todo
+        /* case TOKENKIND_ENUM: */
+        /* { */
+        /*     break; */
+        /* } */
+
+        default:
+        {
+            UNREACHABLE();
+        }
+    }
+
+    return expression;
+}
+
+static Expression* parse_type_declaration( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_TYPEDECLARATION;
+    expression->starting_token = parser->current_token;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+    {
+        return NULL;
+    }
+
+    expression->type_declaration.identifier_token = parser->current_token;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_EQUAL ) )
+    {
+        return NULL;
+    }
+
+    advance( parser );
+    Expression* type_rvalue = parse_type_rvalue( parser );
+    if( type_rvalue == NULL )
+    {
+        return NULL;
+    }
+
+    expression->type_declaration.rvalue = type_rvalue;
 
     return expression;
 }

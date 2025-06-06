@@ -83,6 +83,7 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_TYPEDECLARATION ]     = "TYPE DECLARATION",
     [ EXPRESSIONKIND_MEMBERACCESS ]        = "MEMBER ACCESS",
     [ EXPRESSIONKIND_COMPOUNDLITERAL ]     = "COMPOUND LITERAL",
+    [ EXPRESSIONKIND_COMPOUNDDEFINITION ]  = "COMPOUND DEFINITION",
 };
 
 char* binary_operation_to_string[] = {
@@ -548,28 +549,43 @@ void expression_print( Expression* expression )
 
         case EXPRESSIONKIND_TYPEDECLARATION:
         {
-            printf( "(%s) {\n",
-                    expression->type_declaration.is_struct ? "struct" : "union" );
+            printf( " {\n" );
+
             depth++;
             INDENT();
+            printf( "identifier = %s\n",
+                    expression->type_declaration.identifier_token.as_string );
 
-            printf( "identifier = %s\n", expression->type_declaration.type_identifier_token.as_string );
+            INDENT();
+            printf( "rvalue = " );
+            expression_print( expression->type_declaration.rvalue );
 
-            for( int i = 0; i < expression->type_declaration.member_count; i++ )
+            depth--;
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_COMPOUNDDEFINITION:
+        {
+            printf( "(%s) {\n",
+                    expression->compound_definition.is_struct ? "struct" : "union" );
+
+            depth++;
+            for( int i = 0; i < expression->compound_definition.member_count; i++ )
             {
-                char* member_identifier = expression->type_declaration.member_identifier_tokens[ i ].as_string;
-                Type member_type = expression->type_declaration.member_types[ i ];
+                char* member_identifier = expression->compound_definition.member_identifier_tokens[ i ].as_string;
+                Type member_type = expression->compound_definition.member_types[ i ];
 
                 INDENT();
                 printf( "member[%d] = %s: ", i, member_identifier );
                 debug_print_type( member_type );
                 putchar( '\n' );
             }
-
             depth--;
-            printf( "\n");
             INDENT();
             printf( "}" );
+
             break;
         }
 
