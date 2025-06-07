@@ -68,6 +68,8 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_TYPEDECLARATION,
 
     // type rvalues
+    EXPRESSIONKIND_TYPEIDENTIFIER,
+    EXPRESSIONKIND_POINTERTYPE,
     EXPRESSIONKIND_COMPOUNDDEFINITION,
 } ExpressionKind;
 
@@ -89,6 +91,16 @@ typedef struct Expression
         char* string;
         char character;
         bool boolean;
+
+        struct
+        {
+            struct Expression* base_type;
+        } pointer_type;
+
+        struct
+        {
+            Token token;
+        } type_identifier;
 
         struct
         {

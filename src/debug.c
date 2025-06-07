@@ -84,6 +84,8 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_MEMBERACCESS ]        = "MEMBER ACCESS",
     [ EXPRESSIONKIND_COMPOUNDLITERAL ]     = "COMPOUND LITERAL",
     [ EXPRESSIONKIND_COMPOUNDDEFINITION ]  = "COMPOUND DEFINITION",
+    [ EXPRESSIONKIND_TYPEIDENTIFIER ]      = "TYPE IDENTIFIER",
+    [ EXPRESSIONKIND_POINTERTYPE ]         = "POINTER TYPE",
 };
 
 char* binary_operation_to_string[] = {
@@ -153,7 +155,7 @@ void debug_print_type( Type type )
 
         case TYPEKIND_COMPOUND:
         {
-            printf( "(%s)", type.compound.identifier );
+            printf( "(%d)", type.compound.is_struct );
             break;
         }
 
@@ -639,6 +641,27 @@ void expression_print( Expression* expression )
             printf( "\n");
             INDENT();
             printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_TYPEIDENTIFIER:
+        {
+            printf( "(%s)", expression->type_identifier.token.as_string );
+            break;
+        }
+
+        case EXPRESSIONKIND_POINTERTYPE:
+        {
+            printf( " {\n" );
+            depth++;
+            INDENT();
+
+            printf( "base type = " );
+            expression_print( expression->pointer_type.base_type );
+            depth--;
+            INDENT();
+            printf( "}\n" );
+
             break;
         }
 

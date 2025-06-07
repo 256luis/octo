@@ -70,7 +70,8 @@ static void generate_type( FILE* file, Type type )
 
         case TYPEKIND_COMPOUND:
         {
-            append( file, "%s", type.compound.identifier );
+            UNIMPLEMENTED();
+            // append( file, "%s", type.compound.identifier );
             break;
         }
 
@@ -494,27 +495,25 @@ static void generate_array_type_definition( FILE* file, Type base_type )
     append( file, ")\n" );
 }
 
+static void generate_type_rvalue( FILE* file, Expression* type_rvalue, Type type_definition );
 static void generate_compound_definition( FILE* file,  Expression* expression, Type type_definition )
 {
     bool is_struct = expression->compound_definition.is_struct;
-    append( file, "typedef %s {\n", is_struct ? "struct" : "union" );
+    append( file, "%s {\n", is_struct ? "struct" : "union" );
 
     SymbolTable* member_symbol_table = type_definition.definition.info->compound.member_symbols;
-    for( int i = 0; i < member_symbol_table->length; i++ )
+    int member_count = expression->compound_definition.member_count;
+    for( int i = 0; i < member_count; i++ )
     {
         Symbol member_symbol = member_symbol_table->symbols[ i ];
-        generate_type( file, member_symbol.type );
+        generate_type_rvalue( file, &expression->compound_definition.member_type_rvalues[ i ], member_symbol.type );
         append( file, " %s;\n", member_symbol.token.as_string );
     }
-    append( file, "} %s;\n", type_definition.token.as_string );
+    append( file, "}" );
 }
 
-static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
+static void generate_type_rvalue( FILE* file, Expression* type_rvalue, Type type_definition )
 {
-    char* type_identifier = expression->type_declaration.identifier_token.as_string;
-    Type type_definition = symbol_table_lookup( context->symbol_table, type_identifier )->type;
-
-    Expression* type_rvalue = expression->type_declaration.rvalue;
     switch( type_rvalue->kind )
     {
         case EXPRESSIONKIND_COMPOUNDDEFINITION:
@@ -523,11 +522,39 @@ static void generate_type_declaration( FILE* file, SemanticContext* context, Exp
             break;
         }
 
+        case EXPRESSIONKIND_IDENTIFIER:
+        {
+            append( file, "%s", type_definition.token.as_string );
+            break;
+        }
+
+        case EXPRESSIONKIND_UNARY:
+        {
+            // assume address-of
+            append( file, "OctoPtr_" );
+            generate_type_rvalue( file, type_rvalue->unary.operand, *type_definition.pointer.base_type );
+            break;
+        }
+
         default:
         {
             UNREACHABLE();
         }
     }
+
+}
+
+static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
+{
+    char* type_identifier = expression->type_declaration.identifier_token.as_string;
+    Type type_definition = symbol_table_lookup( context->symbol_table, type_identifier )->type;
+
+    append( file, "typedef " );
+
+    Expression* type_rvalue = expression->type_declaration.rvalue;
+    generate_type_rvalue( file, type_rvalue, type_definition );
+    append( file, " %s;\n", type_definition.token.as_string );
+
 
     // generate all pointer and array types associated with the declared type
     Type* pointer_types = type_definition.definition.pointer_types;

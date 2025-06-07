@@ -21,6 +21,7 @@ typedef enum TypeKind
     TYPEKIND_REFERENCE,
     TYPEKIND_ARRAY,
     TYPEKIND_DEFINITION,
+    TYPEKIND_CUSTOM,
 
     TYPEKIND_TOINFER,
     TYPEKIND_INVALID,
@@ -36,19 +37,31 @@ typedef struct Type
         struct
         {
             struct Type* info;
+
+            // arrays
             struct Type* pointer_types;
             struct Type* array_types;
         } definition;
 
         struct
         {
-            char* identifier;
+            struct Type* definition;
+
+            /* // arrays */
+            /* struct Type* pointer_types; */
+            /* struct Type* array_types; */
+        } custom;
+
+        struct
+        {
+            // char* identifier;
             SymbolTable* member_symbols;
+            bool is_struct;
         } compound;
 
         struct
         {
-            struct Type* param_types;
+            struct Type* param_types; // array
             struct Type* return_type;
             int param_count;
             bool is_variadic;

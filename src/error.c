@@ -163,7 +163,8 @@ void print_type( Type type )
 
         case TYPEKIND_COMPOUND:
         {
-            printf( "%s", type.compound.identifier );
+            UNIMPLEMENTED();
+            // printf( "%s", type.compound.identifier );
             break;
         }
 

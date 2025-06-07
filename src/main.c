@@ -47,34 +47,36 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    char file_name[256];
-    sprintf( file_name, "%s.c", g_source_code.path );
-    FILE* generated_c = fopen( file_name, "w+" );
-    generate_code( generated_c, &semantic_context, program );
-    fclose( generated_c );
+    /* char file_name[256]; */
+    /* sprintf( file_name, "%s.c", g_source_code.path ); */
+    /* FILE* generated_c = fopen( file_name, "w+" ); */
+    /* generate_code( generated_c, &semantic_context, program ); */
+    /* fclose( generated_c ); */
 
-    int octo_exe_path_length = wai_getExecutablePath( NULL, 0, NULL );
-    char* octo_exe_dir = calloc( 1, octo_exe_path_length + 1 );
-    wai_getExecutablePath( octo_exe_dir, octo_exe_path_length, NULL );
+    expression_print( program );
 
-    // get only the directory
-    for( int i = octo_exe_path_length; i >= 0; i-- )
-    {
-        char* c = &octo_exe_dir[ i ];
-        if( *c == '\\' || *c == '/' )
-        {
-            *c = 0;
-            break;
-        }
-    }
+    /* int octo_exe_path_length = wai_getExecutablePath( NULL, 0, NULL ); */
+    /* char* octo_exe_dir = calloc( 1, octo_exe_path_length + 1 ); */
+    /* wai_getExecutablePath( octo_exe_dir, octo_exe_path_length, NULL ); */
 
-    char command[1024];
-    sprintf( command, "gcc %s -I%s/.. -o main.exe -std=gnu99 -Wall -Wextra && del %s",
-             file_name,
-             octo_exe_dir,
-             file_name );
+    /* // get only the directory */
+    /* for( int i = octo_exe_path_length; i >= 0; i-- ) */
+    /* { */
+    /*     char* c = &octo_exe_dir[ i ]; */
+    /*     if( *c == '\\' || *c == '/' ) */
+    /*     { */
+    /*         *c = 0; */
+    /*         break; */
+    /*     } */
+    /* } */
 
-    // temporarily use this to test
-    system( command );
-    // system("del generated.c");
+    /* char command[1024]; */
+    /* sprintf( command, "gcc %s -I%s/.. -o main.exe -std=gnu99 -Wall -Wextra", */
+    /*          file_name, */
+    /*          octo_exe_dir, */
+    /*          file_name ); */
+
+    /* // temporarily use this to test */
+    /* system( command ); */
+    /* // system("del generated.c"); */
 }

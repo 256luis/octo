@@ -224,6 +224,7 @@ static Expression* parse_unary( Parser* parser )
     expression->kind = EXPRESSIONKIND_UNARY;
     expression->unary.operation = token_kind_to_unary_operation( parser->current_token.kind );
     expression->unary.operator_token = parser->current_token;
+    expression->starting_token = parser->current_token;
 
     advance( parser );
     expression->unary.operand = parse_atom( parser );
@@ -366,10 +367,10 @@ static Type parse_base_type( Parser* parser )
     {
         result.kind = TYPEKIND_VOID;
     }
-    else // compound type
+    else // custom type
     {
         result.kind = TYPEKIND_COMPOUND;
-        result.compound.identifier = type_identifier;
+        // result.compound.identifier = type_identifier;
     }
 
     return result;
@@ -888,6 +889,37 @@ static Expression* parse_compound_definition( Parser* parser )
     return expression;
 }
 
+static Expression* parse_type_identifier( Parser *parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_TYPEIDENTIFIER;
+    expression->starting_token = parser->current_token;
+    expression->type_identifier.token = parser->current_token;
+
+    return expression;
+}
+
+static Expression* parse_pointer_type( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_POINTERTYPE;
+    expression->starting_token = parser->current_token;
+
+    advance( parser );
+    Expression* base_type = parse_type_rvalue( parser );
+    if( base_type == NULL )
+    {
+        return NULL;
+    }
+    expression->pointer_type.base_type = base_type;
+
+    return expression;
+}
+
 static Expression* parse_type_rvalue( Parser* parser )
 {
     if( !EXPECT( parser, TOKENKIND_TYPE_RVALUE_STARTERS ) )
@@ -908,7 +940,19 @@ static Expression* parse_type_rvalue( Parser* parser )
 
         case TOKENKIND_IDENTIFIER:
         {
-            expression = parse_identifier( parser );
+            expression = parse_type_identifier( parser );
+            break;
+        }
+
+        case TOKENKIND_AMPERSAND:
+        {
+            expression = parse_pointer_type( parser );
+            break;
+        }
+
+        case TOKENKIND_LEFTBRACKET:
+        {
+            UNIMPLEMENTED();
             break;
         }
 
@@ -1378,6 +1422,12 @@ static Expression* parse_type_declaration( Parser* parser )
     }
 
     expression->type_declaration.rvalue = type_rvalue;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
+    {
+        return NULL;
+    }
 
     return expression;
 }
