@@ -319,34 +319,36 @@ static void generate_rvalue( FILE* file, SemanticContext* context, Expression* e
 
 static void generate_variable_declaration( FILE* file, SemanticContext* context, Expression* expression )
 {
-    Type type = expression->variable_declaration.type;
-    char* identifier = expression->variable_declaration.identifier;
-    Expression* rvalue = expression->variable_declaration.rvalue;
+    UNIMPLEMENTED();
 
-    generate_type( file, type );
-    append( file, " %s", identifier );
+    /* Type type = expression->variable_declaration.type; */
+    /* char* identifier = expression->variable_declaration.identifier; */
+    /* Expression* rvalue = expression->variable_declaration.rvalue; */
 
-    if( rvalue != NULL )
-    {
-        append( file, " = " );
-        generate_rvalue( file, context, rvalue );
-    }
-    else if( type.kind == TYPEKIND_ARRAY && rvalue == NULL )
-    {
-        Expression right_side = {
-            .kind = EXPRESSIONKIND_ARRAY,
-            .array = {
-                .type = type,
-                .count_initialized = 0,
-                .initialized_rvalues = NULL,
-            },
-        };
+    /* generate_type( file, type ); */
+    /* append( file, " %s", identifier ); */
 
-        append( file, " = " );
-        generate_array( file, context, &right_side );
-    }
+    /* if( rvalue != NULL ) */
+    /* { */
+    /*     append( file, " = " ); */
+    /*     generate_rvalue( file, context, rvalue ); */
+    /* } */
+    /* else if( type.kind == TYPEKIND_ARRAY && rvalue == NULL ) */
+    /* { */
+    /*     Expression right_side = { */
+    /*         .kind = EXPRESSIONKIND_ARRAY, */
+    /*         .array = { */
+    /*             .type = type, */
+    /*             .count_initialized = 0, */
+    /*             .initialized_rvalues = NULL, */
+    /*         }, */
+    /*     }; */
 
-    append( file, ";\n" );
+    /*     append( file, " = " ); */
+    /*     generate_array( file, context, &right_side ); */
+    /* } */
+
+    /* append( file, ";\n" ); */
 }
 
 static void generate_function_declaration( FILE* file, SemanticContext* context,  Expression* expression )
@@ -501,7 +503,7 @@ static void generate_compound_definition( FILE* file,  Expression* expression, T
     bool is_struct = expression->compound_definition.is_struct;
     append( file, "%s {\n", is_struct ? "struct" : "union" );
 
-    SymbolTable* member_symbol_table = type_definition.definition.info->compound.member_symbols;
+    SymbolTable* member_symbol_table = type_definition.definition.info->compound.member_symbol_table;
     int member_count = expression->compound_definition.member_count;
     for( int i = 0; i < member_count; i++ )
     {
@@ -546,78 +548,82 @@ static void generate_type_rvalue( FILE* file, Expression* type_rvalue, Type type
 
 static void generate_type_declaration( FILE* file, SemanticContext* context, Expression* expression )
 {
-    char* type_identifier = expression->type_declaration.identifier_token.as_string;
-    Type type_definition = symbol_table_lookup( context->symbol_table, type_identifier )->type;
+    UNIMPLEMENTED();
 
-    append( file, "typedef " );
+    /* char* type_identifier = expression->type_declaration.identifier_token.as_string; */
+    /* Type type_definition = symbol_table_lookup( context->symbol_table, type_identifier )->type; */
 
-    Expression* type_rvalue = expression->type_declaration.rvalue;
-    generate_type_rvalue( file, type_rvalue, type_definition );
-    append( file, " %s;\n", type_definition.token.as_string );
+    /* append( file, "typedef " ); */
+
+    /* Expression* type_rvalue = expression->type_declaration.rvalue; */
+    /* generate_type_rvalue( file, type_rvalue, type_definition ); */
+    /* append( file, " %s;\n", type_definition.token.as_string ); */
 
 
-    // generate all pointer and array types associated with the declared type
-    Type* pointer_types = type_definition.definition.pointer_types;
-    int pointer_types_length = lvec_get_length( pointer_types );
-    for( int j = pointer_types_length - 1; j >= 0; j-- )
-    {
-        Type base_type = pointer_types[ j ];
-        generate_pointer_type_definition( file, base_type );
-    }
+    /* // generate all pointer and array types associated with the declared type */
+    /* Type* pointer_types = type_definition.definition.pointer_types; */
+    /* int pointer_types_length = lvec_get_length( pointer_types ); */
+    /* for( int j = pointer_types_length - 1; j >= 0; j-- ) */
+    /* { */
+    /*     Type base_type = pointer_types[ j ]; */
+    /*     generate_pointer_type_definition( file, base_type ); */
+    /* } */
 
-    // generate typedefs for arrays
-    Type* array_types = type_definition.definition.array_types;
-    int array_types_length = lvec_get_length( array_types );
-    for( int j = array_types_length - 1; j >= 0; j-- )
-    {
-        Type base_type = array_types[ j ];
-        generate_array_type_definition( file, base_type );
-    }
+    /* // generate typedefs for arrays */
+    /* Type* array_types = type_definition.definition.array_types; */
+    /* int array_types_length = lvec_get_length( array_types ); */
+    /* for( int j = array_types_length - 1; j >= 0; j-- ) */
+    /* { */
+    /*     Type base_type = array_types[ j ]; */
+    /*     generate_array_type_definition( file, base_type ); */
+    /* } */
 }
 
 void generate_code( FILE* file, SemanticContext* context, Expression* expression )
 {
-    // temporary
-    static bool first = true;
-    if( first )
-    {
-        first = false;
+    UNIMPLEMENTED();
 
-        append( file, "#include \"octoruntime/types.h\"\n" );
+    /* // temporary */
+    /* static bool first = true; */
+    /* if( first ) */
+    /* { */
+    /*     first = false; */
 
-        // generate code for pointers and arrays for primitive types
-        for( int i = 0; i < context->symbol_table.length; i++ )
-        {
-            Type type = context->symbol_table.symbols[ i ].type;
-            if( type.kind != TYPEKIND_DEFINITION )
-            {
-                continue;
-            }
+    /*     append( file, "#include \"octoruntime/types.h\"\n" ); */
 
-            if( type.definition.info->kind == TYPEKIND_COMPOUND )
-            {
-                continue;
-            }
+    /*     // generate code for pointers and arrays for primitive types */
+    /*     for( int i = 0; i < context->symbol_table.length; i++ ) */
+    /*     { */
+    /*         Type type = context->symbol_table.symbols[ i ].type; */
+    /*         if( type.kind != TYPEKIND_DEFINITION ) */
+    /*         { */
+    /*             continue; */
+    /*         } */
 
-            // generate typedefs for pointers
-            Type* pointer_types = type.definition.pointer_types;
-            int pointer_types_length = lvec_get_length( pointer_types );
-            for( int j = pointer_types_length - 1; j >= 0; j-- )
-            {
-                Type base_type = pointer_types[ j ];
-                generate_pointer_type_definition( file, base_type );
-            }
+    /*         if( type.definition.info->kind == TYPEKIND_COMPOUND ) */
+    /*         { */
+    /*             continue; */
+    /*         } */
 
-            // generate typedefs for arrays
-            Type* array_types = type.definition.array_types;
-            int array_types_length = lvec_get_length( array_types );
-            for( int j = array_types_length - 1; j >= 0; j-- )
-            {
-                Type base_type = array_types[ j ];
-                generate_array_type_definition( file, base_type );
-            }
-        }
-    }
+    /*         // generate typedefs for pointers */
+    /*         Type* pointer_types = type.definition.pointer_types; */
+    /*         int pointer_types_length = lvec_get_length( pointer_types ); */
+    /*         for( int j = pointer_types_length - 1; j >= 0; j-- ) */
+    /*         { */
+    /*             Type base_type = pointer_types[ j ]; */
+    /*             generate_pointer_type_definition( file, base_type ); */
+    /*         } */
+
+    /*         // generate typedefs for arrays */
+    /*         Type* array_types = type.definition.array_types; */
+    /*         int array_types_length = lvec_get_length( array_types ); */
+    /*         for( int j = array_types_length - 1; j >= 0; j-- ) */
+    /*         { */
+    /*             Type base_type = array_types[ j ]; */
+    /*             generate_array_type_definition( file, base_type ); */
+    /*         } */
+    /*     } */
+    /* } */
 
     switch( expression->kind )
     {

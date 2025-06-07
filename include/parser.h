@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "tokenizer.h"
-#include "type.h"
+// #include "type.h"
 
 typedef enum BinaryOperation
 {
@@ -70,6 +70,7 @@ typedef enum ExpressionKind
     // type rvalues
     EXPRESSIONKIND_TYPEIDENTIFIER,
     EXPRESSIONKIND_POINTERTYPE,
+    EXPRESSIONKIND_ARRAYTYPE,
     EXPRESSIONKIND_COMPOUNDDEFINITION,
 } ExpressionKind;
 
@@ -94,7 +95,13 @@ typedef struct Expression
 
         struct
         {
-            struct Expression* base_type;
+            struct Expression* base_type_rvalue;
+            int length; // if -1, then its to be inferred
+        } array_type;
+
+        struct
+        {
+            struct Expression* base_type_rvalue;
         } pointer_type;
 
         struct
@@ -105,7 +112,7 @@ typedef struct Expression
         struct
         {
             char* as_string;
-            Type type;
+            // Type type;
         } identifier;
 
         struct
@@ -139,7 +146,7 @@ typedef struct Expression
             char* identifier;
             Token identifier_token;
 
-            Type type;
+            struct Expression* type_rvalue;
 
             struct Expression* rvalue;
         } variable_declaration;
@@ -152,16 +159,14 @@ typedef struct Expression
 
         struct
         {
-            char* identifier;
             Token identifier_token;
 
-            Type return_type;
+            struct Expression* return_type_rvalue;
 
             // arrays to hold params info
-            char** param_identifiers;
             Token* param_identifiers_tokens;
 
-            Type* param_types;
+            struct Expression* param_type_rvalues;
 
             int param_count;
 
@@ -200,15 +205,14 @@ typedef struct Expression
 
         struct
         {
-            Type type;
-            // Token type_token;
+            struct Expression* base_type_rvalue;
             int count_initialized; // number of values initialized in the array literal
             struct Expression* initialized_rvalues;
         } array;
 
         struct
         {
-            Type type; // to be filled in during semantic analysis
+            // Type type; // to be filled in during semantic analysis
             struct Expression* lvalue;
             struct Expression* index_rvalue;
         } array_subscript;
@@ -219,7 +223,7 @@ typedef struct Expression
             // "num" is the iterator
             // "nums" is the iterable
 
-            Type iterator_type; // to be filled in during semantic analysis
+            // Type iterator_type; // to be filled in during semantic analysis
             Token iterator_token;
             struct Expression* iterable_rvalue;
             struct Expression* body;

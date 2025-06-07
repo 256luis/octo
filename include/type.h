@@ -37,25 +37,21 @@ typedef struct Type
         struct
         {
             struct Type* info;
-
-            // arrays
-            struct Type* pointer_types;
-            struct Type* array_types;
         } definition;
 
         struct
         {
             struct Type* definition;
 
-            /* // arrays */
-            /* struct Type* pointer_types; */
-            /* struct Type* array_types; */
+            // arrays
+            struct Type* pointer_types;
+            struct Type* array_types;
         } custom;
 
         struct
         {
             // char* identifier;
-            SymbolTable* member_symbols;
+            SymbolTable* member_symbol_table;
             bool is_struct;
         } compound;
 

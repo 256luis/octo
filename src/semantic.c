@@ -1,3 +1,5 @@
+#include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -171,8 +173,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &void_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -187,8 +187,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &i8_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -203,8 +201,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &i16_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -219,8 +215,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &i32_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -235,8 +229,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &i64_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -251,8 +243,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &u8_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -267,8 +257,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &u16_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -283,8 +271,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &u32_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -299,8 +285,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &u64_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -315,8 +299,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &f32_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -331,8 +313,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &f64_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -363,8 +343,6 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_DEFINITION,
             .definition = {
                 .info = &char_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
             }
         },
     };
@@ -1095,6 +1073,16 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
         return false;
     }
 
+    if( original_declaration->type.kind == TYPEKIND_DEFINITION )
+    {
+        Error error = {
+            .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
+            .offending_token = identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
+
     *inferred_type = original_declaration->type;
     expression->identifier.type = *inferred_type;
 
@@ -1459,7 +1447,7 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
     }
 
     Token member_identifier_token = expression->member_access.member_identifier_token;
-    Symbol* member_symbol = symbol_table_lookup( *lvalue_type.compound.member_symbols, member_identifier_token.as_string );
+    Symbol* member_symbol = symbol_table_lookup( *lvalue_type.compound.member_symbol_table, member_identifier_token.as_string );
     if( member_symbol == NULL )
     {
         Error error = {
@@ -1518,7 +1506,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     for( int i = 0; i < initialized_count; i++ )
     {
         Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ];
-        Symbol* member_symbol = symbol_table_lookup( *type_info.compound.member_symbols, member_identifier_token.as_string );
+        Symbol* member_symbol = symbol_table_lookup( *type_info.compound.member_symbol_table, member_identifier_token.as_string );
         if( member_symbol == NULL )
         {
             Error error = {
@@ -1589,13 +1577,36 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
 
         case EXPRESSIONKIND_INTEGER:
         {
+            uint64_t num = expression->integer;
+            int bit_count;
+            bool is_signed;
+            if( num <= INT32_MAX )
+            {
+                bit_count = 32;
+                is_signed = true;
+            }
+            else if( num <= INT64_MAX )
+            {
+                bit_count = 64;
+                is_signed = true;
+            }
+            else // if( num <= UINT64_MAX )
+            {
+                bit_count = 64;
+                is_signed = false;
+            }
+
             inferred_type->kind = TYPEKIND_INTEGER;
 
-            // default int type is i32
-            inferred_type->integer.bit_count = 32;
-            inferred_type->integer.is_signed = true;
+            char* as_string = malloc( 4 );
+            sprintf( as_string, "%c%d",
+                     is_signed ? 'i' : 'u',
+                     bit_count );
+
+            inferred_type->integer.bit_count = bit_count;
+            inferred_type->integer.is_signed = is_signed;
             inferred_type->token = ( Token ){
-                .as_string = "i32"
+                .as_string = as_string,
             };
             break;
         }
@@ -1671,6 +1682,55 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
     return is_valid;
 }
 
+static bool implicit_cast_possible( Type to, Type from )
+{
+    if( type_equals( to, from ) )
+    {
+        return true;
+    }
+
+    if( to.kind != from.kind )
+    {
+        return false;
+    }
+
+    switch( to.kind )
+    {
+        case TYPEKIND_INTEGER:
+        {
+            // only lossless conversions are allowed
+            // u8 -> u16 OK
+            // u8 -> i16 OK
+            // u8 -> i8  NOT OK
+            // i8 -> u* NOT OK
+            // i8 -> i16 OK
+
+            if( to.integer.is_signed == from.integer.is_signed )
+            {
+                return to.integer.bit_count >= from.integer.bit_count;
+            }
+            else if( to.integer.is_signed && !from.integer.is_signed )
+            {
+                return to.integer.bit_count > from.integer.bit_count;
+            }
+
+            return false;
+        }
+
+        case TYPEKIND_FLOAT:
+        {
+            // only lossless conversions are allowed
+            return to.floating.bit_count >= from.floating.bit_count;
+        }
+
+        case TYPEKIND_FUNCTION:
+        {
+            UNIMPLEMENTED();
+        }
+    }
+}
+
+static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
 static bool check_variable_declaration( SemanticContext* context, Expression* expression )
 {
     Token identifier_token = expression->variable_declaration.identifier_token;
@@ -1689,93 +1749,86 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         return false;
     }
 
-    Type found_type = expression->variable_declaration.type;
-    if( found_type.kind != TYPEKIND_TOINFER && !check_type( context, &found_type ) )
+    // get declared type if its there
+    Type declared_type = ( Type ){ .kind = TYPEKIND_TOINFER };
+    Expression* type_rvalue = expression->variable_declaration.type_rvalue;
+    if( type_rvalue != NULL )
     {
-        return false;
+        Type declared_type_definition;
+        if ( !check_type_rvalue( context, type_rvalue, &declared_type_definition ) )
+        {
+            return false;
+        }
+
+        if( declared_type_definition.kind != TYPEKIND_DEFINITION )
+        {
+            Error error = {
+                .kind = ERRORKIND_NOTATYPE,
+                .offending_token = type_rvalue->starting_token
+            };
+            report_error( error );
+            return false;
+        }
+
+        declared_type = *declared_type_definition.definition.info;
     }
 
-    if( found_type.kind == TYPEKIND_VOID )
+    if( declared_type.kind == TYPEKIND_VOID )
     {
         Error error = {
             .kind = ERRORKIND_VOIDVARIABLE,
-            .offending_token = found_type.token,
+            .offending_token = type_rvalue->starting_token
         };
         report_error( error );
         return false;
     }
 
-    // check if the type at the left hand side matches the type on the right hand
-    // side, or if there is an implicit cast possible.
-    Type inferred_type;
+    Type variable_type;
     Expression* rvalue = expression->variable_declaration.rvalue;
     if( rvalue != NULL )
     {
-        // infer type from value
-        bool is_valid = check_rvalue( context, rvalue, &inferred_type );
-        if( !is_valid )
+        Type inferred_type;
+        if( !check_rvalue( context, rvalue, &inferred_type ) )
         {
             return false;
         }
 
-        if( inferred_type.kind == TYPEKIND_VOID )
+        if( declared_type.kind == TYPEKIND_TOINFER )
         {
-            Error error = {
-                .kind = ERRORKIND_VOIDVARIABLE,
-                .offending_token = expression->variable_declaration.rvalue->starting_token,
-            };
-            report_error( error );
-            return false;
+            variable_type = inferred_type;
         }
-        else if( inferred_type.kind == TYPEKIND_DEFINITION )
+        else
         {
-            Error error = {
-                .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
-                .offending_token = expression->variable_declaration.rvalue->starting_token,
-            };
-            report_error( error );
-            return false;
-        }
+            // UNIMPLEMENTED();
+            // check compatibility between types
+            if( !implicit_cast_possible( declared_type, inferred_type ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_INVALIDIMPLICITCAST,
+                    .offending_token = rvalue->starting_token,
+                    .invalid_implicit_cast = {
+                        .to = declared_type,
+                        .from = inferred_type,
+                    }
+                };
+                report_error( error );
+                return false;
+            }
 
-        if( found_type.kind == TYPEKIND_TOINFER )
-        {
-            found_type = inferred_type;
-        }
-        else if( !check_type( context, &found_type ) )
-        {
-            return false;
-        }
-
-        Error error;
-        bool are_types_compatible = check_type_compatibility( found_type, &inferred_type, &error );
-        if( !are_types_compatible )
-        {
-            error.offending_token = expression->variable_declaration.rvalue->starting_token;
-            report_error( error );
-            return false;
-        }
-
-        if( found_type.kind == TYPEKIND_ARRAY )
-        {
-            found_type = inferred_type;
+            variable_type = declared_type;
         }
     }
-    else if( found_type.kind == TYPEKIND_ARRAY && found_type.array.length == -1 )
+    else
     {
-        Error error = {
-            .kind = ERRORKIND_CANNOTINFERARRAYLENGTH,
-            .offending_token = expression->variable_declaration.type.token,
-        };
-        report_error( error );
-        return false;
+        // we can assume here that declared_type.kind can never be TOINFER because
+        // that would be a parsing error
+        variable_type = declared_type;
     }
-
-    expression->variable_declaration.type = found_type;
 
     // add to symbol table
     Symbol symbol = {
         .token = identifier_token,
-        .type = found_type,
+        .type = variable_type,
     };
     symbol_table_push_symbol( &context->symbol_table, symbol );
 
@@ -2178,7 +2231,6 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
     return true;
 }
 
-static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
 static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
     bool is_struct = type_rvalue->compound_definition.is_struct;
@@ -2239,7 +2291,7 @@ static bool check_compound_definition( SemanticContext* context, Expression* typ
         .token = ( Token ){ .as_string = "<anonymous>"},
         .compound = {
             // .identifier = "<anonymous>",
-            .member_symbols = member_symbol_table,
+            .member_symbol_table = member_symbol_table,
         }
     };
 
@@ -2286,25 +2338,33 @@ static bool check_type_identifier( SemanticContext* context, Expression* express
 
 static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
-    bool is_valid;
     switch( type_rvalue->kind )
     {
         case EXPRESSIONKIND_COMPOUNDDEFINITION:
         {
-            is_valid = check_compound_definition( context, type_rvalue, out_type );
-            break;
+            return check_compound_definition( context, type_rvalue, out_type );
         }
 
         case EXPRESSIONKIND_TYPEIDENTIFIER:
         {
-            is_valid = check_type_identifier( context, type_rvalue, out_type );
-            break;
+            return check_type_identifier( context, type_rvalue, out_type );
         }
 
         case EXPRESSIONKIND_POINTERTYPE:
         {
             UNIMPLEMENTED();
-            break;
+            /* Type base_type_definition; */
+            /* if ( !check_type_rvalue( context, type_rvalue->pointer_type.base_type_rvalue, &base_type_definition ) ) */
+            /* { */
+            /*     return false; */
+            /* } */
+
+            /* Type pointer_type = { */
+            /*     .kind = TYPEKIND_DEFINITION, */
+            /*     .definition = */
+            /* }; */
+
+            return true;
         }
 
         default:
@@ -2313,7 +2373,7 @@ static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue
         }
     }
 
-    return is_valid;
+    // return is_valid;
 }
 
 static bool check_type_declaration( SemanticContext* context, Expression* expression )

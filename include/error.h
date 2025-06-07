@@ -3,6 +3,7 @@
 
 #include "parser.h"
 #include "tokenizer.h"
+#include "type.h"
 
 typedef enum ErrorKind
 {
