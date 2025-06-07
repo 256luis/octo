@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -67,287 +66,338 @@ void semantic_context_initialize( SemanticContext* context )
         },
     };
 
-    static Type void_type_info = {
+    Type* void_definition = malloc( sizeof( Type ) );
+    *void_definition = ( Type ){
         .kind = TYPEKIND_VOID,
-        .token = { .as_string = "void" },
     };
 
-    static Type i8_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "i8" },
-        .integer = {
-            .bit_count = 8,
-            .is_signed = true,
-        },
-    };
-    static Type i16_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "i16" },
-        .integer = {
-            .bit_count = 16,
-            .is_signed = true,
-        },
-    };
-    static Type i32_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "i32" },
-        .integer = {
-            .bit_count = 32,
-            .is_signed = true,
-        },
-    };
-    static Type i64_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "i64" },
-        .integer = {
-            .bit_count = 64,
-            .is_signed = true,
-        },
-    };
-
-    static Type u8_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "u8" },
-        .integer = {
-            .bit_count = 8,
-            .is_signed = false,
-        },
-    };
-    static Type u16_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "u16" },
-        .integer = {
-            .bit_count = 16,
-            .is_signed = false,
-        },
-    };
-    static Type u32_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "u32" },
-        .integer = {
-            .bit_count = 32,
-            .is_signed = false,
-        },
-    };
-    static Type u64_type_info = {
-        .kind = TYPEKIND_INTEGER,
-        .token = { .as_string = "u64" },
-        .integer = {
-            .bit_count = 64,
-            .is_signed = false,
-        },
-    };
-
-    static Type f32_type_info = {
-        .kind = TYPEKIND_FLOAT,
-        .token = { .as_string = "f32" },
-        .floating = {
-            .bit_count = 32,
-        },
-    };
-    static Type f64_type_info = {
-        .kind = TYPEKIND_FLOAT,
-        .token = { .as_string = "f64" },
-        .floating = {
-            .bit_count = 64,
-        },
-    };
-
-    static Type bool_type_info = {
-        .kind = TYPEKIND_BOOLEAN,
-        .token = { .as_string = "bool" },
-    };
-
-    static Type char_type_info = {
-        .kind = TYPEKIND_CHARACTER,
-        .token = { .as_string = "char" },
+    Type* void_info = malloc( sizeof( Type ) );
+    *void_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = void_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
     };
 
     Symbol void_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "void",
-            .identifier = "void",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &void_type_info,
-            }
-        },
+        .token = { .as_string = "void" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = void_info,
+        }
     };
 
-    Symbol i8_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "i8",
-            .identifier = "i8",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &i8_type_info,
-            }
-        },
+    Type* char_definition = malloc( sizeof( Type ) );
+    *char_definition = ( Type ){
+        .kind = TYPEKIND_CHARACTER,
     };
 
-    Symbol i16_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "i16",
-            .identifier = "i16",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &i16_type_info,
-            }
-        },
-    };
-
-    Symbol i32_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "i32",
-            .identifier = "i32",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &i32_type_info,
-            }
-        },
-    };
-
-    Symbol i64_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "i64",
-            .identifier = "i64",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &i64_type_info,
-            }
-        },
-    };
-
-    Symbol u8_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "u8",
-            .identifier = "u8",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &u8_type_info,
-            }
-        },
-    };
-
-    Symbol u16_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "u16",
-            .identifier = "u16",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &u16_type_info,
-            }
-        },
-    };
-
-    Symbol u32_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "u32",
-            .identifier = "u32",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &u32_type_info,
-            }
-        },
-    };
-
-    Symbol u64_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "u64",
-            .identifier = "u64",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &u64_type_info,
-            }
-        },
-    };
-
-    Symbol f32_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "f32",
-            .identifier = "f32",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &f32_type_info,
-            }
-        },
-    };
-
-    Symbol f64_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "f64",
-            .identifier = "f64",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &f64_type_info,
-            }
-        },
-    };
-
-    Symbol bool_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "bool",
-            .identifier = "bool",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &bool_type_info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
-            }
-        },
+    Type* char_info = malloc( sizeof( Type ) );
+    *char_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = char_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
     };
 
     Symbol char_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "char",
-            .identifier = "char",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = &char_type_info,
-            }
-        },
+        .token = { .as_string = "char" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = char_info,
+        }
     };
 
-    // symbol_table_push_scope( &context->symbol_table );
+    Type* bool_definition = malloc( sizeof( Type ) );
+    *bool_definition = ( Type ){
+        .kind = TYPEKIND_BOOLEAN,
+    };
+
+    Type* bool_info = malloc( sizeof( Type ) );
+    *bool_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = bool_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol bool_symbol = {
+        .token = { .as_string = "bool" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = bool_info,
+        }
+    };
+
+    Type* i8_definition = malloc( sizeof( Type ) );
+    *i8_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 8,
+            .is_signed = true,
+        }
+    };
+
+    Type* i8_info = malloc( sizeof( Type ) );
+    *i8_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = i8_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol i8_symbol = {
+        .token = { .as_string = "i8" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = i8_info,
+        }
+    };
+
+    Type* i16_definition = malloc( sizeof( Type ) );
+    *i16_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 16,
+            .is_signed = true,
+        }
+    };
+
+    Type* i16_info = malloc( sizeof( Type ) );
+    *i16_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = i16_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol i16_symbol = {
+        .token = { .as_string = "i16" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = i16_info,
+        }
+    };
+
+    Type* i32_definition = malloc( sizeof( Type ) );
+    *i32_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 32,
+            .is_signed = true,
+        }
+    };
+
+    Type* i32_info = malloc( sizeof( Type ) );
+    *i32_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = i32_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol i32_symbol = {
+        .token = { .as_string = "i32" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = i32_info,
+        }
+    };
+
+    Type* i64_definition = malloc( sizeof( Type ) );
+    *i64_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 64,
+            .is_signed = true,
+        }
+    };
+
+    Type* i64_info = malloc( sizeof( Type ) );
+    *i64_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = i64_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol i64_symbol = {
+        .token = { .as_string = "i64" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = i64_info,
+        }
+    };
+
+    Type* u8_definition = malloc( sizeof( Type ) );
+    *u8_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 8,
+            .is_signed = false,
+        }
+    };
+
+    Type* u8_info = malloc( sizeof( Type ) );
+    *u8_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = u8_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol u8_symbol = {
+        .token = { .as_string = "u8" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = u8_info,
+        }
+    };
+
+    Type* u16_definition = malloc( sizeof( Type ) );
+    *u16_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 16,
+            .is_signed = false,
+        }
+    };
+
+    Type* u16_info = malloc( sizeof( Type ) );
+    *u16_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = u16_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol u16_symbol = {
+        .token = { .as_string = "u16" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = u16_info,
+        }
+    };
+
+    Type* u32_definition = malloc( sizeof( Type ) );
+    *u32_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 32,
+            .is_signed = false,
+        }
+    };
+
+    Type* u32_info = malloc( sizeof( Type ) );
+    *u32_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = u32_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol u32_symbol = {
+        .token = { .as_string = "u32" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = u32_info,
+        }
+    };
+
+    Type* u64_definition = malloc( sizeof( Type ) );
+    *u64_definition = ( Type ){
+        .kind = TYPEKIND_INTEGER,
+        .integer = {
+            .bit_count = 64,
+            .is_signed = false,
+        }
+    };
+
+    Type* u64_info = malloc( sizeof( Type ) );
+    *u64_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = u64_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol u64_symbol = {
+        .token = { .as_string = "u64" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = u64_info,
+        }
+    };
+
+    Type* f32_definition = malloc( sizeof( Type ) );
+    *f32_definition = ( Type ){
+        .kind = TYPEKIND_FLOAT,
+        .floating.bit_count = 32,
+    };
+
+    Type* f32_info = malloc( sizeof( Type ) );
+    *f32_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = f32_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol f32_symbol = {
+        .token = { .as_string = "f32" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = f32_info,
+        }
+    };
+
+    Type* f64_definition = malloc( sizeof( Type ) );
+    *f64_definition = ( Type ){
+        .kind = TYPEKIND_FLOAT,
+        .floating.bit_count = 64,
+    };
+
+    Type* f64_info = malloc( sizeof( Type ) );
+    *f64_info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .definition = f64_definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        }
+    };
+
+    Symbol f64_symbol = {
+        .token = { .as_string = "f64" },
+        .type = {
+            .kind = TYPEKIND_TYPE,
+            .type.info = f64_info,
+        }
+    };
 
     symbol_table_push_symbol( &context->symbol_table, true_symbol );
     symbol_table_push_symbol( &context->symbol_table, false_symbol );
@@ -447,9 +497,9 @@ bool type_equals( Type t1, Type t2 )
             return are_lengths_equal && are_base_types_equal;
         }
 
-        case TYPEKIND_DEFINITION:
+        case TYPEKIND_TYPE:
         {
-            return type_equals( *t1.definition.info, *t2.definition.info );
+            return type_equals( *t1.type.info, *t2.type.info );
         }
 
         default: // TOINFER and INVALID
@@ -491,9 +541,9 @@ Type get_definition_type( SemanticContext* context, Type type )
             return get_definition_type( context, *type.array.base_type );
         }
 
-        case TYPEKIND_DEFINITION:
+        case TYPEKIND_TYPE:
         {
-            return get_definition_type( context, *type.definition.info );
+            return get_definition_type( context, *type.type.info );
         }
 
         default: // invalid and toinfer
@@ -505,36 +555,40 @@ Type get_definition_type( SemanticContext* context, Type type )
 
 void add_array_type( Type definition_type, Type array_base_type )
 {
-    // check if type is already in array
-    Type* pointer_types = definition_type.definition.array_types;
+    UNIMPLEMENTED();
 
-    for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ )
-    {
-        Type t = pointer_types[ i ];
-        if( type_equals( t, array_base_type ) )
-        {
-            return;
-        }
-    }
+    /* // check if type is already in array */
+    /* Type* pointer_types = definition_type.definition.array_types; */
 
-    lvec_append_aggregate( definition_type.definition.array_types, array_base_type );
+    /* for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ ) */
+    /* { */
+    /*     Type t = pointer_types[ i ]; */
+    /*     if( type_equals( t, array_base_type ) ) */
+    /*     { */
+    /*         return; */
+    /*     } */
+    /* } */
+
+    /* lvec_append_aggregate( definition_type.definition.array_types, array_base_type ); */
 }
 
 void add_pointer_type( Type definition_type, Type pointer_base_type )
 {
-    // check if type is already in array
-    Type* pointer_types = definition_type.definition.pointer_types;
+    UNIMPLEMENTED();
 
-    for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ )
-    {
-        Type t = pointer_types[ i ];
-        if( type_equals( t, pointer_base_type ) )
-        {
-            return;
-        }
-    }
+    /* // check if type is already in array */
+    /* Type* pointer_types = definition_type.definition.pointer_types; */
 
-    lvec_append_aggregate( definition_type.definition.pointer_types, pointer_base_type );
+    /* for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ ) */
+    /* { */
+    /*     Type t = pointer_types[ i ]; */
+    /*     if( type_equals( t, pointer_base_type ) ) */
+    /*     { */
+    /*         return; */
+    /*     } */
+    /* } */
+
+    /* lvec_append_aggregate( definition_type.definition.pointer_types, pointer_base_type ); */
 }
 
 static bool try_implicit_cast( Type destination_type, Type* out_type )
@@ -739,9 +793,9 @@ bool check_type( SemanticContext* context, Type* out_type )
             /* return true; */
         }
 
-        case TYPEKIND_DEFINITION:
+        case TYPEKIND_TYPE:
         {
-            return check_type( context, out_type->definition.info );
+            return check_type( context, out_type->type.info );
         }
 
         default: // TOINFER and INVALID
@@ -1073,7 +1127,7 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
         return false;
     }
 
-    if( original_declaration->type.kind == TYPEKIND_DEFINITION )
+    if( original_declaration->type.kind == TYPEKIND_TYPE )
     {
         Error error = {
             .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
@@ -1084,89 +1138,91 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
     }
 
     *inferred_type = original_declaration->type;
-    expression->identifier.type = *inferred_type;
+    // expression->identifier.type = *inferred_type;
 
     return true;
 }
 
 static bool check_function_call( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    Token identifier_token = expression->function_call.identifier_token;
-    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
-    if( original_declaration == NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_UNDECLAREDSYMBOL,
-            .offending_token = identifier_token,
-        };
+    UNIMPLEMENTED();
 
-        report_error( error );
-        return false;
-    }
+    /* Token identifier_token = expression->function_call.identifier_token; */
+    /* Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier ); */
+    /* if( original_declaration == NULL ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_UNDECLAREDSYMBOL, */
+    /*         .offending_token = identifier_token, */
+    /*     }; */
 
-    // check if args count match param count
-    Type* param_types = original_declaration->type.function.param_types;
-    int param_count = original_declaration->type.function.param_count;
-    int arg_count = expression->function_call.arg_count;
-    bool is_variadic = original_declaration->type.function.is_variadic;
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    bool is_argument_count_valid;
-    if( is_variadic )
-    {
-        is_argument_count_valid = arg_count >= param_count;
-    }
-    else
-    {
-        is_argument_count_valid = arg_count == param_count;
-    }
+    /* // check if args count match param count */
+    /* Type* param_types = original_declaration->type.function.param_types; */
+    /* int param_count = original_declaration->type.function.param_count; */
+    /* int arg_count = expression->function_call.arg_count; */
+    /* bool is_variadic = original_declaration->type.function.is_variadic; */
 
-    if( !is_argument_count_valid )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDARGUMENTCOUNT,
-            .offending_token = identifier_token,
-            .too_many_arguments = {
-                .expected = param_count,
-                .found = arg_count,
-            },
-        };
-        report_error( error );
-        return false;
-    }
+    /* bool is_argument_count_valid; */
+    /* if( is_variadic ) */
+    /* { */
+    /*     is_argument_count_valid = arg_count >= param_count; */
+    /* } */
+    /* else */
+    /* { */
+    /*     is_argument_count_valid = arg_count == param_count; */
+    /* } */
 
-    // check if args are valid
-    for( int i = 0; i < arg_count; i++ )
-    {
-        Expression* arg = expression->function_call.args[ i ];
-        Type arg_type;
+    /* if( !is_argument_count_valid ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDARGUMENTCOUNT, */
+    /*         .offending_token = identifier_token, */
+    /*         .too_many_arguments = { */
+    /*             .expected = param_count, */
+    /*             .found = arg_count, */
+    /*         }, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-        bool is_arg_valid = check_rvalue( context, arg, &arg_type );
-        if( !is_arg_valid )
-        {
-            // no need to report error here because that is handled by check_rvalue
-            return false;
-        }
+    /* // check if args are valid */
+    /* for( int i = 0; i < arg_count; i++ ) */
+    /* { */
+    /*     Expression* arg = expression->function_call.args[ i ]; */
+    /*     Type arg_type; */
 
-        if( i < param_count )
-        {
-            Type param_type = param_types[ i ];
-            Error error;
-            bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error );
-            if( !are_types_compatible )
-            {
-                error.offending_token = arg->starting_token;
-                report_error( error );
-                return false;
-            }
-        }
-    }
+    /*     bool is_arg_valid = check_rvalue( context, arg, &arg_type ); */
+    /*     if( !is_arg_valid ) */
+    /*     { */
+    /*         // no need to report error here because that is handled by check_rvalue */
+    /*         return false; */
+    /*     } */
 
-    if( inferred_type != NULL )
-    {
-        *inferred_type = *original_declaration->type.function.return_type;
-    }
+    /*     if( i < param_count ) */
+    /*     { */
+    /*         Type param_type = param_types[ i ]; */
+    /*         Error error; */
+    /*         bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error ); */
+    /*         if( !are_types_compatible ) */
+    /*         { */
+    /*             error.offending_token = arg->starting_token; */
+    /*             report_error( error ); */
+    /*             return false; */
+    /*         } */
+    /*     } */
+    /* } */
 
-    return true;
+    /* if( inferred_type != NULL ) */
+    /* { */
+    /*     *inferred_type = *original_declaration->type.function.return_type; */
+    /* } */
+
+    /* return true; */
 }
 
 static bool is_unary_operation_valid( UnaryOperation operation, Type type )
@@ -1295,131 +1351,135 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
 
 static bool check_array( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    Type declared_type = expression->array.type;
+    UNIMPLEMENTED();
 
-    if( !check_type( context, &declared_type ) )
-    {
-        return false;
-    }
+    /* Type declared_type = expression->array.type; */
 
-    int found_length = declared_type.array.length;
-    int count_initialized = expression->array.count_initialized;
+    /* if( !check_type( context, &declared_type ) ) */
+    /* { */
+    /*     return false; */
+    /* } */
 
-    // declared_length being -1 means it is to be inferred
-    if( found_length == -1 && count_initialized == 0 )
-    {
-        Error error = {
-            .kind = ERRORKIND_ZEROLENGTHARRAY,
-            .offending_token = expression->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* int found_length = declared_type.array.length; */
+    /* int count_initialized = expression->array.count_initialized; */
 
-    if( found_length == -1 )
-    {
-        found_length = count_initialized;
-    }
-    else if( found_length < count_initialized )
-    {
-        Error error = {
-            .kind = ERRORKING_ARRAYLENGTHMISMATCH,
-            .offending_token = expression->starting_token,
-            .array_length_mismatch = {
-                .expected = found_length,
-                .found = count_initialized,
-            },
-        };
-        report_error( error );
-        return false;
-    }
+    /* // declared_length being -1 means it is to be inferred */
+    /* if( found_length == -1 && count_initialized == 0 ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_ZEROLENGTHARRAY, */
+    /*         .offending_token = expression->starting_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    bool are_initializers_valid = true;
-    for( int i = 0; i < count_initialized; i++ )
-    {
-        Type element_type;
-        Expression* element_rvalue = &expression->array.initialized_rvalues[ i ];
-        if( !check_rvalue( context, element_rvalue, &element_type ) )
-        {
-            are_initializers_valid = false;
-        }
+    /* if( found_length == -1 ) */
+    /* { */
+    /*     found_length = count_initialized; */
+    /* } */
+    /* else if( found_length < count_initialized ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKING_ARRAYLENGTHMISMATCH, */
+    /*         .offending_token = expression->starting_token, */
+    /*         .array_length_mismatch = { */
+    /*             .expected = found_length, */
+    /*             .found = count_initialized, */
+    /*         }, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-        if( !type_equals( element_type, *declared_type.array.base_type ) )
-        {
-            Error error = {
-                .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = element_rvalue->starting_token,
-                .type_mismatch = {
-                    .expected = *declared_type.array.base_type,
-                    .found = element_type,
-                },
-            };
-            report_error( error );
-            are_initializers_valid = false;
-        }
-    }
+    /* bool are_initializers_valid = true; */
+    /* for( int i = 0; i < count_initialized; i++ ) */
+    /* { */
+    /*     Type element_type; */
+    /*     Expression* element_rvalue = &expression->array.initialized_rvalues[ i ]; */
+    /*     if( !check_rvalue( context, element_rvalue, &element_type ) ) */
+    /*     { */
+    /*         are_initializers_valid = false; */
+    /*     } */
 
-    if( !are_initializers_valid )
-    {
-        return false;
-    }
+    /*     if( !type_equals( element_type, *declared_type.array.base_type ) ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_TYPEMISMATCH, */
+    /*             .offending_token = element_rvalue->starting_token, */
+    /*             .type_mismatch = { */
+    /*                 .expected = *declared_type.array.base_type, */
+    /*                 .found = element_type, */
+    /*             }, */
+    /*         }; */
+    /*         report_error( error ); */
+    /*         are_initializers_valid = false; */
+    /*     } */
+    /* } */
 
-    inferred_type->kind = TYPEKIND_ARRAY;
-    inferred_type->array.length = found_length;
-    inferred_type->array.base_type = declared_type.array.base_type;
+    /* if( !are_initializers_valid ) */
+    /* { */
+    /*     return false; */
+    /* } */
 
-    Type definition_type = get_definition_type( context, *inferred_type );
+    /* inferred_type->kind = TYPEKIND_ARRAY; */
+    /* inferred_type->array.length = found_length; */
+    /* inferred_type->array.base_type = declared_type.array.base_type; */
 
-    add_array_type( definition_type, *inferred_type->array.base_type );
+    /* Type definition_type = get_definition_type( context, *inferred_type ); */
 
-    // for AST printing in debug.c
-    expression->array.type = *inferred_type;
+    /* add_array_type( definition_type, *inferred_type->array.base_type ); */
 
-    return true;
+    /* // for AST printing in debug.c */
+    /* expression->array.type = *inferred_type; */
+
+    /* return true; */
 }
 
 static bool check_array_subscript( SemanticContext* context, Expression* expression, Type* out_type )
 {
-    Expression* index_rvalue = expression->array_subscript.index_rvalue;
-    Expression* lvalue = expression->array_subscript.lvalue;
+    UNIMPLEMENTED();
 
-    Type lvalue_type;
-    if( !check_lvalue( context, lvalue, &lvalue_type ) )
-    {
-        return false;
-    }
+    /* Expression* index_rvalue = expression->array_subscript.index_rvalue; */
+    /* Expression* lvalue = expression->array_subscript.lvalue; */
 
-    // only arrays can be subscripted
-    if( lvalue_type.kind != TYPEKIND_ARRAY )
-    {
-        Error error = {
-            .kind = ERRORKIND_NOTANARRAY,
-            .offending_token = lvalue->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* Type lvalue_type; */
+    /* if( !check_lvalue( context, lvalue, &lvalue_type ) ) */
+    /* { */
+    /*     return false; */
+    /* } */
 
-    Type index_rvalue_type;
-    if( !check_rvalue( context, index_rvalue, &index_rvalue_type ) )
-    {
-        return false;
-    }
+    /* // only arrays can be subscripted */
+    /* if( lvalue_type.kind != TYPEKIND_ARRAY ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_NOTANARRAY, */
+    /*         .offending_token = lvalue->starting_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    if( index_rvalue_type.kind != TYPEKIND_INTEGER )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDARRAYSUBSCRIPT,
-            .offending_token = index_rvalue->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* Type index_rvalue_type; */
+    /* if( !check_rvalue( context, index_rvalue, &index_rvalue_type ) ) */
+    /* { */
+    /*     return false; */
+    /* } */
 
-    expression->array_subscript.type = lvalue_type;
-    *out_type = *lvalue_type.array.base_type;
+    /* if( index_rvalue_type.kind != TYPEKIND_INTEGER ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDARRAYSUBSCRIPT, */
+    /*         .offending_token = index_rvalue->starting_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    return true;
+    /* expression->array_subscript.type = lvalue_type; */
+    /* *out_type = *lvalue_type.array.base_type; */
+
+    /* return true; */
 }
 
 static bool check_member_access( SemanticContext* context, Expression* expression, Type* inferred_type )
@@ -1481,7 +1541,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     }
 
     Type type = type_symbol->type;
-    if( type.kind != TYPEKIND_DEFINITION )
+    if( type.kind != TYPEKIND_TYPE )
     {
         Error error = {
             .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
@@ -1491,7 +1551,7 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
         return false;
     }
 
-    Type type_info = *type.definition.info;
+    Type type_info = *type.type.info;
     if( type_info.kind != TYPEKIND_COMPOUND )
     {
         Error error = {
@@ -1760,7 +1820,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
             return false;
         }
 
-        if( declared_type_definition.kind != TYPEKIND_DEFINITION )
+        if( declared_type_definition.kind != TYPEKIND_TYPE )
         {
             Error error = {
                 .kind = ERRORKIND_NOTATYPE,
@@ -1770,9 +1830,21 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
             return false;
         }
 
-        declared_type = *declared_type_definition.definition.info;
+        // anonymous types are not allowed!
+        if( declared_type_definition.type.info->kind != TYPEKIND_NAMED )
+        {
+            Error error = {
+                .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
+                .offending_token = type_rvalue->starting_token
+            };
+            report_error( error );
+            return false;
+        }
+
+        declared_type = *declared_type_definition.type.info->named.definition;
     }
 
+    // void variables are not allowed
     if( declared_type.kind == TYPEKIND_VOID )
     {
         Error error = {
@@ -1783,6 +1855,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         return false;
     }
 
+    // check if inferred type matches declared type
     Type variable_type;
     Expression* rvalue = expression->variable_declaration.rvalue;
     if( rvalue != NULL )
@@ -1799,7 +1872,6 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         }
         else
         {
-            // UNIMPLEMENTED();
             // check compatibility between types
             if( !implicit_cast_possible( declared_type, inferred_type ) )
             {
@@ -1863,123 +1935,125 @@ static bool check_compound( SemanticContext* context, Expression* expression )
 
 static bool check_function_declaration( SemanticContext* context,Expression* expression, bool is_extern )
 {
-    Token identifier_token = expression->function_declaration.identifier_token;
+    UNIMPLEMENTED();
 
-    // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
-    if( original_declaration != NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_SYMBOLREDECLARATION,
-            .offending_token = identifier_token,
-            .symbol_redeclaration.original_declaration_token = original_declaration->token,
-        };
+    /* Token identifier_token = expression->function_declaration.identifier_token; */
 
-        report_error( error );
-        return false;
-    }
+    /* // check if identifier already in symbol table */
+    /* Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier ); */
+    /* if( original_declaration != NULL ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_SYMBOLREDECLARATION, */
+    /*         .offending_token = identifier_token, */
+    /*         .symbol_redeclaration.original_declaration_token = original_declaration->token, */
+    /*     }; */
 
-    Type* param_types = expression->function_declaration.param_types;
-    Type* return_type = &expression->function_declaration.return_type;
-    int param_count = expression->function_declaration.param_count;
-    bool is_variadic = expression->function_declaration.is_variadic;
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    // add to symbol table
-    Symbol symbol = {
-        .token = identifier_token,
-        .type = ( Type ){
-            .kind = TYPEKIND_FUNCTION,
-            .function = {
-                .param_types = param_types,
-                .return_type = return_type,
-                .param_count = param_count,
-                .is_variadic = is_variadic,
-            }
-        },
-    };
-    symbol_table_push_symbol( &context->symbol_table, symbol );
+    /* Type* param_types = expression->function_declaration.param_types; */
+    /* Type* return_type = &expression->function_declaration.return_type; */
+    /* int param_count = expression->function_declaration.param_count; */
+    /* bool is_variadic = expression->function_declaration.is_variadic; */
 
-    // check function params
-    symbol_table_push_scope( &context->symbol_table );
-    for( int i = 0; i < expression->function_declaration.param_count; i++ )
-    {
-        Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
-        Type param_type = expression->function_declaration.param_types[ i ];
-        // Token param_type_token = expression->function_declaration.param_types_tokens[ i ];
-        if( !check_type( context, &param_type ) )
-        {
-            return false;
-        }
+    /* // add to symbol table */
+    /* Symbol symbol = { */
+    /*     .token = identifier_token, */
+    /*     .type = ( Type ){ */
+    /*         .kind = TYPEKIND_FUNCTION, */
+    /*         .function = { */
+    /*             .param_types = param_types, */
+    /*             .return_type = return_type, */
+    /*             .param_count = param_count, */
+    /*             .is_variadic = is_variadic, */
+    /*         } */
+    /*     }, */
+    /* }; */
+    /* symbol_table_push_symbol( &context->symbol_table, symbol ); */
 
-        if( param_type.kind == TYPEKIND_VOID )
-        {
-            Error error = {
-                .kind = ERRORKIND_VOIDVARIABLE,
-                .offending_token = param_type.token,
-            };
-            report_error( error );
-            return false;
-        }
+    /* // check function params */
+    /* symbol_table_push_scope( &context->symbol_table ); */
+    /* for( int i = 0; i < expression->function_declaration.param_count; i++ ) */
+    /* { */
+    /*     Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ]; */
+    /*     Type param_type = expression->function_declaration.param_types[ i ]; */
+    /*     // Token param_type_token = expression->function_declaration.param_types_tokens[ i ]; */
+    /*     if( !check_type( context, &param_type ) ) */
+    /*     { */
+    /*         return false; */
+    /*     } */
 
-        Symbol* declaration = symbol_table_lookup( context->symbol_table, param_identifier_token.identifier );
-        if( declaration != NULL )
-        {
-            Error error = {
-                .kind = ERRORKIND_SYMBOLREDECLARATION,
-                .offending_token = param_identifier_token,
-                .symbol_redeclaration.original_declaration_token = declaration->token,
-            };
+    /*     if( param_type.kind == TYPEKIND_VOID ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_VOIDVARIABLE, */
+    /*             .offending_token = param_type.token, */
+    /*         }; */
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
 
-            report_error( error );
-            return false;
-        }
+    /*     Symbol* declaration = symbol_table_lookup( context->symbol_table, param_identifier_token.identifier ); */
+    /*     if( declaration != NULL ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_SYMBOLREDECLARATION, */
+    /*             .offending_token = param_identifier_token, */
+    /*             .symbol_redeclaration.original_declaration_token = declaration->token, */
+    /*         }; */
 
-        Symbol symbol = {
-            .token = param_identifier_token,
-            .type = param_type,
-        };
-        symbol_table_push_symbol( &context->symbol_table, symbol );
-    }
-    // symbol_table_pop_scope( &context->symbol_table );
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
 
-    push_return_type( context, *return_type );
+    /*     Symbol symbol = { */
+    /*         .token = param_identifier_token, */
+    /*         .type = param_type, */
+    /*     }; */
+    /*     symbol_table_push_symbol( &context->symbol_table, symbol ); */
+    /* } */
+    /* // symbol_table_pop_scope( &context->symbol_table ); */
 
-    // check function body
-    Expression* function_body = expression->function_declaration.body;
-    if( function_body == NULL && !is_extern )
-    {
-        Error error = {
-            .kind = ERRORKIND_MISSINGFUNCTIONBODY,
-            .offending_token = expression->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
-    else if( function_body != NULL && is_extern )
-    {
-        Error error = {
-            .kind = ERRORKIND_EXTERNWITHBODY,
-            .offending_token = expression->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* push_return_type( context, *return_type ); */
 
-    bool is_body_valid = true;
-    if( !is_extern )
-    {
-        is_body_valid = check_compound( context, function_body );
-    }
+    /* // check function body */
+    /* Expression* function_body = expression->function_declaration.body; */
+    /* if( function_body == NULL && !is_extern ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_MISSINGFUNCTIONBODY, */
+    /*         .offending_token = expression->starting_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
+    /* else if( function_body != NULL && is_extern ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_EXTERNWITHBODY, */
+    /*         .offending_token = expression->starting_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    symbol_table_pop_scope( &context->symbol_table );
-    pop_return_type( context );
+    /* bool is_body_valid = true; */
+    /* if( !is_extern ) */
+    /* { */
+    /*     is_body_valid = check_compound( context, function_body ); */
+    /* } */
 
-    if( !is_body_valid )
-    {
-        return false;
-    }
+    /* symbol_table_pop_scope( &context->symbol_table ); */
+    /* pop_return_type( context ); */
 
-    return true;
+    /* if( !is_body_valid ) */
+    /* { */
+    /*     return false; */
+    /* } */
+
+    /* return true; */
 }
 
 bool check_return( SemanticContext* context, Expression* expression )
@@ -2092,7 +2166,7 @@ bool check_assignment( SemanticContext* context, Expression* expression )
         return false;
     }
 
-    if( found_rvalue_type.kind == TYPEKIND_DEFINITION )
+    if( found_rvalue_type.kind == TYPEKIND_TYPE )
     {
         Error error = {
             .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
@@ -2168,143 +2242,147 @@ static bool check_conditional( SemanticContext* context, Expression* expression 
 
 static bool check_for_loop( SemanticContext* context, Expression* expression )
 {
-    // no symbol redeclarations!
-    Token iterator_token = expression->for_loop.iterator_token;
-    Symbol* iterator_symbol = symbol_table_lookup( context->symbol_table, iterator_token.identifier );
-    if( iterator_symbol != NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_SYMBOLREDECLARATION,
-            .offending_token = iterator_token,
-            .symbol_redeclaration.original_declaration_token = iterator_token
-        };
-        report_error( error );
-        return false;
-    }
+    UNIMPLEMENTED();
 
-    // check iterable and get type
-    Expression* iterable_rvalue = expression->for_loop.iterable_rvalue;
-    Type inferred_type;
-    if ( !check_rvalue( context, iterable_rvalue, &inferred_type ) )
-    {
-        return NULL;
-    }
+    /* // no symbol redeclarations! */
+    /* Token iterator_token = expression->for_loop.iterator_token; */
+    /* Symbol* iterator_symbol = symbol_table_lookup( context->symbol_table, iterator_token.identifier ); */
+    /* if( iterator_symbol != NULL ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_SYMBOLREDECLARATION, */
+    /*         .offending_token = iterator_token, */
+    /*         .symbol_redeclaration.original_declaration_token = iterator_token */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    if( inferred_type.kind != TYPEKIND_ARRAY )
-    {
-        Error error = {
-            .kind = ERRORKIND_NOTANITERATOR,
-            .offending_token = iterable_rvalue->starting_token
-        };
-        report_error( error );
-        return false;
-    }
+    /* // check iterable and get type */
+    /* Expression* iterable_rvalue = expression->for_loop.iterable_rvalue; */
+    /* Type inferred_type; */
+    /* if ( !check_rvalue( context, iterable_rvalue, &inferred_type ) ) */
+    /* { */
+    /*     return NULL; */
+    /* } */
 
-    symbol_table_push_scope( &context->symbol_table );
+    /* if( inferred_type.kind != TYPEKIND_ARRAY ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_NOTANITERATOR, */
+    /*         .offending_token = iterable_rvalue->starting_token */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    // add iterator to symbeol table
-    // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol
-    // because its a pointer and id have to either allocate memory or create
-    // a compound literal then get its address and i DONT WANNA DO EITHER OF THOSE
-    Type iterator_type = {
-        .kind = TYPEKIND_REFERENCE,
-        .reference.base_type = inferred_type.array.base_type
-    };
-    // *iterator_type.reference.base_type = *;
+    /* symbol_table_push_scope( &context->symbol_table ); */
 
-    Symbol iterator_symbol2 = {
-        .token = iterator_token,
-        .type = iterator_type
-    };
-    symbol_table_push_symbol( &context->symbol_table, iterator_symbol2 );
-    expression->for_loop.iterator_type = iterator_type;
+    /* // add iterator to symbeol table */
+    /* // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol */
+    /* // because its a pointer and id have to either allocate memory or create */
+    /* // a compound literal then get its address and i DONT WANNA DO EITHER OF THOSE */
+    /* Type iterator_type = { */
+    /*     .kind = TYPEKIND_REFERENCE, */
+    /*     .reference.base_type = inferred_type.array.base_type */
+    /* }; */
+    /* // *iterator_type.reference.base_type = *; */
 
-    Expression* body = expression->for_loop.body;
-    if( !check_compound( context, body ) )
-    {
-        symbol_table_pop_scope( &context->symbol_table );
-        return false;
-    }
+    /* Symbol iterator_symbol2 = { */
+    /*     .token = iterator_token, */
+    /*     .type = iterator_type */
+    /* }; */
+    /* symbol_table_push_symbol( &context->symbol_table, iterator_symbol2 ); */
+    /* expression->for_loop.iterator_type = iterator_type; */
 
-    symbol_table_pop_scope( &context->symbol_table );
+    /* Expression* body = expression->for_loop.body; */
+    /* if( !check_compound( context, body ) ) */
+    /* { */
+    /*     symbol_table_pop_scope( &context->symbol_table ); */
+    /*     return false; */
+    /* } */
 
-    return true;
+    /* symbol_table_pop_scope( &context->symbol_table ); */
+
+    /* return true; */
 }
 
 static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
-    bool is_struct = type_rvalue->compound_definition.is_struct;
-    Expression* member_type_rvalues = type_rvalue->compound_definition.member_type_rvalues;
-    Token* member_identifier_tokens = type_rvalue->compound_definition.member_identifier_tokens;
-    int member_count = type_rvalue->compound_definition.member_count;
+    UNIMPLEMENTED();
 
-    SymbolTable* member_symbol_table = malloc( sizeof( SymbolTable ) );
-    symbol_table_initialize( member_symbol_table );
+    /* bool is_struct = type_rvalue->compound_definition.is_struct; */
+    /* Expression* member_type_rvalues = type_rvalue->compound_definition.member_type_rvalues; */
+    /* Token* member_identifier_tokens = type_rvalue->compound_definition.member_identifier_tokens; */
+    /* int member_count = type_rvalue->compound_definition.member_count; */
 
-    for( int i = 0; i < member_count; i++ )
-    {
-        // check type of member
-        Expression member_type_rvalue = member_type_rvalues[ i ];
-        Type member_type_definition;
-        if( !check_type_rvalue( context, &member_type_rvalue, &member_type_definition ) )
-        {
-            return false;
-        }
+    /* SymbolTable* member_symbol_table = malloc( sizeof( SymbolTable ) ); */
+    /* symbol_table_initialize( member_symbol_table ); */
 
-        Type member_type = *member_type_definition.definition.info;
+    /* for( int i = 0; i < member_count; i++ ) */
+    /* { */
+    /*     // check type of member */
+    /*     Expression member_type_rvalue = member_type_rvalues[ i ]; */
+    /*     Type member_type_definition; */
+    /*     if( !check_type_rvalue( context, &member_type_rvalue, &member_type_definition ) ) */
+    /*     { */
+    /*         return false; */
+    /*     } */
 
-        // void members are not allowed in struct types
-        if( member_type.kind == TYPEKIND_VOID && is_struct )
-        {
-            Error error = {
-                .kind = ERRORKIND_VOIDVARIABLE,
-                .offending_token = member_type_rvalue.type_identifier.token,
-            };
-            report_error( error );
-            return false;
-        }
+    /*     Type member_type = *member_type_definition.definition.info; */
 
-        // check if member is already declared within the struct
-        Token member_identifier_token = member_identifier_tokens[ i ];
-        Symbol* lookup_result = symbol_table_lookup( *member_symbol_table, member_identifier_token.as_string );
-        if( lookup_result != NULL )
-        {
-            Error error = {
-                .kind = ERRORKIND_SYMBOLREDECLARATION,
-                .offending_token = member_identifier_token,
-                .symbol_redeclaration.original_declaration_token = lookup_result->token,
-            };
-            report_error( error );
-            return false;
-        }
+    /*     // void members are not allowed in struct types */
+    /*     if( member_type.kind == TYPEKIND_VOID && is_struct ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_VOIDVARIABLE, */
+    /*             .offending_token = member_type_rvalue.type_identifier.token, */
+    /*         }; */
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
 
-        Symbol member_symbol = {
-            .token = member_identifier_token,
-            .type = member_type
-        };
-        symbol_table_push_symbol( member_symbol_table, member_symbol );
-    }
+    /*     // check if member is already declared within the struct */
+    /*     Token member_identifier_token = member_identifier_tokens[ i ]; */
+    /*     Symbol* lookup_result = symbol_table_lookup( *member_symbol_table, member_identifier_token.as_string ); */
+    /*     if( lookup_result != NULL ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_SYMBOLREDECLARATION, */
+    /*             .offending_token = member_identifier_token, */
+    /*             .symbol_redeclaration.original_declaration_token = lookup_result->token, */
+    /*         }; */
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
 
-    Type* info = malloc( sizeof( Type ) );
-    *info = ( Type ){
-        .kind = TYPEKIND_COMPOUND,
-        .token = ( Token ){ .as_string = "<anonymous>"},
-        .compound = {
-            // .identifier = "<anonymous>",
-            .member_symbol_table = member_symbol_table,
-        }
-    };
+    /*     Symbol member_symbol = { */
+    /*         .token = member_identifier_token, */
+    /*         .type = member_type */
+    /*     }; */
+    /*     symbol_table_push_symbol( member_symbol_table, member_symbol ); */
+    /* } */
 
-    *out_type = ( Type ){
-        .kind = TYPEKIND_DEFINITION,
-        .definition = {
-            .info = info,
-            .pointer_types = lvec_new( Type ),
-            .array_types = lvec_new( Type ),
-        }
-    };
+    /* Type* info = malloc( sizeof( Type ) ); */
+    /* *info = ( Type ){ */
+    /*     .kind = TYPEKIND_COMPOUND, */
+    /*     .token = ( Token ){ .as_string = "<anonymous>"}, */
+    /*     .compound = { */
+    /*         // .identifier = "<anonymous>", */
+    /*         .member_symbol_table = member_symbol_table, */
+    /*     } */
+    /* }; */
 
-    return true;
+    /* *out_type = ( Type ){ */
+    /*     .kind = TYPEKIND_DEFINITION, */
+    /*     .definition = { */
+    /*         .info = info, */
+    /*         .pointer_types = lvec_new( Type ), */
+    /*         .array_types = lvec_new( Type ), */
+    /*     } */
+    /* }; */
+
+    /* return true; */
 }
 
 static bool check_type_identifier( SemanticContext* context, Expression* expression, Type* out_type )
@@ -2321,7 +2399,7 @@ static bool check_type_identifier( SemanticContext* context, Expression* express
         return false;
     }
     Type type = lookup_result->type;
-    if( type.kind != TYPEKIND_DEFINITION )
+    if( type.kind != TYPEKIND_TYPE )
     {
         Error error = {
             .kind = ERRORKIND_NOTATYPE,
@@ -2378,47 +2456,49 @@ static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue
 
 static bool check_type_declaration( SemanticContext* context, Expression* expression )
 {
-    // check if type name is already in symbol table
-    Token identifier_token = expression->type_declaration.identifier_token;
-    Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string );
-    if( symbol != NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_SYMBOLREDECLARATION,
-            .offending_token = identifier_token,
-            .symbol_redeclaration.original_declaration_token = identifier_token
-        };
-        report_error( error );
-        return false;
-    }
+    UNIMPLEMENTED();
 
-    Expression* type_rvalue = expression->type_declaration.rvalue;
-    Type* definition = malloc( sizeof( Type ) );
-    if( !check_type_rvalue( context, type_rvalue, definition ) )
-    {
-        return false;
-    }
+    /* // check if type name is already in symbol table */
+    /* Token identifier_token = expression->type_declaration.identifier_token; */
+    /* Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string ); */
+    /* if( symbol != NULL ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_SYMBOLREDECLARATION, */
+    /*         .offending_token = identifier_token, */
+    /*         .symbol_redeclaration.original_declaration_token = identifier_token */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    Type* info = malloc( sizeof( Type ) );
-    *info = ( Type ){
-        .kind = TYPEKIND_CUSTOM,
-        .custom.definition = definition
-    };
+    /* Expression* type_rvalue = expression->type_declaration.rvalue; */
+    /* Type* definition = malloc( sizeof( Type ) ); */
+    /* if( !check_type_rvalue( context, type_rvalue, definition ) ) */
+    /* { */
+    /*     return false; */
+    /* } */
 
-    Symbol type_declaration_symbol = {
-        .token = identifier_token,
-        .type = ( Type ){
-            .kind = TYPEKIND_DEFINITION,
-            .definition = {
-                .info = info,
-                .pointer_types = lvec_new( Type ),
-                .array_types = lvec_new( Type ),
-            }
-        }
-    };
+    /* Type* info = malloc( sizeof( Type ) ); */
+    /* *info = ( Type ){ */
+    /*     .kind = TYPEKIND_CUSTOM, */
+    /*     .custom.definition = definition */
+    /* }; */
 
-    symbol_table_push_symbol( &context->symbol_table, type_declaration_symbol );
-    return true;
+    /* Symbol type_declaration_symbol = { */
+    /*     .token = identifier_token, */
+    /*     .type = ( Type ){ */
+    /*         .kind = TYPEKIND_DEFINITION, */
+    /*         .definition = { */
+    /*             .info = info, */
+    /*             .pointer_types = lvec_new( Type ), */
+    /*             .array_types = lvec_new( Type ), */
+    /*         } */
+    /*     } */
+    /* }; */
+
+    /* symbol_table_push_symbol( &context->symbol_table, type_declaration_symbol ); */
+    /* return true; */
 }
 
 bool check_semantics( SemanticContext* context, Expression* expression )

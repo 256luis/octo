@@ -182,7 +182,7 @@ void print_type( Type type )
             break;
         }
 
-        case TYPEKIND_DEFINITION:
+        case TYPEKIND_TYPE:
         {
             printf( "type" );
             break;
@@ -439,13 +439,15 @@ void report_error( Error error )
 
         case ERRORKIND_MISSINGMEMBER:
         {
-            Type parent_type = error.missing_member.parent_type;
-            printf( "no member \'%s\' in type \'%s\'\n",
-                    offending_token.as_string,
-                    parent_type.token.as_string );
-            source_code_print_line( g_source_code, offending_token.line );
-            printf( "\n        %*c\n", offending_token.column, '^' );
-            break;
+            UNIMPLEMENTED();
+
+            /* Type parent_type = error.missing_member.parent_type; */
+            /* printf( "no member \'%s\' in type \'%s\'\n", */
+            /*         offending_token.as_string, */
+            /*         parent_type.token.as_string ); */
+            /* source_code_print_line( g_source_code, offending_token.line ); */
+            /* printf( "\n        %*c\n", offending_token.column, '^' ); */
+            /* break; */
         }
 
         case ERRORKIND_INVALIDCOMPOUNDLITERAL:
@@ -475,6 +477,14 @@ void report_error( Error error )
         case ERRORKIND_NOTCOMPOUND:
         {
             printf( "not a compound type\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_INVALIDANONYMOUSTYPE:
+        {
+            printf( "anonymous type not allowed here\n" );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;

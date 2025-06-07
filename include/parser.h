@@ -112,7 +112,6 @@ typedef struct Expression
         struct
         {
             char* as_string;
-            // Type type;
         } identifier;
 
         struct
@@ -134,7 +133,6 @@ typedef struct Expression
 
         struct
         {
-            char* identifier;
             Token identifier_token;
 
             struct Expression** args; // array of expression pointers

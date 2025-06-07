@@ -20,8 +20,8 @@ typedef enum TypeKind
     TYPEKIND_POINTER,
     TYPEKIND_REFERENCE,
     TYPEKIND_ARRAY,
-    TYPEKIND_DEFINITION,
-    TYPEKIND_CUSTOM,
+    TYPEKIND_TYPE,
+    TYPEKIND_NAMED,
 
     TYPEKIND_TOINFER,
     TYPEKIND_INVALID,
@@ -37,7 +37,7 @@ typedef struct Type
         struct
         {
             struct Type* info;
-        } definition;
+        } type;
 
         struct
         {
@@ -46,7 +46,7 @@ typedef struct Type
             // arrays
             struct Type* pointer_types;
             struct Type* array_types;
-        } custom;
+        } named;
 
         struct
         {

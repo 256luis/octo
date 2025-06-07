@@ -290,90 +290,90 @@ static Expression* parse_function_call( Parser* parser )
     return expression;
 }
 
-static Type parse_base_type( Parser* parser )
-{
-    Type result;
-    result.token = parser->current_token;
-    char* type_identifier = parser->current_token.identifier;
+/* static Type parse_base_type( Parser* parser ) */
+/* { */
+/*     Type result; */
+/*     result.token = parser->current_token; */
+/*     char* type_identifier = parser->current_token.identifier; */
 
-    if( strcmp( type_identifier, "i8" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 8;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "i16" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 16;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "i32" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 32;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "i64" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 64;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "u8" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 8;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "u16" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 16;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "u32" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 32;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "u64" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 64;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "f32" ) == 0 )
-    {
-        result.kind = TYPEKIND_FLOAT;
-        result.floating.bit_count = 32;
-    }
-    else if( strcmp( type_identifier, "f64" ) == 0 )
-    {
-        result.kind = TYPEKIND_FLOAT;
-        result.floating.bit_count = 64;
-    }
-    else if( strcmp( type_identifier, "char" ) == 0 )
-    {
-        result.kind = TYPEKIND_CHARACTER;
-    }
-    else if( strcmp( type_identifier, "bool" ) == 0 )
-    {
-        result.kind = TYPEKIND_BOOLEAN;
-    }
-    else if( strcmp( type_identifier, "void" ) == 0 )
-    {
-        result.kind = TYPEKIND_VOID;
-    }
-    else // custom type
-    {
-        result.kind = TYPEKIND_COMPOUND;
-        // result.compound.identifier = type_identifier;
-    }
+/*     if( strcmp( type_identifier, "i8" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 8; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "i16" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 16; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "i32" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 32; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "i64" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 64; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u8" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 8; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u16" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 16; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u32" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 32; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u64" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 64; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "f32" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_FLOAT; */
+/*         result.floating.bit_count = 32; */
+/*     } */
+/*     else if( strcmp( type_identifier, "f64" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_FLOAT; */
+/*         result.floating.bit_count = 64; */
+/*     } */
+/*     else if( strcmp( type_identifier, "char" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_CHARACTER; */
+/*     } */
+/*     else if( strcmp( type_identifier, "bool" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_BOOLEAN; */
+/*     } */
+/*     else if( strcmp( type_identifier, "void" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_VOID; */
+/*     } */
+/*     else // custom type */
+/*     { */
+/*         result.kind = TYPEKIND_COMPOUND; */
+/*         // result.compound.identifier = type_identifier; */
+/*     } */
 
-    return result;
-}
+/*     return result; */
+/* } */
 
 // static Type parse_type( Parser* parser );
 static Expression* parse_type_rvalue( Parser* parser );

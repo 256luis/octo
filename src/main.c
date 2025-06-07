@@ -39,13 +39,13 @@ int main( int argc, char* argv[] )
     }
     lvec_free( tokens );
 
-    /* SemanticContext semantic_context; */
-    /* semantic_context_initialize( &semantic_context ); */
-    /* bool is_valid = check_semantics( &semantic_context, program ); */
-    /* if( !is_valid ) */
-    /* { */
-    /*     return 1; */
-    /* } */
+    SemanticContext semantic_context;
+    semantic_context_initialize( &semantic_context );
+    bool is_valid = check_semantics( &semantic_context, program );
+    if( !is_valid )
+    {
+        return 1;
+    }
 
     /* char file_name[256]; */
     /* sprintf( file_name, "%s.c", g_source_code.path ); */

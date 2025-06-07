@@ -330,7 +330,7 @@ void expression_print( Expression* expression )
             printf( "type = " );
             expression_print( expression->variable_declaration.type_rvalue );
             // debug_print_type( expression->variable_declaration.type );
-            putchar( '\n' );
+            // putchar( '\n' );
 
             INDENT();
             printf( "value = " );
@@ -344,7 +344,7 @@ void expression_print( Expression* expression )
                 printf( "(null)" );
             }
 
-            putchar( '\n' );
+            // putchar( '\n' );
             depth--;
             INDENT();
             printf( "}\n" );
