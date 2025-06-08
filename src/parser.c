@@ -9,7 +9,6 @@
 #include "debug.h"
 #include "error.h"
 #include "lvec.h"
-#include "type.h"
 
 #define EXPECT( parser_ptr, ... )\
     _expect( parser_ptr, ( TokenKind[] ){ __VA_ARGS__ },\
@@ -935,7 +934,6 @@ static Expression* parse_variable_declaration( Parser* parser )
         return NULL;
     }
 
-    expression->variable_declaration.identifier = parser->current_token.identifier;
     expression->variable_declaration.identifier_token = parser->current_token;
 
     advance( parser );
@@ -1093,9 +1091,14 @@ static Expression* parse_function_declaration( Parser* parser )
 
                 advance( parser );
                 Expression* param_type_rvalue = parse_type_rvalue( parser );
+                if( param_type_rvalue == NULL )
+                {
+                    return NULL;
+                }
+
                 Token param_type_token = parser->current_token;
 
-                lvec_append_aggregate( param_type_rvalues, param_type_rvalue );
+                lvec_append_aggregate( param_type_rvalues, *param_type_rvalue );
                 lvec_append_aggregate( param_types_tokens, param_type_token );
 
                 expression->function_declaration.param_count++;
@@ -1129,7 +1132,6 @@ static Expression* parse_function_declaration( Parser* parser )
 
         // expression->function_declaration.param_identifiers = param_identifiers;
         expression->function_declaration.param_type_rvalues = param_type_rvalues;
-
         expression->function_declaration.param_identifiers_tokens = param_identifiers_tokens;
     }
 

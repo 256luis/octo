@@ -2,18 +2,23 @@
 #define TYPE_H
 
 #include "tokenizer.h"
+#include <emmintrin.h>
 
 // forward declaration to avoid circular include
 typedef struct SymbolTable SymbolTable;
 
 typedef enum TypeKind
 {
+    // primitive types
     TYPEKIND_VOID,
     TYPEKIND_INTEGER,
     TYPEKIND_FLOAT,
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
+
     TYPEKIND_FUNCTION,
+
+    // anonymous types
     TYPEKIND_COMPOUND,
 
     // referential types
@@ -41,6 +46,7 @@ typedef struct Type
 
         struct
         {
+            char* as_string;
             struct Type* definition;
 
             // arrays

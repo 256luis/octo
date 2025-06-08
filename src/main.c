@@ -53,6 +53,12 @@ int main( int argc, char* argv[] )
     /* generate_code( generated_c, &semantic_context, program ); */
     /* fclose( generated_c ); */
 
+    for( int i = 0; i < semantic_context.symbol_table.length; i++ )
+    {
+        Symbol symbol = semantic_context.symbol_table.symbols[ i ];
+        printf( "%s\n", symbol.token.as_string );
+    }
+
     expression_print( program );
 
     /* int octo_exe_path_length = wai_getExecutablePath( NULL, 0, NULL ); */

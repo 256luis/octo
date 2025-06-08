@@ -118,12 +118,15 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_FLOAT ]     = "float",
     [ TYPEKIND_CHARACTER ] = "char",
     [ TYPEKIND_BOOLEAN ]   = "bool",
-    [ TYPEKIND_COMPOUND ]    = "COMPOUND",
-    [ TYPEKIND_POINTER ]   = "POINTER",
     [ TYPEKIND_FUNCTION ]  = "FUNCTION",
+    [ TYPEKIND_COMPOUND ]  = "COMPOUND",
+    [ TYPEKIND_POINTER ]   = "POINTER",
+    [ TYPEKIND_REFERENCE ] = "REFERENCE",
     [ TYPEKIND_ARRAY ]     = "ARRAY",
-    [ TYPEKIND_TOINFER ]   = "TOINFER",
+    [ TYPEKIND_TYPE ]      = "TYPE",
+    [ TYPEKIND_NAMED ]     = "NAMED",
     [ TYPEKIND_INVALID ]   = "INVALID",
+    [ TYPEKIND_TOINFER ]   = "TOINFER",
 };
 
 void debug_print_type( Type type )
@@ -171,6 +174,12 @@ void debug_print_type( Type type )
         case TYPEKIND_FUNCTION:
         {
             UNIMPLEMENTED();
+            break;
+        }
+
+        case TYPEKIND_NAMED:
+        {
+            printf( "(%s)\n", type.named.as_string );
             break;
         }
 
@@ -324,11 +333,11 @@ void expression_print( Expression* expression )
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", expression->variable_declaration.identifier );
+            printf( "identifier = %s\n", expression->variable_declaration.identifier_token.as_string );
 
             INDENT();
             printf( "type = " );
-            expression_print( expression->variable_declaration.type_rvalue );
+            debug_print_type( expression->variable_declaration.variable_type );
             // debug_print_type( expression->variable_declaration.type );
             // putchar( '\n' );
 

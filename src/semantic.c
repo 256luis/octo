@@ -1,3 +1,4 @@
+#include <float.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,8 +22,6 @@ typedef struct TypeKindPair
     TypeKind tk2;
 } TypeKindPair;
 
-bool type_equals( Type t1, Type t2 );
-
 void push_return_type( SemanticContext* context, Type type )
 {
     lvec_append_aggregate( context->return_type_stack, type );
@@ -44,28 +43,6 @@ void semantic_context_initialize( SemanticContext* context )
     symbol_table_initialize( &context->symbol_table );
     context->return_type_stack = lvec_new( Type );
 
-    Symbol true_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "true",
-            .identifier = "true",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_BOOLEAN,
-        },
-    };
-
-    Symbol false_symbol = {
-        .token = ( Token ){
-            .kind = TOKENKIND_IDENTIFIER,
-            .as_string = "false",
-            .identifier = "false",
-        },
-        .type = ( Type ){
-            .kind = TYPEKIND_BOOLEAN,
-        },
-    };
-
     Type* void_definition = malloc( sizeof( Type ) );
     *void_definition = ( Type ){
         .kind = TYPEKIND_VOID,
@@ -75,6 +52,7 @@ void semantic_context_initialize( SemanticContext* context )
     *void_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "void",
             .definition = void_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -98,6 +76,7 @@ void semantic_context_initialize( SemanticContext* context )
     *char_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "char",
             .definition = char_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -121,6 +100,7 @@ void semantic_context_initialize( SemanticContext* context )
     *bool_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "bool",
             .definition = bool_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -133,6 +113,30 @@ void semantic_context_initialize( SemanticContext* context )
             .kind = TYPEKIND_TYPE,
             .type.info = bool_info,
         }
+    };
+
+    Symbol true_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "true",
+            .identifier = "true",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_TYPE,
+            .type.info = bool_info,
+        },
+    };
+
+    Symbol false_symbol = {
+        .token = ( Token ){
+            .kind = TOKENKIND_IDENTIFIER,
+            .as_string = "false",
+            .identifier = "false",
+        },
+        .type = ( Type ){
+            .kind = TYPEKIND_TYPE,
+            .type.info = bool_info,
+        },
     };
 
     Type* i8_definition = malloc( sizeof( Type ) );
@@ -148,6 +152,7 @@ void semantic_context_initialize( SemanticContext* context )
     *i8_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "i8",
             .definition = i8_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -175,6 +180,7 @@ void semantic_context_initialize( SemanticContext* context )
     *i16_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "i16",
             .definition = i16_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -202,6 +208,7 @@ void semantic_context_initialize( SemanticContext* context )
     *i32_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "i32",
             .definition = i32_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -229,6 +236,7 @@ void semantic_context_initialize( SemanticContext* context )
     *i64_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "i64",
             .definition = i64_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -256,6 +264,7 @@ void semantic_context_initialize( SemanticContext* context )
     *u8_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "u8",
             .definition = u8_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -283,6 +292,7 @@ void semantic_context_initialize( SemanticContext* context )
     *u16_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "u16",
             .definition = u16_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -310,6 +320,7 @@ void semantic_context_initialize( SemanticContext* context )
     *u32_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "u32",
             .definition = u32_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -337,6 +348,7 @@ void semantic_context_initialize( SemanticContext* context )
     *u64_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "u64",
             .definition = u64_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -361,6 +373,7 @@ void semantic_context_initialize( SemanticContext* context )
     *f32_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "f32",
             .definition = f32_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -385,6 +398,7 @@ void semantic_context_initialize( SemanticContext* context )
     *f64_info = ( Type ){
         .kind = TYPEKIND_NAMED,
         .named = {
+            .as_string = "f64",
             .definition = f64_definition,
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
@@ -399,8 +413,6 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
-    symbol_table_push_symbol( &context->symbol_table, true_symbol );
-    symbol_table_push_symbol( &context->symbol_table, false_symbol );
     symbol_table_push_symbol( &context->symbol_table, void_symbol );
     symbol_table_push_symbol( &context->symbol_table, i8_symbol );
     symbol_table_push_symbol( &context->symbol_table, i16_symbol );
@@ -414,6 +426,8 @@ void semantic_context_initialize( SemanticContext* context )
     symbol_table_push_symbol( &context->symbol_table, f64_symbol );
     symbol_table_push_symbol( &context->symbol_table, bool_symbol );
     symbol_table_push_symbol( &context->symbol_table, char_symbol );
+    symbol_table_push_symbol( &context->symbol_table, true_symbol );
+    symbol_table_push_symbol( &context->symbol_table, false_symbol );
 }
 
 bool is_type_numeric( Type type )
@@ -502,6 +516,13 @@ bool type_equals( Type t1, Type t2 )
             return type_equals( *t1.type.info, *t2.type.info );
         }
 
+        case TYPEKIND_NAMED:
+        {
+            printf("%s, %s\n", t1.named.as_string, t2.named.as_string);
+            // return type_equals( *t1.named.definition, *t2.named.definition );
+            return strcmp( t1.named.as_string, t2.named.as_string ) == 0;
+        }
+
         default: // TOINFER and INVALID
         {
             UNREACHABLE();
@@ -510,85 +531,155 @@ bool type_equals( Type t1, Type t2 )
     }
 }
 
-Type get_definition_type( SemanticContext* context, Type type )
+/* Type get_definition_type( SemanticContext* context, Type type ) */
+/* { */
+/*     switch( type.kind ) */
+/*     { */
+/*         case TYPEKIND_VOID: */
+/*         case TYPEKIND_INTEGER: */
+/*         case TYPEKIND_FLOAT: */
+/*         case TYPEKIND_CHARACTER: */
+/*         case TYPEKIND_BOOLEAN: */
+/*         case TYPEKIND_FUNCTION: */
+/*         case TYPEKIND_COMPOUND: */
+/*         { */
+/*             Symbol* symbol = symbol_table_lookup( context->symbol_table, type.token.as_string ); */
+/*             return symbol->type; */
+/*         } */
+
+/*         case TYPEKIND_POINTER: */
+/*         { */
+/*             return get_definition_type( context, *type.pointer.base_type ); */
+/*         } */
+
+/*         case TYPEKIND_REFERENCE: */
+/*         { */
+/*             return get_definition_type( context, *type.reference.base_type ); */
+/*         } */
+
+/*         case TYPEKIND_ARRAY: */
+/*         { */
+/*             return get_definition_type( context, *type.array.base_type ); */
+/*         } */
+
+/*         case TYPEKIND_TYPE: */
+/*         { */
+/*             return get_definition_type( context, *type.type.info ); */
+/*         } */
+
+/*         default: // invalid and toinfer */
+/*         { */
+/*             UNREACHABLE(); */
+/*         } */
+/*     } */
+/* } */
+
+void add_array_type( Type base_type )
 {
-    switch( type.kind )
+    // get named type
+    Type named_type = base_type;
+    while( named_type.kind != TYPEKIND_NAMED )
     {
-        case TYPEKIND_VOID:
-        case TYPEKIND_INTEGER:
-        case TYPEKIND_FLOAT:
-        case TYPEKIND_CHARACTER:
-        case TYPEKIND_BOOLEAN:
-        case TYPEKIND_FUNCTION:
-        case TYPEKIND_COMPOUND:
+        switch( named_type.kind )
         {
-            Symbol* symbol = symbol_table_lookup( context->symbol_table, type.token.as_string );
-            return symbol->type;
-        }
+            case TYPEKIND_POINTER:
+            {
+                named_type = *named_type.pointer.base_type;
+                break;
+            }
 
-        case TYPEKIND_POINTER:
-        {
-            return get_definition_type( context, *type.pointer.base_type );
-        }
+            case TYPEKIND_REFERENCE:
+            {
+                named_type = *named_type.reference.base_type;
+                break;
+            }
 
-        case TYPEKIND_REFERENCE:
-        {
-            return get_definition_type( context, *type.reference.base_type );
-        }
+            case TYPEKIND_ARRAY:
+            {
+                named_type = *named_type.array.base_type;
+                break;
+            }
 
-        case TYPEKIND_ARRAY:
-        {
-            return get_definition_type( context, *type.array.base_type );
-        }
+            case TYPEKIND_TYPE:
+            {
+                named_type = *named_type.type.info;
+                break;
+            }
 
-        case TYPEKIND_TYPE:
-        {
-            return get_definition_type( context, *type.type.info );
-        }
-
-        default: // invalid and toinfer
-        {
-            UNREACHABLE();
+            default:
+            {
+                UNREACHABLE();
+            }
         }
     }
+
+    Type* array_types = named_type.named.array_types;
+
+    // check if type is already in array
+    for( size_t i = 0; i < lvec_get_length( array_types ); i++ )
+    {
+        Type t = array_types[ i ];
+        if( type_equals( t, base_type ) )
+        {
+            return;
+        }
+    }
+
+    lvec_append_aggregate( named_type.named.array_types, base_type );
 }
 
-void add_array_type( Type definition_type, Type array_base_type )
+void add_pointer_type( Type base_type )
 {
-    UNIMPLEMENTED();
+    // get named type
+    Type named_type = base_type;
+    while( named_type.kind != TYPEKIND_NAMED )
+    {
+        switch( named_type.kind )
+        {
+            case TYPEKIND_POINTER:
+            {
+                named_type = *named_type.pointer.base_type;
+                break;
+            }
 
-    /* // check if type is already in array */
-    /* Type* pointer_types = definition_type.definition.array_types; */
+            case TYPEKIND_REFERENCE:
+            {
+                named_type = *named_type.reference.base_type;
+                break;
+            }
 
-    /* for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ ) */
-    /* { */
-    /*     Type t = pointer_types[ i ]; */
-    /*     if( type_equals( t, array_base_type ) ) */
-    /*     { */
-    /*         return; */
-    /*     } */
-    /* } */
+            case TYPEKIND_ARRAY:
+            {
+                named_type = *named_type.array.base_type;
+                break;
+            }
 
-    /* lvec_append_aggregate( definition_type.definition.array_types, array_base_type ); */
-}
+            case TYPEKIND_TYPE:
+            {
+                named_type = *named_type.type.info;
+                break;
+            }
 
-void add_pointer_type( Type definition_type, Type pointer_base_type )
-{
-    UNIMPLEMENTED();
+            default:
+            {
+                UNREACHABLE();
+            }
+        }
+    }
 
-    /* // check if type is already in array */
-    /* Type* pointer_types = definition_type.definition.pointer_types; */
+    Type* pointer_types = named_type.named.pointer_types;
 
-    /* for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ ) */
-    /* { */
-    /*     Type t = pointer_types[ i ]; */
-    /*     if( type_equals( t, pointer_base_type ) ) */
-    /*     { */
-    /*         return; */
-    /*     } */
-    /* } */
+    // check if type is already in array
+    for( size_t i = 0; i < lvec_get_length( pointer_types ); i++ )
+    {
+        Type t = pointer_types[ i ];
+        if( type_equals( t, base_type ) )
+        {
+            return;
+        }
+    }
 
-    /* lvec_append_aggregate( definition_type.definition.pointer_types, pointer_base_type ); */
+    lvec_append_aggregate( named_type.named.pointer_types, base_type );
 }
 
 static bool try_implicit_cast( Type destination_type, Type* out_type )
@@ -688,123 +779,125 @@ static bool try_implicit_cast( Type destination_type, Type* out_type )
     return result;
 }
 
-bool check_type( SemanticContext* context, Type* out_type )
-{
-    switch( out_type->kind )
-    {
-        case TYPEKIND_VOID:
-        case TYPEKIND_INTEGER:
-        case TYPEKIND_FLOAT:
-        case TYPEKIND_CHARACTER:
-        case TYPEKIND_BOOLEAN:
-        {
-            return true;
-        }
+/* bool check_type( SemanticContext* context, Type* out_type ) */
+/* { */
+/*     UNIMPLEMENTED(); */
 
-        case TYPEKIND_FUNCTION:
-        {
-            bool is_valid = true;
+/*     switch( out_type->kind ) */
+/*     { */
+/*         case TYPEKIND_VOID: */
+/*         case TYPEKIND_INTEGER: */
+/*         case TYPEKIND_FLOAT: */
+/*         case TYPEKIND_CHARACTER: */
+/*         case TYPEKIND_BOOLEAN: */
+/*         { */
+/*             return true; */
+/*         } */
 
-            // check params
-            for( int i = 0; i < out_type->function.param_count; i++ )
-            {
-                Type* t = &out_type->function.param_types[ i ];
-                is_valid = is_valid && check_type( context, t );
-            }
+/*         case TYPEKIND_FUNCTION: */
+/*         { */
+/*             bool is_valid = true; */
 
-            // void is allowed
-            if( out_type->function.return_type->kind != TYPEKIND_VOID )
-            {
-                is_valid = is_valid && check_type( context, out_type->function.return_type );
-            }
-            return is_valid;
-        }
+/*             // check params */
+/*             for( int i = 0; i < out_type->function.param_count; i++ ) */
+/*             { */
+/*                 Type* t = &out_type->function.param_types[ i ]; */
+/*                 is_valid = is_valid && check_type( context, t ); */
+/*             } */
 
-        case TYPEKIND_POINTER:
-        {
-            if( !check_type( context, out_type->pointer.base_type ) )
-            {
-                return false;
-            }
+/*             // void is allowed */
+/*             if( out_type->function.return_type->kind != TYPEKIND_VOID ) */
+/*             { */
+/*                 is_valid = is_valid && check_type( context, out_type->function.return_type ); */
+/*             } */
+/*             return is_valid; */
+/*         } */
 
-            Type definition_type = get_definition_type( context, *out_type );
-            add_pointer_type( definition_type, *out_type->pointer.base_type );
-            return check_type( context, out_type->pointer.base_type );
-        }
+/*         case TYPEKIND_POINTER: */
+/*         { */
+/*             if( !check_type( context, out_type->pointer.base_type ) ) */
+/*             { */
+/*                 return false; */
+/*             } */
 
-        case TYPEKIND_REFERENCE:
-        {
-            return check_type( context, out_type->reference.base_type );
-        }
+/*             Type definition_type = get_definition_type( context, *out_type ); */
+/*             add_pointer_type( definition_type, *out_type->pointer.base_type ); */
+/*             return check_type( context, out_type->pointer.base_type ); */
+/*         } */
 
-        case TYPEKIND_ARRAY:
-        {
-            if( out_type->array.length == 0 )
-            {
-                Error error = {
-                    .kind = ERRORKIND_ZEROLENGTHARRAY,
-                    .offending_token = out_type->token,
-                };
-                report_error( error );
-                return false;
-            }
+/*         case TYPEKIND_REFERENCE: */
+/*         { */
+/*             return check_type( context, out_type->reference.base_type ); */
+/*         } */
 
-            if( !check_type( context, out_type->array.base_type ) )
-            {
-                return false;
-            }
+/*         case TYPEKIND_ARRAY: */
+/*         { */
+/*             if( out_type->array.length == 0 ) */
+/*             { */
+/*                 Error error = { */
+/*                     .kind = ERRORKIND_ZEROLENGTHARRAY, */
+/*                     .offending_token = out_type->token, */
+/*                 }; */
+/*                 report_error( error ); */
+/*                 return false; */
+/*             } */
 
-            Type definition_type = get_definition_type( context, *out_type );
-            if( !check_type( context, &definition_type ) )
-            {
-                return false;
-            }
+/*             if( !check_type( context, out_type->array.base_type ) ) */
+/*             { */
+/*                 return false; */
+/*             } */
 
-            add_array_type( definition_type, *out_type->array.base_type );
-            return check_type( context, out_type->array.base_type );
-        }
+/*             Type definition_type = get_definition_type( context, *out_type ); */
+/*             if( !check_type( context, &definition_type ) ) */
+/*             { */
+/*                 return false; */
+/*             } */
 
-        case TYPEKIND_COMPOUND:
-        {
-            UNIMPLEMENTED();
-            /* Symbol* symbol = symbol_table_lookup( context->symbol_table, out_type->compound.identifier ); */
-            /* if( symbol == NULL ) */
-            /* { */
-            /*     Error error = { */
-            /*         .kind = ERRORKIND_UNDECLAREDSYMBOL, */
-            /*         .offending_token = out_type->token, */
-            /*     }; */
-            /*     report_error( error ); */
-            /*     return false; */
-            /* } */
+/*             add_array_type( definition_type, *out_type->array.base_type ); */
+/*             return check_type( context, out_type->array.base_type ); */
+/*         } */
 
-            /* if( symbol->type.kind != TYPEKIND_DEFINITION ) */
-            /* { */
-            /*     Error error = { */
-            /*         .kind = ERRORKIND_NOTATYPE, */
-            /*         .offending_token = out_type->token, */
-            /*     }; */
-            /*     report_error( error ); */
-            /*     return false; */
-            /* } */
+/*         case TYPEKIND_COMPOUND: */
+/*         { */
+/*             UNIMPLEMENTED(); */
+/*             /\* Symbol* symbol = symbol_table_lookup( context->symbol_table, out_type->compound.identifier ); *\/ */
+/*             /\* if( symbol == NULL ) *\/ */
+/*             /\* { *\/ */
+/*             /\*     Error error = { *\/ */
+/*             /\*         .kind = ERRORKIND_UNDECLAREDSYMBOL, *\/ */
+/*             /\*         .offending_token = out_type->token, *\/ */
+/*             /\*     }; *\/ */
+/*             /\*     report_error( error ); *\/ */
+/*             /\*     return false; *\/ */
+/*             /\* } *\/ */
 
-            /* *out_type = *symbol->type.definition.info; */
+/*             /\* if( symbol->type.kind != TYPEKIND_DEFINITION ) *\/ */
+/*             /\* { *\/ */
+/*             /\*     Error error = { *\/ */
+/*             /\*         .kind = ERRORKIND_NOTATYPE, *\/ */
+/*             /\*         .offending_token = out_type->token, *\/ */
+/*             /\*     }; *\/ */
+/*             /\*     report_error( error ); *\/ */
+/*             /\*     return false; *\/ */
+/*             /\* } *\/ */
 
-            /* return true; */
-        }
+/*             /\* *out_type = *symbol->type.definition.info; *\/ */
 
-        case TYPEKIND_TYPE:
-        {
-            return check_type( context, out_type->type.info );
-        }
+/*             /\* return true; *\/ */
+/*         } */
 
-        default: // TOINFER and INVALID
-        {
-            UNREACHABLE();
-            break;
-        }
-    }
-}
+/*         case TYPEKIND_TYPE: */
+/*         { */
+/*             return check_type( context, out_type->type.info ); */
+/*         } */
+
+/*         default: // TOINFER and INVALID */
+/*         { */
+/*             UNREACHABLE(); */
+/*             break; */
+/*         } */
+/*     } */
+/* } */
 
 bool check_type_compatibility( Type t1, Type* out_type, Error* out_error )
 {
@@ -999,6 +1092,16 @@ static bool is_binary_operation_valid( BinaryOperation operation, Type left_type
         },
     };
 
+    while( left_type.kind == TYPEKIND_NAMED )
+    {
+        left_type = *left_type.named.definition;
+    }
+
+    while( right_type.kind == TYPEKIND_NAMED )
+    {
+        right_type = *right_type.named.definition;
+    }
+
     TypeKindPair* pairs = valid_binary_operations[ operation ];
 
     // iterate over all valid pairs
@@ -1085,25 +1188,48 @@ static bool check_binary( SemanticContext* context, Expression* expression, Type
         return false;
     }
 
+    // TODO: handle pointer types
+
+    Type left_type_definition = left_type;
+    while( left_type_definition.kind == TYPEKIND_NAMED )
+    {
+        left_type_definition = *left_type_definition.named.definition;
+    }
+
+    Type right_type_definition = right_type;
+    while( right_type_definition.kind == TYPEKIND_NAMED )
+    {
+        right_type_definition = *right_type_definition.named.definition;
+    }
 
     // if operation is one of the boolean operators
     if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
     {
-        inferred_type->kind = TYPEKIND_BOOLEAN;
+        *inferred_type = symbol_table_lookup( context->symbol_table, "bool" )->type;
     }
     else
     {
         // if left_type or right_type is float, then float. otherwise its int
-        if( left_type.kind == TYPEKIND_FLOAT || right_type.kind == TYPEKIND_FLOAT )
+        if( left_type_definition.kind == TYPEKIND_FLOAT || right_type_definition.kind == TYPEKIND_FLOAT )
         {
-            inferred_type->kind = TYPEKIND_FLOAT;
-            inferred_type->floating.bit_count = MAX( left_type.integer.bit_count, right_type.integer.bit_count );
+            char as_string[4] = { 0 };
+            sprintf( as_string, "f%zu",
+                     MAX( left_type_definition.floating.bit_count, right_type_definition.floating.bit_count ) );
+
+            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
         }
         else
         {
-            inferred_type->kind = TYPEKIND_INTEGER;
-            inferred_type->integer.is_signed = right_type.integer.is_signed;
-            inferred_type->integer.bit_count = fmax( left_type.integer.bit_count, right_type.integer.bit_count );
+            char as_string[4] = { 0 };
+            sprintf( as_string, "%c%zu",
+                     right_type.integer.is_signed ? 'i' : 'u',
+                     MAX( left_type_definition.integer.bit_count, right_type_definition.integer.bit_count ) );
+
+            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
+
+            /* inferred_type->kind = TYPEKIND_INTEGER; */
+            /* inferred_type->integer.is_signed = right_type.integer.is_signed; */
+            /* inferred_type->integer.bit_count = fmax( left_type.integer.bit_count, right_type.integer.bit_count ); */
         }
     }
 
@@ -1138,7 +1264,6 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
     }
 
     *inferred_type = original_declaration->type;
-    // expression->identifier.type = *inferred_type;
 
     return true;
 }
@@ -1274,166 +1399,242 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
 static bool check_lvalue( SemanticContext* context, Expression* expression, Type* out_type );
 static bool check_unary( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    Expression* operand = expression->unary.operand;
-    Type operand_type;
-    bool is_operand_valid = check_rvalue( context, operand, &operand_type );
-    if( !is_operand_valid )
+    UNIMPLEMENTED();
+    /* Expression* operand = expression->unary.operand; */
+    /* Type operand_type; */
+    /* bool is_operand_valid = check_rvalue( context, operand, &operand_type ); */
+    /* if( !is_operand_valid ) */
+    /* { */
+    /*     return false; */
+    /* } */
+
+    /* UnaryOperation operation = expression->unary.operation; */
+    /* if( operation == UNARYOPERATION_ADDRESSOF ) */
+    /* { */
+    /*     // operand must be lvalue */
+    /*     bool operand_lvalue_check = check_lvalue( context, operand, &operand_type ); */
+    /*     if( !operand_lvalue_check ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_INVALIDADDRESSOF, */
+    /*             .offending_token = operand->starting_token */
+    /*         }; */
+
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
+
+    /*     // check if operand is in symbol table */
+    /*     Symbol* operand_symbol = symbol_table_lookup( context->symbol_table, operand->associated_token.identifier ); */
+    /*     if( operand_symbol == NULL ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_UNDECLAREDSYMBOL, */
+    /*             .offending_token = operand->associated_token, */
+    /*         }; */
+
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
+
+    /*     *inferred_type = ( Type ){ */
+    /*         .kind = TYPEKIND_POINTER, */
+    /*         .pointer.base_type = &operand_symbol->type, */
+    /*     }; */
+
+    /*     Type operand_type_definition = get_definition_type( context, *inferred_type->pointer.base_type ); */
+    /*     add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type ); */
+    /* } */
+    /* else */
+    /* { */
+    /*     bool is_operation_valid = is_unary_operation_valid( operation, operand_type ); */
+    /*     if( !is_operation_valid ) */
+    /*     { */
+    /*         Token operator_token = expression->unary.operator_token; */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_INVALIDUNARYOPERATION, */
+    /*             .offending_token = operator_token, */
+    /*             .invalid_unary_operation = { */
+    /*                 .operand_type = operand_type */
+    /*             } */
+    /*         }; */
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
+
+    /*     if( operation == UNARYOPERATION_DEREFERENCE ) */
+    /*     { */
+    /*         *inferred_type = *operand_type.pointer.base_type; */
+    /*     } */
+    /*     else */
+    /*     { */
+    /*         *inferred_type = operand_type; */
+    /*     } */
+    /* } */
+
+    /* return true; */
+}
+static bool implicit_cast_possible( Type to, Type from )
+{
+    if( type_equals( to, from ) )
+    {
+        return true;
+    }
+
+    if( to.kind != from.kind )
     {
         return false;
     }
 
-    UnaryOperation operation = expression->unary.operation;
-    if( operation == UNARYOPERATION_ADDRESSOF )
+    switch( to.kind )
     {
-        // operand must be lvalue
-        bool operand_lvalue_check = check_lvalue( context, operand, &operand_type );
-        if( !operand_lvalue_check )
+        case TYPEKIND_NAMED:
         {
-            Error error = {
-                .kind = ERRORKIND_INVALIDADDRESSOF,
-                .offending_token = operand->starting_token
-            };
+            return implicit_cast_possible( *to.named.definition, *from.named.definition );
+        }
 
-            report_error( error );
+        case TYPEKIND_POINTER:
+        {
+            return implicit_cast_possible( *to.pointer.base_type, *from.pointer.base_type );
+        }
+
+        case TYPEKIND_INTEGER:
+        {
+            // only lossless conversions are allowed
+            // u8 -> u16 OK
+            // u8 -> i16 OK
+            // u8 -> i8  NOT OK
+            // i8 -> u* NOT OK
+            // i8 -> i16 OK
+
+            if( to.integer.is_signed == from.integer.is_signed )
+            {
+                return to.integer.bit_count >= from.integer.bit_count;
+            }
+            else if( to.integer.is_signed && !from.integer.is_signed )
+            {
+                return to.integer.bit_count > from.integer.bit_count;
+            }
+
             return false;
         }
 
-        // check if operand is in symbol table
-        Symbol* operand_symbol = symbol_table_lookup( context->symbol_table, operand->associated_token.identifier );
-        if( operand_symbol == NULL )
+        case TYPEKIND_FLOAT:
         {
-            Error error = {
-                .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                .offending_token = operand->associated_token,
-            };
-
-            report_error( error );
-            return false;
+            // only lossless conversions are allowed
+            printf("%zu %zu\n", to.floating.bit_count, from.floating.bit_count);
+            return to.floating.bit_count >= from.floating.bit_count;
         }
 
-        *inferred_type = ( Type ){
-            .kind = TYPEKIND_POINTER,
-            .pointer.base_type = &operand_symbol->type,
-        };
+        case TYPEKIND_FUNCTION:
+        {
+            UNIMPLEMENTED();
+        }
 
-        Type operand_type_definition = get_definition_type( context, *inferred_type->pointer.base_type );
-        add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type );
+        case TYPEKIND_ARRAY:
+        {
+            if( !type_equals( *to.array.base_type, *from.array.base_type ) )
+            {
+                return false;
+            }
+
+            if( to.array.length == -1 )
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        default:
+        {
+            UNREACHABLE();
+        }
     }
-    else
-    {
-        bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
-        if( !is_operation_valid )
-        {
-            Token operator_token = expression->unary.operator_token;
-            Error error = {
-                .kind = ERRORKIND_INVALIDUNARYOPERATION,
-                .offending_token = operator_token,
-                .invalid_unary_operation = {
-                    .operand_type = operand_type
-                }
-            };
-            report_error( error );
-            return false;
-        }
-
-        if( operation == UNARYOPERATION_DEREFERENCE )
-        {
-            *inferred_type = *operand_type.pointer.base_type;
-        }
-        else
-        {
-            *inferred_type = operand_type;
-        }
-    }
-
-    return true;
 }
 
+static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
 static bool check_array( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    UNIMPLEMENTED();
+    Expression* declared_type_rvalue = expression->array.base_type_rvalue;
+    Type array_type;
+    if( !check_type_rvalue( context, declared_type_rvalue, &array_type ) )
+    {
+        return false;
+    }
 
-    /* Type declared_type = expression->array.type; */
+    array_type = *array_type.type.info;
 
-    /* if( !check_type( context, &declared_type ) ) */
-    /* { */
-    /*     return false; */
-    /* } */
+    int found_length = array_type.array.length;
+    int count_initialized = expression->array.count_initialized;
 
-    /* int found_length = declared_type.array.length; */
-    /* int count_initialized = expression->array.count_initialized; */
+    // declared_length being -1 means it is to be inferred
+    if( ( found_length == -1 && count_initialized == 0 ) ||
+        found_length == 0 )
+    {
+        Error error = {
+            .kind = ERRORKIND_ZEROLENGTHARRAY,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* // declared_length being -1 means it is to be inferred */
-    /* if( found_length == -1 && count_initialized == 0 ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_ZEROLENGTHARRAY, */
-    /*         .offending_token = expression->starting_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    if( found_length == -1 )
+    {
+        found_length = count_initialized;
+    }
+    else if( found_length < count_initialized )
+    {
+        Error error = {
+            .kind = ERRORKING_ARRAYLENGTHMISMATCH,
+            .offending_token = expression->starting_token,
+            .array_length_mismatch = {
+                .expected = found_length,
+                .found = count_initialized,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+    array_type.array.length = found_length;
 
-    /* if( found_length == -1 ) */
-    /* { */
-    /*     found_length = count_initialized; */
-    /* } */
-    /* else if( found_length < count_initialized ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKING_ARRAYLENGTHMISMATCH, */
-    /*         .offending_token = expression->starting_token, */
-    /*         .array_length_mismatch = { */
-    /*             .expected = found_length, */
-    /*             .found = count_initialized, */
-    /*         }, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    bool are_initializers_valid = true;
+    for( int i = 0; i < count_initialized; i++ )
+    {
+        Type element_type;
+        Expression* element_rvalue = &expression->array.initialized_rvalues[ i ];
+        if( !check_rvalue( context, element_rvalue, &element_type ) )
+        {
+            are_initializers_valid = false;
+        }
 
-    /* bool are_initializers_valid = true; */
-    /* for( int i = 0; i < count_initialized; i++ ) */
-    /* { */
-    /*     Type element_type; */
-    /*     Expression* element_rvalue = &expression->array.initialized_rvalues[ i ]; */
-    /*     if( !check_rvalue( context, element_rvalue, &element_type ) ) */
-    /*     { */
-    /*         are_initializers_valid = false; */
-    /*     } */
+        if( !implicit_cast_possible( *array_type.array.base_type, element_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = element_rvalue->starting_token,
+                .type_mismatch = {
+                    .expected = *array_type.array.base_type,
+                    .found = element_type,
+                },
+            };
+            report_error( error );
+            are_initializers_valid = false;
+        }
+    }
 
-    /*     if( !type_equals( element_type, *declared_type.array.base_type ) ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_TYPEMISMATCH, */
-    /*             .offending_token = element_rvalue->starting_token, */
-    /*             .type_mismatch = { */
-    /*                 .expected = *declared_type.array.base_type, */
-    /*                 .found = element_type, */
-    /*             }, */
-    /*         }; */
-    /*         report_error( error ); */
-    /*         are_initializers_valid = false; */
-    /*     } */
-    /* } */
+    if( !are_initializers_valid )
+    {
+        return false;
+    }
 
-    /* if( !are_initializers_valid ) */
-    /* { */
-    /*     return false; */
-    /* } */
+    *inferred_type = array_type;
+    add_array_type( *array_type.array.base_type );
 
-    /* inferred_type->kind = TYPEKIND_ARRAY; */
-    /* inferred_type->array.length = found_length; */
-    /* inferred_type->array.base_type = declared_type.array.base_type; */
-
-    /* Type definition_type = get_definition_type( context, *inferred_type ); */
-
-    /* add_array_type( definition_type, *inferred_type->array.base_type ); */
-
-    /* // for AST printing in debug.c */
-    /* expression->array.type = *inferred_type; */
-
-    /* return true; */
+    return true;
 }
 
 static bool check_array_subscript( SemanticContext* context, Expression* expression, Type* out_type )
@@ -1609,29 +1810,20 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
         // case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER:
         {
-            inferred_type->kind = TYPEKIND_CHARACTER;
-            inferred_type->token = ( Token ){
-                .as_string = "char"
-            };
+            *inferred_type = *symbol_table_lookup( context->symbol_table, "char" )->type.type.info;
             break;
         }
 
         case EXPRESSIONKIND_BOOLEAN:
         {
-            inferred_type->kind = TYPEKIND_BOOLEAN;
-            inferred_type->token = ( Token ){
-                .as_string = "bool"
-            };
+            *inferred_type = *symbol_table_lookup( context->symbol_table, "bool" )->type.type.info;
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
             inferred_type->kind = TYPEKIND_POINTER;
-
-            // I HATE HOW I HAVE TO ALLOCATE HERE!!!!!!
-            inferred_type->pointer.base_type = malloc( sizeof( Type ) );
-            inferred_type->pointer.base_type->kind = TYPEKIND_CHARACTER;
+            inferred_type->pointer.base_type = symbol_table_lookup( context->symbol_table, "char" )->type.type.info;
             break;
         }
 
@@ -1656,30 +1848,35 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
                 is_signed = false;
             }
 
-            inferred_type->kind = TYPEKIND_INTEGER;
-
-            char* as_string = malloc( 4 );
+            char as_string[4] = { 0 };
             sprintf( as_string, "%c%d",
                      is_signed ? 'i' : 'u',
                      bit_count );
 
-            inferred_type->integer.bit_count = bit_count;
-            inferred_type->integer.is_signed = is_signed;
-            inferred_type->token = ( Token ){
-                .as_string = as_string,
-            };
+            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
             break;
         }
 
         case EXPRESSIONKIND_FLOAT:
         {
-            inferred_type->kind = TYPEKIND_FLOAT;
+            double floating = expression->floating;
+            int bit_count;
 
-            // default float type is f32
-            inferred_type->integer.bit_count = 32;
-            inferred_type->token = ( Token ){
-                .as_string = "f32"
-            };
+            if( floating <= FLT_MAX )
+            {
+                bit_count = 32;
+            }
+            else// if( floating <= INT64_MAX )
+            {
+                printf("here\n");
+                bit_count = 64;
+            }
+
+            char as_string[4] = { 0 };
+            sprintf( as_string, "f%d",
+                     bit_count );
+
+            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
             break;
         }
 
@@ -1742,55 +1939,6 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
     return is_valid;
 }
 
-static bool implicit_cast_possible( Type to, Type from )
-{
-    if( type_equals( to, from ) )
-    {
-        return true;
-    }
-
-    if( to.kind != from.kind )
-    {
-        return false;
-    }
-
-    switch( to.kind )
-    {
-        case TYPEKIND_INTEGER:
-        {
-            // only lossless conversions are allowed
-            // u8 -> u16 OK
-            // u8 -> i16 OK
-            // u8 -> i8  NOT OK
-            // i8 -> u* NOT OK
-            // i8 -> i16 OK
-
-            if( to.integer.is_signed == from.integer.is_signed )
-            {
-                return to.integer.bit_count >= from.integer.bit_count;
-            }
-            else if( to.integer.is_signed && !from.integer.is_signed )
-            {
-                return to.integer.bit_count > from.integer.bit_count;
-            }
-
-            return false;
-        }
-
-        case TYPEKIND_FLOAT:
-        {
-            // only lossless conversions are allowed
-            return to.floating.bit_count >= from.floating.bit_count;
-        }
-
-        case TYPEKIND_FUNCTION:
-        {
-            UNIMPLEMENTED();
-        }
-    }
-}
-
-static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
 static bool check_variable_declaration( SemanticContext* context, Expression* expression )
 {
     Token identifier_token = expression->variable_declaration.identifier_token;
@@ -1804,7 +1952,6 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
             .offending_token = identifier_token,
             .symbol_redeclaration.original_declaration_token = original_declaration->token,
         };
-
         report_error( error );
         return false;
     }
@@ -1814,13 +1961,13 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
     Expression* type_rvalue = expression->variable_declaration.type_rvalue;
     if( type_rvalue != NULL )
     {
-        Type declared_type_definition;
-        if ( !check_type_rvalue( context, type_rvalue, &declared_type_definition ) )
+        Type declared_type_type;
+        if ( !check_type_rvalue( context, type_rvalue, &declared_type_type ) )
         {
             return false;
         }
 
-        if( declared_type_definition.kind != TYPEKIND_TYPE )
+        if( declared_type_type.kind != TYPEKIND_TYPE )
         {
             Error error = {
                 .kind = ERRORKIND_NOTATYPE,
@@ -1831,7 +1978,8 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         }
 
         // anonymous types are not allowed!
-        if( declared_type_definition.type.info->kind != TYPEKIND_NAMED )
+        // TODO: update this when new typekinds are made
+        if( declared_type_type.type.info->kind == TYPEKIND_COMPOUND )
         {
             Error error = {
                 .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
@@ -1841,11 +1989,11 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
             return false;
         }
 
-        declared_type = *declared_type_definition.type.info->named.definition;
+        declared_type = *declared_type_type.type.info;
     }
 
     // void variables are not allowed
-    if( declared_type.kind == TYPEKIND_VOID )
+    if( declared_type.kind == TYPEKIND_NAMED && declared_type.named.definition->kind == TYPEKIND_VOID )
     {
         Error error = {
             .kind = ERRORKIND_VOIDVARIABLE,
@@ -1873,6 +2021,9 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         else
         {
             // check compatibility between types
+            /* Type declared_type_definition = *declared_type.named.definition; */
+            /* Type inferred_type_definition = *inferred_type.named.definition; */
+
             if( !implicit_cast_possible( declared_type, inferred_type ) )
             {
                 Error error = {
@@ -1887,7 +2038,15 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
                 return false;
             }
 
-            variable_type = declared_type;
+            if( inferred_type.kind == TYPEKIND_ARRAY )
+            {
+                // because we want to infer the length
+                variable_type = inferred_type;
+            }
+            else
+            {
+                variable_type = declared_type;
+            }
         }
     }
     else
@@ -1896,6 +2055,9 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         // that would be a parsing error
         variable_type = declared_type;
     }
+
+    // for debug purposes
+    expression->variable_declaration.variable_type = variable_type;
 
     // add to symbol table
     Symbol symbol = {
@@ -1935,134 +2097,190 @@ static bool check_compound( SemanticContext* context, Expression* expression )
 
 static bool check_function_declaration( SemanticContext* context,Expression* expression, bool is_extern )
 {
-    UNIMPLEMENTED();
+    Token identifier_token = expression->function_declaration.identifier_token;
 
-    /* Token identifier_token = expression->function_declaration.identifier_token; */
+    // check if identifier already in symbol table
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
+    if( original_declaration != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+            .symbol_redeclaration.original_declaration_token = original_declaration->token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* // check if identifier already in symbol table */
-    /* Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier ); */
-    /* if( original_declaration != NULL ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_SYMBOLREDECLARATION, */
-    /*         .offending_token = identifier_token, */
-    /*         .symbol_redeclaration.original_declaration_token = original_declaration->token, */
-    /*     }; */
+    Expression* return_type_rvalue = expression->function_declaration.return_type_rvalue;
+    Type* return_type = malloc( sizeof( Type ) );
+    if( !check_type_rvalue( context, return_type_rvalue, return_type ) )
+    {
+        return false;
+    }
 
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    if( return_type->kind != TYPEKIND_TYPE )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTATYPE,
+            .offending_token = return_type_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* Type* param_types = expression->function_declaration.param_types; */
-    /* Type* return_type = &expression->function_declaration.return_type; */
-    /* int param_count = expression->function_declaration.param_count; */
-    /* bool is_variadic = expression->function_declaration.is_variadic; */
+    // anonymous types are not allowed!
+    // TODO: update this when new typekinds are made
+    if( return_type->type.info->kind == TYPEKIND_COMPOUND )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
+            .offending_token = return_type_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* // add to symbol table */
-    /* Symbol symbol = { */
-    /*     .token = identifier_token, */
-    /*     .type = ( Type ){ */
-    /*         .kind = TYPEKIND_FUNCTION, */
-    /*         .function = { */
-    /*             .param_types = param_types, */
-    /*             .return_type = return_type, */
-    /*             .param_count = param_count, */
-    /*             .is_variadic = is_variadic, */
-    /*         } */
-    /*     }, */
-    /* }; */
-    /* symbol_table_push_symbol( &context->symbol_table, symbol ); */
+    *return_type = *return_type->type.info;
 
-    /* // check function params */
-    /* symbol_table_push_scope( &context->symbol_table ); */
-    /* for( int i = 0; i < expression->function_declaration.param_count; i++ ) */
-    /* { */
-    /*     Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ]; */
-    /*     Type param_type = expression->function_declaration.param_types[ i ]; */
-    /*     // Token param_type_token = expression->function_declaration.param_types_tokens[ i ]; */
-    /*     if( !check_type( context, &param_type ) ) */
-    /*     { */
-    /*         return false; */
-    /*     } */
+    Token* param_identifiers_tokens = expression->function_declaration.param_identifiers_tokens;
+    Expression* param_type_rvalues = expression->function_declaration.param_type_rvalues;
+    int param_count = expression->function_declaration.param_count;
+    bool is_variadic = expression->function_declaration.is_variadic;
+    Type* param_types = lvec_new( Type );
 
-    /*     if( param_type.kind == TYPEKIND_VOID ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_VOIDVARIABLE, */
-    /*             .offending_token = param_type.token, */
-    /*         }; */
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+    for( int i = 0; i < param_count; i++ )
+    {
+        // check if param type is good
+        Expression param_type_rvalue = param_type_rvalues[ i ];
+        Type param_type;
+        if( !check_type_rvalue( context, &param_type_rvalue, &param_type ) )
+        {
+            return false;
+        }
 
-    /*     Symbol* declaration = symbol_table_lookup( context->symbol_table, param_identifier_token.identifier ); */
-    /*     if( declaration != NULL ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_SYMBOLREDECLARATION, */
-    /*             .offending_token = param_identifier_token, */
-    /*             .symbol_redeclaration.original_declaration_token = declaration->token, */
-    /*         }; */
+        if( param_type.kind != TYPEKIND_TYPE )
+        {
+            Error error = {
+                .kind = ERRORKIND_NOTATYPE,
+                .offending_token = param_type_rvalue.starting_token
+            };
+            report_error( error );
+            return false;
+        }
 
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+        // anonymous types are not allowed!
+        // TODO: update this when new typekinds are made
+        if( param_type.type.info->kind == TYPEKIND_COMPOUND )
+        {
+            Error error = {
+                .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
+                .offending_token = param_type_rvalue.starting_token
+            };
+            report_error( error );
+            return false;
+        }
 
-    /*     Symbol symbol = { */
-    /*         .token = param_identifier_token, */
-    /*         .type = param_type, */
-    /*     }; */
-    /*     symbol_table_push_symbol( &context->symbol_table, symbol ); */
-    /* } */
-    /* // symbol_table_pop_scope( &context->symbol_table ); */
+        param_type = *param_type.type.info;
+        lvec_append_aggregate( param_types, param_type );
 
-    /* push_return_type( context, *return_type ); */
+        // check if param identifier is good
+        Token param_identifier_token = param_identifiers_tokens[ i ];
+        Symbol* lookup_result = symbol_table_lookup( context->symbol_table, param_identifier_token.as_string );
+        if( lookup_result != NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_SYMBOLREDECLARATION,
+                .offending_token = param_identifier_token,
+                .symbol_redeclaration.original_declaration_token = lookup_result->token,
+            };
+            report_error( error );
+            return false;
+        }
+        else if( strcmp( param_identifier_token.as_string, identifier_token.as_string ) == 0 )
+        {
+            Error error = {
+                .kind = ERRORKIND_SYMBOLREDECLARATION,
+                .offending_token = param_identifier_token,
+                .symbol_redeclaration.original_declaration_token = identifier_token,
+            };
+            report_error( error );
+            return false;
+        }
+    }
 
-    /* // check function body */
-    /* Expression* function_body = expression->function_declaration.body; */
-    /* if( function_body == NULL && !is_extern ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_MISSINGFUNCTIONBODY, */
-    /*         .offending_token = expression->starting_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
-    /* else if( function_body != NULL && is_extern ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_EXTERNWITHBODY, */
-    /*         .offending_token = expression->starting_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    // add to symbol table
+    Symbol symbol = {
+        .token = identifier_token,
+        .type = ( Type ){
+            .kind = TYPEKIND_FUNCTION,
+            .function = {
+                .param_types = param_types,
+                .return_type = return_type,
+                .param_count = param_count,
+                .is_variadic = is_variadic,
+            }
+        },
+    };
+    symbol_table_push_symbol( &context->symbol_table, symbol );
 
-    /* bool is_body_valid = true; */
-    /* if( !is_extern ) */
-    /* { */
-    /*     is_body_valid = check_compound( context, function_body ); */
-    /* } */
+    // have to do this here because we have to push the function identifier to the
+    // symbol table first
+    symbol_table_push_scope( &context->symbol_table );
+    for( int i = 0; i < param_count; i++ )
+    {
+        Symbol param_symbol = {
+            .token = param_identifiers_tokens[ i ],
+            .type = param_types[ i ],
+        };
+        symbol_table_push_symbol( &context->symbol_table, param_symbol );
+    }
+    push_return_type( context, *return_type );
 
-    /* symbol_table_pop_scope( &context->symbol_table ); */
-    /* pop_return_type( context ); */
+    // check function body
+    Expression* body = expression->function_declaration.body;
+    if( body == NULL && !is_extern )
+    {
+        Error error = {
+            .kind = ERRORKIND_MISSINGFUNCTIONBODY,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+    else if( body != NULL && is_extern )
+    {
+        Error error = {
+            .kind = ERRORKIND_EXTERNWITHBODY,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* if( !is_body_valid ) */
-    /* { */
-    /*     return false; */
-    /* } */
+    bool is_body_valid = true;
+    if( !is_extern )
+    {
+        is_body_valid = check_compound( context, body );
+    }
 
-    /* return true; */
+    symbol_table_pop_scope( &context->symbol_table );
+    pop_return_type( context );
+
+    if( !is_body_valid )
+    {
+        return false;
+    }
+
+    return true;
 }
 
 bool check_return( SemanticContext* context, Expression* expression )
 {
-    Type found_return_type = ( Type ){ .kind = TYPEKIND_VOID };
+    Type found_return_type = *symbol_table_lookup( context->symbol_table, "void" )->type.type.info;
     if( expression->return_expression.rvalue != NULL )
     {
         bool is_return_value_valid = check_rvalue( context, expression->return_expression.rvalue, &found_return_type );
-
         if( !is_return_value_valid )
         {
             // no need to report error here because error has already been reported
@@ -2073,24 +2291,49 @@ bool check_return( SemanticContext* context, Expression* expression )
 
     Type expected_return_type = get_top_return_type( context );
 
-    Error error;
-    bool are_types_compatible = check_type_compatibility( expected_return_type, &found_return_type, &error );
-    if( !are_types_compatible )
+    if( !implicit_cast_possible( expected_return_type, found_return_type ) )
     {
-        Token associated_token;
-        if( found_return_type.kind == TYPEKIND_VOID )
+        Token offending_token;
+        Expression* rvalue = expression->return_expression.rvalue;
+        if( rvalue == NULL )
         {
-            associated_token = expression->starting_token;
+            offending_token = expression->starting_token;
         }
         else
         {
-            associated_token = expression->return_expression.rvalue->starting_token;
+            offending_token = rvalue->starting_token;
         }
 
-        error.offending_token = associated_token;
+        Error error = {
+            .kind = ERRORKIND_TYPEMISMATCH,
+            .offending_token = offending_token,
+            .type_mismatch = {
+                .expected = expected_return_type,
+                .found = found_return_type,
+            },
+        };
         report_error( error );
         return false;
     }
+
+    /* Error error; */
+    /* bool are_types_compatible = check_type_compatibility( expected_return_type, &found_return_type, &error ); */
+    /* if( !are_types_compatible ) */
+    /* { */
+    /*     Token associated_token; */
+    /*     if( found_return_type.kind == TYPEKIND_VOID ) */
+    /*     { */
+    /*         associated_token = expression->starting_token; */
+    /*     } */
+    /*     else */
+    /*     { */
+    /*         associated_token = expression->return_expression.rvalue->starting_token; */
+    /*     } */
+
+    /*     error.offending_token = associated_token; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
     return true;
 }
@@ -2414,6 +2657,111 @@ static bool check_type_identifier( SemanticContext* context, Expression* express
     return true;
 }
 
+static bool check_pointer_type( SemanticContext* context, Expression* type_rvalue, Type* out_type )
+{
+    Expression* base_type_rvalue = type_rvalue->pointer_type.base_type_rvalue;
+    Type base_type_definition;
+    if ( !check_type_rvalue( context, base_type_rvalue, &base_type_definition ) )
+    {
+        return false;
+    }
+
+    if( base_type_definition.kind != TYPEKIND_TYPE )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTATYPE,
+            .offending_token = base_type_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    // anonymous types are not allowed!
+    if( base_type_definition.type.info->kind != TYPEKIND_NAMED )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
+            .offending_token = base_type_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    Type* info = malloc( sizeof( Type ) );
+    *info = ( Type ){
+        .kind = TYPEKIND_POINTER,
+        .pointer.base_type = base_type_definition.type.info,
+    };
+
+    *out_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = info,
+    };
+
+    return true;
+}
+
+static bool check_array_type( SemanticContext* context, Expression* type_rvalue, Type* out_type )
+{
+    Expression* base_type_rvalue = type_rvalue->array_type.base_type_rvalue;
+    Type* base_type_definition = malloc( sizeof( Type ) );
+    if ( !check_type_rvalue( context, base_type_rvalue, base_type_definition ) )
+    {
+        return false;
+    }
+
+    // anonymous types are not allowed!
+    if( base_type_definition->type.info->kind == TYPEKIND_COMPOUND )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
+            .offending_token = base_type_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
+    base_type_definition = base_type_definition->type.info;
+
+    // array of voids are not allowed!
+    if( base_type_definition->kind == TYPEKIND_NAMED && base_type_definition->named.definition->kind == TYPEKIND_VOID)
+    {
+        Error error = {
+            .kind = ERRORKIND_VOIDVARIABLE,
+            .offending_token = type_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
+
+    // zero-length arrays are not allowed
+    int length = type_rvalue->array_type.length;
+    if( length == 0 )
+    {
+        Error error = {
+            .kind = ERRORKIND_ZEROLENGTHARRAY,
+            .offending_token = type_rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    Type* info = malloc( sizeof( Type ) );
+    *info = ( Type ){
+        .kind = TYPEKIND_ARRAY,
+        .array = {
+            .base_type = base_type_definition,
+            .length = length,
+        },
+    };
+
+    *out_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = info,
+    };
+
+    return true;
+}
+
 static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
     switch( type_rvalue->kind )
@@ -2430,19 +2778,12 @@ static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue
 
         case EXPRESSIONKIND_POINTERTYPE:
         {
-            UNIMPLEMENTED();
-            /* Type base_type_definition; */
-            /* if ( !check_type_rvalue( context, type_rvalue->pointer_type.base_type_rvalue, &base_type_definition ) ) */
-            /* { */
-            /*     return false; */
-            /* } */
+            return check_pointer_type( context, type_rvalue, out_type );
+        }
 
-            /* Type pointer_type = { */
-            /*     .kind = TYPEKIND_DEFINITION, */
-            /*     .definition = */
-            /* }; */
-
-            return true;
+        case EXPRESSIONKIND_ARRAYTYPE:
+        {
+            return check_array_type( context, type_rvalue, out_type );
         }
 
         default:

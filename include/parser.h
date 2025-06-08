@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "tokenizer.h"
+#include "type.h"
 // #include "type.h"
 
 typedef enum BinaryOperation
@@ -141,11 +142,10 @@ typedef struct Expression
 
         struct
         {
-            char* identifier;
             Token identifier_token;
 
+            Type variable_type; // to be filled in during semantic analysis
             struct Expression* type_rvalue;
-
             struct Expression* rvalue;
         } variable_declaration;
 
@@ -159,16 +159,12 @@ typedef struct Expression
         {
             Token identifier_token;
 
-            struct Expression* return_type_rvalue;
-
-            // arrays to hold params info
             Token* param_identifiers_tokens;
-
             struct Expression* param_type_rvalues;
-
             int param_count;
-
             bool is_variadic;
+
+            struct Expression* return_type_rvalue;
 
             struct Expression* body;
         } function_declaration;
