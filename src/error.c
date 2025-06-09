@@ -166,9 +166,9 @@ void print_type( Type type )
 
                 printf( "%s: ", member_identifier );
                 print_type( member_type );
-                printf( ", " );
+                printf( "; " );
             }
-
+            printf( "}" );
             break;
         }
 
@@ -201,8 +201,8 @@ void print_type( Type type )
 
         case TYPEKIND_NAMED:
         {
-            printf("NAMED ");
-            print_type( *type.named.definition );
+            printf("%s", type.named.as_string);
+            // print_type( type.named.as_string );
             break;
         }
     }

@@ -467,8 +467,25 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_COMPOUND:
         {
-            UNIMPLEMENTED();
-            // return strcmp( t1.compound.identifier, t2.compound.identifier ) == 0;
+            SymbolTable* t1_member_symbol_table = t1.compound.member_symbol_table;
+            SymbolTable* t2_member_symbol_table = t2.compound.member_symbol_table;
+
+            if( t1_member_symbol_table->length != t2_member_symbol_table->length )
+            {
+                return false;
+            }
+
+            int member_count = t1_member_symbol_table->length;
+            for( int i = 0; i < member_count; i++ )
+            {
+                Type t1_member_type = t1_member_symbol_table->symbols[ i ].type;
+                Type t2_member_type = t2_member_symbol_table->symbols[ i ].type;
+                if( !type_equals( t1_member_type, t2_member_type ) )
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         case TYPEKIND_POINTER:
@@ -1488,7 +1505,13 @@ static bool implicit_cast_possible( Type to, Type from )
     {
         case TYPEKIND_NAMED:
         {
-            return implicit_cast_possible( *to.named.definition, *from.named.definition );
+            if( to.named.definition->kind == TYPEKIND_INTEGER ||
+                to.named.definition->kind == TYPEKIND_FLOAT )
+            {
+                return implicit_cast_possible( *to.named.definition, *from.named.definition );
+            }
+
+            return strcmp( to.named.as_string, from.named.as_string ) == 0;
         }
 
         case TYPEKIND_POINTER:
@@ -2552,80 +2575,74 @@ static bool check_for_loop( SemanticContext* context, Expression* expression )
 
 static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, Type* out_type )
 {
-    UNIMPLEMENTED();
+    // UNIMPLEMENTED();
 
-    /* bool is_struct = type_rvalue->compound_definition.is_struct; */
-    /* Expression* member_type_rvalues = type_rvalue->compound_definition.member_type_rvalues; */
-    /* Token* member_identifier_tokens = type_rvalue->compound_definition.member_identifier_tokens; */
-    /* int member_count = type_rvalue->compound_definition.member_count; */
+    bool is_struct = type_rvalue->compound_definition.is_struct;
+    Expression* member_type_rvalues = type_rvalue->compound_definition.member_type_rvalues;
+    Token* member_identifier_tokens = type_rvalue->compound_definition.member_identifier_tokens;
+    int member_count = type_rvalue->compound_definition.member_count;
 
-    /* SymbolTable* member_symbol_table = malloc( sizeof( SymbolTable ) ); */
-    /* symbol_table_initialize( member_symbol_table ); */
+    SymbolTable* member_symbol_table = malloc( sizeof( SymbolTable ) );
+    symbol_table_initialize( member_symbol_table );
 
-    /* for( int i = 0; i < member_count; i++ ) */
-    /* { */
-    /*     // check type of member */
-    /*     Expression member_type_rvalue = member_type_rvalues[ i ]; */
-    /*     Type member_type_definition; */
-    /*     if( !check_type_rvalue( context, &member_type_rvalue, &member_type_definition ) ) */
-    /*     { */
-    /*         return false; */
-    /*     } */
+    for( int i = 0; i < member_count; i++ )
+    {
+        // check type of member
+        Expression member_type_rvalue = member_type_rvalues[ i ];
+        Type member_type;
+        if( !check_type_rvalue( context, &member_type_rvalue, &member_type ) )
+        {
+            return false;
+        }
+        member_type = *member_type.type.info;
 
-    /*     Type member_type = *member_type_definition.definition.info; */
+        // void members are not allowed in struct types
+        if( member_type.kind == TYPEKIND_VOID && is_struct )
+        {
+            Error error = {
+                .kind = ERRORKIND_VOIDVARIABLE,
+                .offending_token = member_type_rvalue.type_identifier.token,
+            };
+            report_error( error );
+            return false;
+        }
 
-    /*     // void members are not allowed in struct types */
-    /*     if( member_type.kind == TYPEKIND_VOID && is_struct ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_VOIDVARIABLE, */
-    /*             .offending_token = member_type_rvalue.type_identifier.token, */
-    /*         }; */
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+        // check if member is already declared within the struct
+        Token member_identifier_token = member_identifier_tokens[ i ];
+        Symbol* lookup_result = symbol_table_lookup( *member_symbol_table, member_identifier_token.as_string );
+        if( lookup_result != NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_SYMBOLREDECLARATION,
+                .offending_token = member_identifier_token,
+                .symbol_redeclaration.original_declaration_token = lookup_result->token,
+            };
+            report_error( error );
+            return false;
+        }
 
-    /*     // check if member is already declared within the struct */
-    /*     Token member_identifier_token = member_identifier_tokens[ i ]; */
-    /*     Symbol* lookup_result = symbol_table_lookup( *member_symbol_table, member_identifier_token.as_string ); */
-    /*     if( lookup_result != NULL ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_SYMBOLREDECLARATION, */
-    /*             .offending_token = member_identifier_token, */
-    /*             .symbol_redeclaration.original_declaration_token = lookup_result->token, */
-    /*         }; */
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+        Symbol member_symbol = {
+            .token = member_identifier_token,
+            .type = member_type
+        };
+        symbol_table_push_symbol( member_symbol_table, member_symbol );
+    }
 
-    /*     Symbol member_symbol = { */
-    /*         .token = member_identifier_token, */
-    /*         .type = member_type */
-    /*     }; */
-    /*     symbol_table_push_symbol( member_symbol_table, member_symbol ); */
-    /* } */
+    Type* info = malloc( sizeof( Type ) );
+    *info = ( Type ){
+        .kind = TYPEKIND_COMPOUND,
+        .compound = {
+            .member_symbol_table = member_symbol_table,
+            .is_struct = is_struct,
+        },
+    };
 
-    /* Type* info = malloc( sizeof( Type ) ); */
-    /* *info = ( Type ){ */
-    /*     .kind = TYPEKIND_COMPOUND, */
-    /*     .token = ( Token ){ .as_string = "<anonymous>"}, */
-    /*     .compound = { */
-    /*         // .identifier = "<anonymous>", */
-    /*         .member_symbol_table = member_symbol_table, */
-    /*     } */
-    /* }; */
+    *out_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = info
+    };
 
-    /* *out_type = ( Type ){ */
-    /*     .kind = TYPEKIND_DEFINITION, */
-    /*     .definition = { */
-    /*         .info = info, */
-    /*         .pointer_types = lvec_new( Type ), */
-    /*         .array_types = lvec_new( Type ), */
-    /*     } */
-    /* }; */
-
-    /* return true; */
+    return true;
 }
 
 static bool check_type_identifier( SemanticContext* context, Expression* expression, Type* out_type )
@@ -2812,15 +2829,35 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
     }
 
     Expression* type_rvalue = expression->type_declaration.rvalue;
-    Type definition;// = malloc( sizeof( Type ) );
-    if( !check_type_rvalue( context, type_rvalue, &definition ) )
+    Type* definition = malloc( sizeof( Type ) );
+    if( !check_type_rvalue( context, type_rvalue, definition ) )
     {
         return false;
     }
+    *definition = *definition->type.info;
+
+    while( definition->kind == TYPEKIND_NAMED )
+    {
+        *definition = *definition->named.definition;
+    }
+
+    Type* info = malloc( sizeof( Type ) );
+    *info = ( Type ){
+        .kind = TYPEKIND_NAMED,
+        .named = {
+            .as_string = identifier_token.as_string,
+            .definition = definition,
+            .pointer_types = lvec_new( Type ),
+            .array_types = lvec_new( Type ),
+        },
+    };
 
     Symbol type_symbol = {
         .token = identifier_token,
-        .type = definition,
+        .type = ( Type ){
+            .kind = TYPEKIND_TYPE,
+            .type.info = info,
+        },
     };
     symbol_table_push_symbol( &context->symbol_table, type_symbol );
 
