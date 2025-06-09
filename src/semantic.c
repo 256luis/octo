@@ -548,49 +548,6 @@ bool type_equals( Type t1, Type t2 )
     }
 }
 
-/* Type get_definition_type( SemanticContext* context, Type type ) */
-/* { */
-/*     switch( type.kind ) */
-/*     { */
-/*         case TYPEKIND_VOID: */
-/*         case TYPEKIND_INTEGER: */
-/*         case TYPEKIND_FLOAT: */
-/*         case TYPEKIND_CHARACTER: */
-/*         case TYPEKIND_BOOLEAN: */
-/*         case TYPEKIND_FUNCTION: */
-/*         case TYPEKIND_COMPOUND: */
-/*         { */
-/*             Symbol* symbol = symbol_table_lookup( context->symbol_table, type.token.as_string ); */
-/*             return symbol->type; */
-/*         } */
-
-/*         case TYPEKIND_POINTER: */
-/*         { */
-/*             return get_definition_type( context, *type.pointer.base_type ); */
-/*         } */
-
-/*         case TYPEKIND_REFERENCE: */
-/*         { */
-/*             return get_definition_type( context, *type.reference.base_type ); */
-/*         } */
-
-/*         case TYPEKIND_ARRAY: */
-/*         { */
-/*             return get_definition_type( context, *type.array.base_type ); */
-/*         } */
-
-/*         case TYPEKIND_TYPE: */
-/*         { */
-/*             return get_definition_type( context, *type.type.info ); */
-/*         } */
-
-/*         default: // invalid and toinfer */
-/*         { */
-/*             UNREACHABLE(); */
-/*         } */
-/*     } */
-/* } */
-
 void add_array_type( Type base_type )
 {
     // get named type
@@ -697,307 +654,6 @@ void add_pointer_type( Type base_type )
     }
 
     lvec_append_aggregate( named_type.named.pointer_types, base_type );
-}
-
-static bool try_implicit_cast( Type destination_type, Type* out_type )
-{
-    // implicit casts are only for numeric and pointer types
-    static TypeKind implicitly_castable_type_kinds[] = {
-        TYPEKIND_INTEGER, TYPEKIND_FLOAT, TYPEKIND_POINTER, TYPEKIND_REFERENCE
-    };
-    int implicitly_castable_type_kinds_length =
-        sizeof( implicitly_castable_type_kinds ) / sizeof( *implicitly_castable_type_kinds );
-
-    bool destination_type_allowed = false;
-    bool out_type_allowed = false;
-    for( int i = 0; i < implicitly_castable_type_kinds_length; i++ )
-    {
-        if( destination_type.kind == implicitly_castable_type_kinds[ i ] )
-        {
-            destination_type_allowed = true;
-        }
-
-        if( out_type->kind == implicitly_castable_type_kinds[ i ] )
-        {
-            out_type_allowed = true;
-        }
-    }
-
-    if( !( destination_type_allowed && out_type_allowed ) )
-    {
-        return false;
-    }
-
-    // must be the same type kind!!
-    if( destination_type.kind != out_type->kind )
-    {
-        return false;
-    }
-
-    bool result = false;
-    switch( destination_type.kind )
-    {
-        case TYPEKIND_INTEGER:
-        {
-            bool is_same_signedness = destination_type.integer.is_signed == out_type->integer.is_signed;
-            size_t destination_bit_count = destination_type.integer.bit_count;
-            size_t original_bit_count = out_type->integer.bit_count;
-            result = is_same_signedness && ( destination_bit_count >= original_bit_count );
-
-            break;
-        }
-
-        case TYPEKIND_FLOAT:
-        {
-            size_t destination_bit_count = destination_type.floating.bit_count;
-            size_t original_bit_count = out_type->floating.bit_count;
-            result = destination_bit_count >= original_bit_count;
-
-            break;
-        }
-
-        case TYPEKIND_POINTER:
-        {
-            // at least one of the ptrs have to point at void
-            // implicit cast from non-&void to non-&void is not allowed
-            // non-&void to &void is allowed
-            // &void to non-&void is allowed
-
-            bool is_destination_void_ptr = destination_type.pointer.base_type->kind == TYPEKIND_VOID;
-            bool is_original_void_ptr = out_type->pointer.base_type->kind == TYPEKIND_VOID;
-            if( ( is_destination_void_ptr + is_original_void_ptr ) > 0 )
-            {
-                result = true;
-            }
-
-            break;
-        }
-
-        /* case TYPEKIND_ARRAY: */
-        /* { */
-        /*     bool is_destination_length_inferred = destination_type.array.length == -1; */
-        /*     bool are_base_types_equal = type_equals( *destination_type.array.base_type, *out_type->array.base_type ); */
-        /*     result = is_destination_length_inferred && are_base_types_equal; */
-        /*     break; */
-        /* } */
-
-        default:
-        {
-            UNREACHABLE();
-            break;
-        }
-    }
-
-    if( result )
-    {
-        *out_type = destination_type;
-    }
-
-    return result;
-}
-
-/* bool check_type( SemanticContext* context, Type* out_type ) */
-/* { */
-/*     UNIMPLEMENTED(); */
-
-/*     switch( out_type->kind ) */
-/*     { */
-/*         case TYPEKIND_VOID: */
-/*         case TYPEKIND_INTEGER: */
-/*         case TYPEKIND_FLOAT: */
-/*         case TYPEKIND_CHARACTER: */
-/*         case TYPEKIND_BOOLEAN: */
-/*         { */
-/*             return true; */
-/*         } */
-
-/*         case TYPEKIND_FUNCTION: */
-/*         { */
-/*             bool is_valid = true; */
-
-/*             // check params */
-/*             for( int i = 0; i < out_type->function.param_count; i++ ) */
-/*             { */
-/*                 Type* t = &out_type->function.param_types[ i ]; */
-/*                 is_valid = is_valid && check_type( context, t ); */
-/*             } */
-
-/*             // void is allowed */
-/*             if( out_type->function.return_type->kind != TYPEKIND_VOID ) */
-/*             { */
-/*                 is_valid = is_valid && check_type( context, out_type->function.return_type ); */
-/*             } */
-/*             return is_valid; */
-/*         } */
-
-/*         case TYPEKIND_POINTER: */
-/*         { */
-/*             if( !check_type( context, out_type->pointer.base_type ) ) */
-/*             { */
-/*                 return false; */
-/*             } */
-
-/*             Type definition_type = get_definition_type( context, *out_type ); */
-/*             add_pointer_type( definition_type, *out_type->pointer.base_type ); */
-/*             return check_type( context, out_type->pointer.base_type ); */
-/*         } */
-
-/*         case TYPEKIND_REFERENCE: */
-/*         { */
-/*             return check_type( context, out_type->reference.base_type ); */
-/*         } */
-
-/*         case TYPEKIND_ARRAY: */
-/*         { */
-/*             if( out_type->array.length == 0 ) */
-/*             { */
-/*                 Error error = { */
-/*                     .kind = ERRORKIND_ZEROLENGTHARRAY, */
-/*                     .offending_token = out_type->token, */
-/*                 }; */
-/*                 report_error( error ); */
-/*                 return false; */
-/*             } */
-
-/*             if( !check_type( context, out_type->array.base_type ) ) */
-/*             { */
-/*                 return false; */
-/*             } */
-
-/*             Type definition_type = get_definition_type( context, *out_type ); */
-/*             if( !check_type( context, &definition_type ) ) */
-/*             { */
-/*                 return false; */
-/*             } */
-
-/*             add_array_type( definition_type, *out_type->array.base_type ); */
-/*             return check_type( context, out_type->array.base_type ); */
-/*         } */
-
-/*         case TYPEKIND_COMPOUND: */
-/*         { */
-/*             UNIMPLEMENTED(); */
-/*             /\* Symbol* symbol = symbol_table_lookup( context->symbol_table, out_type->compound.identifier ); *\/ */
-/*             /\* if( symbol == NULL ) *\/ */
-/*             /\* { *\/ */
-/*             /\*     Error error = { *\/ */
-/*             /\*         .kind = ERRORKIND_UNDECLAREDSYMBOL, *\/ */
-/*             /\*         .offending_token = out_type->token, *\/ */
-/*             /\*     }; *\/ */
-/*             /\*     report_error( error ); *\/ */
-/*             /\*     return false; *\/ */
-/*             /\* } *\/ */
-
-/*             /\* if( symbol->type.kind != TYPEKIND_DEFINITION ) *\/ */
-/*             /\* { *\/ */
-/*             /\*     Error error = { *\/ */
-/*             /\*         .kind = ERRORKIND_NOTATYPE, *\/ */
-/*             /\*         .offending_token = out_type->token, *\/ */
-/*             /\*     }; *\/ */
-/*             /\*     report_error( error ); *\/ */
-/*             /\*     return false; *\/ */
-/*             /\* } *\/ */
-
-/*             /\* *out_type = *symbol->type.definition.info; *\/ */
-
-/*             /\* return true; *\/ */
-/*         } */
-
-/*         case TYPEKIND_TYPE: */
-/*         { */
-/*             return check_type( context, out_type->type.info ); */
-/*         } */
-
-/*         default: // TOINFER and INVALID */
-/*         { */
-/*             UNREACHABLE(); */
-/*             break; */
-/*         } */
-/*     } */
-/* } */
-
-bool check_type_compatibility( Type t1, Type* out_type, Error* out_error )
-{
-    Error error;
-    bool result = true;
-
-    if( type_equals( t1, *out_type ) )
-    {
-        return true;
-    }
-
-    if( t1.kind == TYPEKIND_REFERENCE || out_type->kind == TYPEKIND_REFERENCE )
-    {
-        Type reference_type = t1.kind == TYPEKIND_REFERENCE ? t1 : *out_type;
-        Type other_type = t1.kind == TYPEKIND_REFERENCE ? *out_type : t1;
-
-        return check_type_compatibility( *reference_type.reference.base_type, &other_type, out_error );
-    }
-
-    bool implicit_cast_attempt = try_implicit_cast( t1, out_type );
-    if( !implicit_cast_attempt )
-    {
-        bool are_both_types_numeric = is_type_numeric( t1 ) && is_type_numeric( *out_type );
-        bool are_both_types_arrays = t1.kind == TYPEKIND_ARRAY && out_type->kind == TYPEKIND_ARRAY;
-        if( are_both_types_numeric )
-        {
-            error = ( Error ){
-                .kind = ERRORKIND_INVALIDIMPLICITCAST,
-                .invalid_implicit_cast = {
-                    .to = t1,
-                    .from = *out_type,
-                },
-            };
-            result = false;
-        }
-        else if( are_both_types_arrays )
-        {
-            bool is_destination_length_inferred = t1.array.length == -1;
-            if( !is_destination_length_inferred )
-            {
-                error = ( Error ){
-                    .kind = ERRORKING_ARRAYLENGTHMISMATCH,
-                    .array_length_mismatch = {
-                        .expected = t1.array.length,
-                        .found = out_type->array.length
-                    }
-                };
-                result = false;
-            }
-
-            bool are_base_types_equal = type_equals( *t1.array.base_type, *out_type->array.base_type );
-            // result = is_destination_length_inferred && are_base_types_equal;
-            if( !are_base_types_equal )
-            {
-                error = ( Error ){
-                    .kind = ERRORKIND_TYPEMISMATCH,
-                    .type_mismatch = {
-                        .expected = t1,
-                        .found = *out_type
-                    }
-                };
-                result = false;
-            }
-        }
-        else
-        {
-            error = ( Error ){
-                .kind = ERRORKIND_TYPEMISMATCH,
-                .type_mismatch = {
-                    .expected = t1,
-                    .found = *out_type,
-                },
-            };
-            result = false;
-        }
-    }
-
-    if( !result )
-    {
-        *out_error = error;
-    }
-
-    return result;
 }
 
 static bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
@@ -1285,6 +941,93 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
     return true;
 }
 
+static bool implicit_cast_possible( Type to, Type from )
+{
+    if( type_equals( to, from ) )
+    {
+        return true;
+    }
+
+    if( to.kind != from.kind )
+    {
+        return false;
+    }
+
+    switch( to.kind )
+    {
+        case TYPEKIND_NAMED:
+        {
+            if( to.named.definition->kind == TYPEKIND_INTEGER ||
+                to.named.definition->kind == TYPEKIND_FLOAT )
+            {
+                return implicit_cast_possible( *to.named.definition, *from.named.definition );
+            }
+
+            return strcmp( to.named.as_string, from.named.as_string ) == 0;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            return implicit_cast_possible( *to.pointer.base_type, *from.pointer.base_type );
+        }
+
+        case TYPEKIND_INTEGER:
+        {
+            // only lossless conversions are allowed
+            // u8 -> u16 OK
+            // u8 -> i16 OK
+            // u8 -> i8  NOT OK
+            // i8 -> u* NOT OK
+            // i8 -> i16 OK
+
+            if( to.integer.is_signed == from.integer.is_signed )
+            {
+                return to.integer.bit_count >= from.integer.bit_count;
+            }
+            else if( to.integer.is_signed && !from.integer.is_signed )
+            {
+                return to.integer.bit_count > from.integer.bit_count;
+            }
+
+            return false;
+        }
+
+        case TYPEKIND_FLOAT:
+        {
+            // only lossless conversions are allowed
+            printf("%zu %zu\n", to.floating.bit_count, from.floating.bit_count);
+            return to.floating.bit_count >= from.floating.bit_count;
+        }
+
+        case TYPEKIND_FUNCTION:
+        {
+            UNIMPLEMENTED();
+        }
+
+        case TYPEKIND_ARRAY:
+        {
+            if( !type_equals( *to.array.base_type, *from.array.base_type ) )
+            {
+                return false;
+            }
+
+            if( to.array.length == -1 )
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        default:
+        {
+            UNREACHABLE();
+        }
+    }
+}
+
 static bool check_function_call( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
     Token identifier_token = expression->function_call.identifier_token;
@@ -1333,10 +1076,10 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
     // check if args are valid
     for( int i = 0; i < arg_count; i++ )
     {
-        Expression arg = expression->function_call.args[ i ];
+        Expression arg_rvalue = expression->function_call.args[ i ];
         Type arg_type;
 
-        bool is_arg_valid = check_rvalue( context, &arg, &arg_type );
+        bool is_arg_valid = check_rvalue( context, &arg_rvalue, &arg_type );
         if( !is_arg_valid )
         {
             // no need to report error here because that is handled by check_rvalue
@@ -1346,11 +1089,16 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
         if( i < param_count )
         {
             Type param_type = param_types[ i ];
-            Error error;
-            bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error );
-            if( !are_types_compatible )
+            if( !implicit_cast_possible( param_type, arg_type ) )
             {
-                error.offending_token = arg.starting_token;
+                Error error = {
+                    .kind = ERRORKIND_TYPEMISMATCH,
+                    .offending_token = arg_rvalue.starting_token,
+                    .type_mismatch = {
+                        .expected = param_type,
+                        .found = arg_type,
+                    }
+                };
                 report_error( error );
                 return false;
             }
@@ -1488,92 +1236,6 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
     }
 
     return true;
-}
-static bool implicit_cast_possible( Type to, Type from )
-{
-    if( type_equals( to, from ) )
-    {
-        return true;
-    }
-
-    if( to.kind != from.kind )
-    {
-        return false;
-    }
-
-    switch( to.kind )
-    {
-        case TYPEKIND_NAMED:
-        {
-            if( to.named.definition->kind == TYPEKIND_INTEGER ||
-                to.named.definition->kind == TYPEKIND_FLOAT )
-            {
-                return implicit_cast_possible( *to.named.definition, *from.named.definition );
-            }
-
-            return strcmp( to.named.as_string, from.named.as_string ) == 0;
-        }
-
-        case TYPEKIND_POINTER:
-        {
-            return implicit_cast_possible( *to.pointer.base_type, *from.pointer.base_type );
-        }
-
-        case TYPEKIND_INTEGER:
-        {
-            // only lossless conversions are allowed
-            // u8 -> u16 OK
-            // u8 -> i16 OK
-            // u8 -> i8  NOT OK
-            // i8 -> u* NOT OK
-            // i8 -> i16 OK
-
-            if( to.integer.is_signed == from.integer.is_signed )
-            {
-                return to.integer.bit_count >= from.integer.bit_count;
-            }
-            else if( to.integer.is_signed && !from.integer.is_signed )
-            {
-                return to.integer.bit_count > from.integer.bit_count;
-            }
-
-            return false;
-        }
-
-        case TYPEKIND_FLOAT:
-        {
-            // only lossless conversions are allowed
-            printf("%zu %zu\n", to.floating.bit_count, from.floating.bit_count);
-            return to.floating.bit_count >= from.floating.bit_count;
-        }
-
-        case TYPEKIND_FUNCTION:
-        {
-            UNIMPLEMENTED();
-        }
-
-        case TYPEKIND_ARRAY:
-        {
-            if( !type_equals( *to.array.base_type, *from.array.base_type ) )
-            {
-                return false;
-            }
-
-            if( to.array.length == -1 )
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        default:
-        {
-            UNREACHABLE();
-        }
-    }
 }
 
 static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
@@ -2339,25 +2001,6 @@ bool check_return( SemanticContext* context, Expression* expression )
         return false;
     }
 
-    /* Error error; */
-    /* bool are_types_compatible = check_type_compatibility( expected_return_type, &found_return_type, &error ); */
-    /* if( !are_types_compatible ) */
-    /* { */
-    /*     Token associated_token; */
-    /*     if( found_return_type.kind == TYPEKIND_VOID ) */
-    /*     { */
-    /*         associated_token = expression->starting_token; */
-    /*     } */
-    /*     else */
-    /*     { */
-    /*         associated_token = expression->return_expression.rvalue->starting_token; */
-    /*     } */
-
-    /*     error.offending_token = associated_token; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
-
     return true;
 }
 
@@ -2444,11 +2087,16 @@ bool check_assignment( SemanticContext* context, Expression* expression )
 
     // check if types match with original declaration
     Type expected_type = found_lvalue_type;
-    Error error;
-    bool are_types_compatible = check_type_compatibility( expected_type, &found_rvalue_type, &error );
-    if( !are_types_compatible )
+    if( !implicit_cast_possible( expected_type, found_rvalue_type ) )
     {
-        error.offending_token = expression->assignment.rvalue->starting_token;
+        Error error = {
+            .kind = ERRORKIND_TYPEMISMATCH,
+            .offending_token = expression->assignment.rvalue->starting_token,
+            .type_mismatch = {
+                .expected = expected_type,
+                .found = found_rvalue_type,
+            }
+        };
         report_error( error );
         return false;
     }
