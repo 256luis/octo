@@ -34,7 +34,7 @@ typedef enum TypeKind
 typedef struct Type
 {
     TypeKind kind;
-    Token token;
+    // Token token;
 
     union
     {

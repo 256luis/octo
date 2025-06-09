@@ -1397,80 +1397,80 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
 static bool check_lvalue( SemanticContext* context, Expression* expression, Type* out_type );
 static bool check_unary( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    UNIMPLEMENTED();
-    /* Expression* operand = expression->unary.operand; */
-    /* Type operand_type; */
-    /* bool is_operand_valid = check_rvalue( context, operand, &operand_type ); */
-    /* if( !is_operand_valid ) */
-    /* { */
-    /*     return false; */
-    /* } */
+    // UNIMPLEMENTED();
+    Expression* operand = expression->unary.operand;
+    Type operand_type;
+    bool is_operand_valid = check_rvalue( context, operand, &operand_type );
+    if( !is_operand_valid )
+    {
+        return false;
+    }
 
-    /* UnaryOperation operation = expression->unary.operation; */
-    /* if( operation == UNARYOPERATION_ADDRESSOF ) */
-    /* { */
-    /*     // operand must be lvalue */
-    /*     bool operand_lvalue_check = check_lvalue( context, operand, &operand_type ); */
-    /*     if( !operand_lvalue_check ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_INVALIDADDRESSOF, */
-    /*             .offending_token = operand->starting_token */
-    /*         }; */
+    UnaryOperation operation = expression->unary.operation;
+    if( operation == UNARYOPERATION_ADDRESSOF )
+    {
+        // operand must be lvalue
+        bool operand_lvalue_check = check_lvalue( context, operand, &operand_type );
+        if( !operand_lvalue_check )
+        {
+            Error error = {
+                .kind = ERRORKIND_INVALIDADDRESSOF,
+                .offending_token = operand->starting_token
+            };
 
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+            report_error( error );
+            return false;
+        }
 
-    /*     // check if operand is in symbol table */
-    /*     Symbol* operand_symbol = symbol_table_lookup( context->symbol_table, operand->associated_token.identifier ); */
-    /*     if( operand_symbol == NULL ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_UNDECLAREDSYMBOL, */
-    /*             .offending_token = operand->associated_token, */
-    /*         }; */
+        // check if operand is in symbol table
+        Symbol* operand_symbol = symbol_table_lookup( context->symbol_table, operand->associated_token.identifier );
+        if( operand_symbol == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                .offending_token = operand->associated_token,
+            };
 
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+            report_error( error );
+            return false;
+        }
 
-    /*     *inferred_type = ( Type ){ */
-    /*         .kind = TYPEKIND_POINTER, */
-    /*         .pointer.base_type = &operand_symbol->type, */
-    /*     }; */
+        *inferred_type = ( Type ){
+            .kind = TYPEKIND_POINTER,
+            .pointer.base_type = &operand_symbol->type,
+        };
 
-    /*     Type operand_type_definition = get_definition_type( context, *inferred_type->pointer.base_type ); */
-    /*     add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type ); */
-    /* } */
-    /* else */
-    /* { */
-    /*     bool is_operation_valid = is_unary_operation_valid( operation, operand_type ); */
-    /*     if( !is_operation_valid ) */
-    /*     { */
-    /*         Token operator_token = expression->unary.operator_token; */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_INVALIDUNARYOPERATION, */
-    /*             .offending_token = operator_token, */
-    /*             .invalid_unary_operation = { */
-    /*                 .operand_type = operand_type */
-    /*             } */
-    /*         }; */
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+        /* Type operand_type_definition = get_definition_type( context, *inferred_type->pointer.base_type ); */
+        /* add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type ); */
+    }
+    else
+    {
+        bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
+        if( !is_operation_valid )
+        {
+            Token operator_token = expression->unary.operator_token;
+            Error error = {
+                .kind = ERRORKIND_INVALIDUNARYOPERATION,
+                .offending_token = operator_token,
+                .invalid_unary_operation = {
+                    .operand_type = operand_type
+                }
+            };
+            report_error( error );
+            return false;
+        }
 
-    /*     if( operation == UNARYOPERATION_DEREFERENCE ) */
-    /*     { */
-    /*         *inferred_type = *operand_type.pointer.base_type; */
-    /*     } */
-    /*     else */
-    /*     { */
-    /*         *inferred_type = operand_type; */
-    /*     } */
-    /* } */
+        if( operation == UNARYOPERATION_DEREFERENCE )
+        {
+            *inferred_type = *operand_type.pointer.base_type;
+        }
+        else
+        {
+            *inferred_type = operand_type;
+        }
+    }
 
-    /* return true; */
+    return true;
 }
 static bool implicit_cast_possible( Type to, Type from )
 {
@@ -1725,77 +1725,79 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
 
 static bool check_compound_literal( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    Token type_identifier_token = expression->compound_literal.type_identifier_token;
+    UNIMPLEMENTED();
 
-    // check if type has been declared
-    Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier_token.as_string );
-    if( type_symbol == NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_UNDECLAREDSYMBOL,
-            .offending_token = type_identifier_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* Token type_identifier_token = expression->compound_literal.type_identifier_token; */
 
-    Type type = type_symbol->type;
-    if( type.kind != TYPEKIND_TYPE )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
-            .offending_token = type_identifier_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* // check if type has been declared */
+    /* Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier_token.as_string ); */
+    /* if( type_symbol == NULL ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_UNDECLAREDSYMBOL, */
+    /*         .offending_token = type_identifier_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    Type type_info = *type.type.info;
-    if( type_info.kind != TYPEKIND_COMPOUND )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
-            .offending_token = type.token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* Type type = type_symbol->type; */
+    /* if( type.kind != TYPEKIND_TYPE ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL, */
+    /*         .offending_token = type_identifier_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    int initialized_count = expression->compound_literal.initialized_count;
-    for( int i = 0; i < initialized_count; i++ )
-    {
-        Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ];
-        Symbol* member_symbol = symbol_table_lookup( *type_info.compound.member_symbol_table, member_identifier_token.as_string );
-        if( member_symbol == NULL )
-        {
-            Error error = {
-                .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                .offending_token = member_identifier_token,
-            };
-            report_error( error );
-            return false;
-        }
+    /* Type type_info = *type.type.info; */
+    /* if( type_info.kind != TYPEKIND_COMPOUND ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL, */
+    /*         .offending_token = type.token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-        Expression rvalue = expression->compound_literal.initialized_member_rvalues[ i ];
-        Type rvalue_type;
-        if( !check_rvalue( context, &rvalue, &rvalue_type ) )
-        {
-            return false;
-        }
+    /* int initialized_count = expression->compound_literal.initialized_count; */
+    /* for( int i = 0; i < initialized_count; i++ ) */
+    /* { */
+    /*     Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ]; */
+    /*     Symbol* member_symbol = symbol_table_lookup( *type_info.compound.member_symbol_table, member_identifier_token.as_string ); */
+    /*     if( member_symbol == NULL ) */
+    /*     { */
+    /*         Error error = { */
+    /*             .kind = ERRORKIND_UNDECLAREDSYMBOL, */
+    /*             .offending_token = member_identifier_token, */
+    /*         }; */
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
 
-        Error error;
-        bool are_types_compatible = check_type_compatibility( member_symbol->type, &rvalue_type, &error );
-        if( !are_types_compatible )
-        {
-            error.offending_token = rvalue.starting_token;
-            report_error( error );
-            return false;
-        }
-    }
+    /*     Expression rvalue = expression->compound_literal.initialized_member_rvalues[ i ]; */
+    /*     Type rvalue_type; */
+    /*     if( !check_rvalue( context, &rvalue, &rvalue_type ) ) */
+    /*     { */
+    /*         return false; */
+    /*     } */
 
-    *inferred_type = type_info;
+    /*     Error error; */
+    /*     bool are_types_compatible = check_type_compatibility( member_symbol->type, &rvalue_type, &error ); */
+    /*     if( !are_types_compatible ) */
+    /*     { */
+    /*         error.offending_token = rvalue.starting_token; */
+    /*         report_error( error ); */
+    /*         return false; */
+    /*     } */
+    /* } */
 
-    return true;
+    /* *inferred_type = type_info; */
+
+    /* return true; */
 }
 
 static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type )
@@ -1977,15 +1979,15 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
 
         // anonymous types are not allowed!
         // TODO: update this when new typekinds are made
-        if( declared_type_type.type.info->kind == TYPEKIND_COMPOUND )
-        {
-            Error error = {
-                .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
-                .offending_token = type_rvalue->starting_token
-            };
-            report_error( error );
-            return false;
-        }
+        /* if( declared_type_type.type.info->kind == TYPEKIND_COMPOUND ) */
+        /* { */
+        /*     Error error = { */
+        /*         .kind = ERRORKIND_INVALIDANONYMOUSTYPE, */
+        /*         .offending_token = type_rvalue->starting_token */
+        /*     }; */
+        /*     report_error( error ); */
+        /*     return false; */
+        /* } */
 
         declared_type = *declared_type_type.type.info;
     }
@@ -2129,15 +2131,15 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
 
     // anonymous types are not allowed!
     // TODO: update this when new typekinds are made
-    if( return_type->type.info->kind == TYPEKIND_COMPOUND )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
-            .offending_token = return_type_rvalue->starting_token
-        };
-        report_error( error );
-        return false;
-    }
+    /* if( return_type->type.info->kind == TYPEKIND_COMPOUND ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDANONYMOUSTYPE, */
+    /*         .offending_token = return_type_rvalue->starting_token */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
     *return_type = *return_type->type.info;
 
@@ -2169,15 +2171,15 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
 
         // anonymous types are not allowed!
         // TODO: update this when new typekinds are made
-        if( param_type.type.info->kind == TYPEKIND_COMPOUND )
-        {
-            Error error = {
-                .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
-                .offending_token = param_type_rvalue.starting_token
-            };
-            report_error( error );
-            return false;
-        }
+        /* if( param_type.type.info->kind == TYPEKIND_COMPOUND ) */
+        /* { */
+        /*     Error error = { */
+        /*         .kind = ERRORKIND_INVALIDANONYMOUSTYPE, */
+        /*         .offending_token = param_type_rvalue.starting_token */
+        /*     }; */
+        /*     report_error( error ); */
+        /*     return false; */
+        /* } */
 
         param_type = *param_type.type.info;
         lvec_append_aggregate( param_types, param_type );
@@ -2675,15 +2677,15 @@ static bool check_pointer_type( SemanticContext* context, Expression* type_rvalu
     }
 
     // anonymous types are not allowed!
-    if( base_type_definition.type.info->kind != TYPEKIND_NAMED )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
-            .offending_token = base_type_rvalue->starting_token
-        };
-        report_error( error );
-        return false;
-    }
+    /* if( base_type_definition.type.info->kind != TYPEKIND_NAMED ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDANONYMOUSTYPE, */
+    /*         .offending_token = base_type_rvalue->starting_token */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
     Type* info = malloc( sizeof( Type ) );
     *info = ( Type ){
@@ -2709,15 +2711,15 @@ static bool check_array_type( SemanticContext* context, Expression* type_rvalue,
     }
 
     // anonymous types are not allowed!
-    if( base_type_definition->type.info->kind == TYPEKIND_COMPOUND )
-    {
-        Error error = {
-            .kind = ERRORKIND_INVALIDANONYMOUSTYPE,
-            .offending_token = base_type_rvalue->starting_token
-        };
-        report_error( error );
-        return false;
-    }
+    /* if( base_type_definition->type.info->kind == TYPEKIND_COMPOUND ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_INVALIDANONYMOUSTYPE, */
+    /*         .offending_token = base_type_rvalue->starting_token */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
     base_type_definition = base_type_definition->type.info;
 
     // array of voids are not allowed!
@@ -2795,49 +2797,34 @@ static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue
 
 static bool check_type_declaration( SemanticContext* context, Expression* expression )
 {
-    UNIMPLEMENTED();
+    // check if type name is already in symbol table
+    Token identifier_token = expression->type_declaration.identifier_token;
+    Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string );
+    if( symbol != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+            .symbol_redeclaration.original_declaration_token = identifier_token
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* // check if type name is already in symbol table */
-    /* Token identifier_token = expression->type_declaration.identifier_token; */
-    /* Symbol* symbol = symbol_table_lookup( context->symbol_table, identifier_token.as_string ); */
-    /* if( symbol != NULL ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_SYMBOLREDECLARATION, */
-    /*         .offending_token = identifier_token, */
-    /*         .symbol_redeclaration.original_declaration_token = identifier_token */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    Expression* type_rvalue = expression->type_declaration.rvalue;
+    Type definition;// = malloc( sizeof( Type ) );
+    if( !check_type_rvalue( context, type_rvalue, &definition ) )
+    {
+        return false;
+    }
 
-    /* Expression* type_rvalue = expression->type_declaration.rvalue; */
-    /* Type* definition = malloc( sizeof( Type ) ); */
-    /* if( !check_type_rvalue( context, type_rvalue, definition ) ) */
-    /* { */
-    /*     return false; */
-    /* } */
+    Symbol type_symbol = {
+        .token = identifier_token,
+        .type = definition,
+    };
+    symbol_table_push_symbol( &context->symbol_table, type_symbol );
 
-    /* Type* info = malloc( sizeof( Type ) ); */
-    /* *info = ( Type ){ */
-    /*     .kind = TYPEKIND_CUSTOM, */
-    /*     .custom.definition = definition */
-    /* }; */
-
-    /* Symbol type_declaration_symbol = { */
-    /*     .token = identifier_token, */
-    /*     .type = ( Type ){ */
-    /*         .kind = TYPEKIND_DEFINITION, */
-    /*         .definition = { */
-    /*             .info = info, */
-    /*             .pointer_types = lvec_new( Type ), */
-    /*             .array_types = lvec_new( Type ), */
-    /*         } */
-    /*     } */
-    /* }; */
-
-    /* symbol_table_push_symbol( &context->symbol_table, type_declaration_symbol ); */
-    /* return true; */
+    return true;
 }
 
 bool check_semantics( SemanticContext* context, Expression* expression )

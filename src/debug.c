@@ -179,7 +179,7 @@ void debug_print_type( Type type )
 
         case TYPEKIND_NAMED:
         {
-            printf( "(%s)\n", type.named.as_string );
+            printf( "(%s)", type.named.as_string );
             break;
         }
 
@@ -336,8 +336,9 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "type = " );
             debug_print_type( expression->variable_declaration.variable_type );
+
             // debug_print_type( expression->variable_declaration.type );
-            // putchar( '\n' );
+            putchar( '\n' );
 
             INDENT();
             printf( "value = " );
