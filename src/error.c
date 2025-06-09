@@ -113,7 +113,7 @@ void print_type( Type type )
 {
     switch( type.kind )
     {
-        case TYPEKIND_INVALID:
+        // case TYPEKIND_INVALID:
         case TYPEKIND_TOINFER:
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:

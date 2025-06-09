@@ -518,7 +518,7 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_NAMED:
         {
-            printf("%s, %s\n", t1.named.as_string, t2.named.as_string);
+            // printf("%s, %s\n", t1.named.as_string, t2.named.as_string);
             // return type_equals( *t1.named.definition, *t2.named.definition );
             return strcmp( t1.named.as_string, t2.named.as_string ) == 0;
         }
@@ -1222,7 +1222,7 @@ static bool check_binary( SemanticContext* context, Expression* expression, Type
         {
             char as_string[4] = { 0 };
             sprintf( as_string, "%c%zu",
-                     right_type.integer.is_signed ? 'i' : 'u',
+                     right_type_definition.integer.is_signed ? 'i' : 'u',
                      MAX( left_type_definition.integer.bit_count, right_type_definition.integer.bit_count ) );
 
             *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
@@ -1270,84 +1270,82 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
 
 static bool check_function_call( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    UNIMPLEMENTED();
+    Token identifier_token = expression->function_call.identifier_token;
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
+    if( original_declaration == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = identifier_token,
+        };
 
-    /* Token identifier_token = expression->function_call.identifier_token; */
-    /* Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier ); */
-    /* if( original_declaration == NULL ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_UNDECLAREDSYMBOL, */
-    /*         .offending_token = identifier_token, */
-    /*     }; */
+        report_error( error );
+        return false;
+    }
 
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    // check if args count match param count
+    Type* param_types = original_declaration->type.function.param_types;
+    int param_count = original_declaration->type.function.param_count;
+    int arg_count = expression->function_call.arg_count;
+    bool is_variadic = original_declaration->type.function.is_variadic;
 
-    /* // check if args count match param count */
-    /* Type* param_types = original_declaration->type.function.param_types; */
-    /* int param_count = original_declaration->type.function.param_count; */
-    /* int arg_count = expression->function_call.arg_count; */
-    /* bool is_variadic = original_declaration->type.function.is_variadic; */
+    bool is_argument_count_valid;
+    if( is_variadic )
+    {
+        is_argument_count_valid = arg_count >= param_count;
+    }
+    else
+    {
+        is_argument_count_valid = arg_count == param_count;
+    }
 
-    /* bool is_argument_count_valid; */
-    /* if( is_variadic ) */
-    /* { */
-    /*     is_argument_count_valid = arg_count >= param_count; */
-    /* } */
-    /* else */
-    /* { */
-    /*     is_argument_count_valid = arg_count == param_count; */
-    /* } */
+    if( !is_argument_count_valid )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDARGUMENTCOUNT,
+            .offending_token = identifier_token,
+            .too_many_arguments = {
+                .expected = param_count,
+                .found = arg_count,
+            },
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* if( !is_argument_count_valid ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_INVALIDARGUMENTCOUNT, */
-    /*         .offending_token = identifier_token, */
-    /*         .too_many_arguments = { */
-    /*             .expected = param_count, */
-    /*             .found = arg_count, */
-    /*         }, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    // check if args are valid
+    for( int i = 0; i < arg_count; i++ )
+    {
+        Expression arg = expression->function_call.args[ i ];
+        Type arg_type;
 
-    /* // check if args are valid */
-    /* for( int i = 0; i < arg_count; i++ ) */
-    /* { */
-    /*     Expression* arg = expression->function_call.args[ i ]; */
-    /*     Type arg_type; */
+        bool is_arg_valid = check_rvalue( context, &arg, &arg_type );
+        if( !is_arg_valid )
+        {
+            // no need to report error here because that is handled by check_rvalue
+            return false;
+        }
 
-    /*     bool is_arg_valid = check_rvalue( context, arg, &arg_type ); */
-    /*     if( !is_arg_valid ) */
-    /*     { */
-    /*         // no need to report error here because that is handled by check_rvalue */
-    /*         return false; */
-    /*     } */
+        if( i < param_count )
+        {
+            Type param_type = param_types[ i ];
+            Error error;
+            bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error );
+            if( !are_types_compatible )
+            {
+                error.offending_token = arg.starting_token;
+                report_error( error );
+                return false;
+            }
+        }
+    }
 
-    /*     if( i < param_count ) */
-    /*     { */
-    /*         Type param_type = param_types[ i ]; */
-    /*         Error error; */
-    /*         bool are_types_compatible = check_type_compatibility( param_type, &arg_type, &error ); */
-    /*         if( !are_types_compatible ) */
-    /*         { */
-    /*             error.offending_token = arg->starting_token; */
-    /*             report_error( error ); */
-    /*             return false; */
-    /*         } */
-    /*     } */
-    /* } */
+    if( inferred_type != NULL )
+    {
+        *inferred_type = *original_declaration->type.function.return_type;
+    }
 
-    /* if( inferred_type != NULL ) */
-    /* { */
-    /*     *inferred_type = *original_declaration->type.function.return_type; */
-    /* } */
-
-    /* return true; */
+    return true;
 }
 
 static bool is_unary_operation_valid( UnaryOperation operation, Type type )

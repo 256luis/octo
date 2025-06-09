@@ -125,7 +125,7 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_ARRAY ]     = "ARRAY",
     [ TYPEKIND_TYPE ]      = "TYPE",
     [ TYPEKIND_NAMED ]     = "NAMED",
-    [ TYPEKIND_INVALID ]   = "INVALID",
+    // [ TYPEKIND_INVALID ]   = "INVALID",
     [ TYPEKIND_TOINFER ]   = "TOINFER",
 };
 
@@ -191,11 +191,11 @@ void debug_print_type( Type type )
             break;
         }
 
-        case TYPEKIND_INVALID:
-        {
-            UNREACHABLE();
-            break;
-        }
+        /* case TYPEKIND_INVALID: */
+        /* { */
+        /*     UNREACHABLE(); */
+        /*     break; */
+        /* } */
     }
 }
 
@@ -213,37 +213,37 @@ void expression_print( Expression* expression )
     {
         case EXPRESSIONKIND_INTEGER:
         {
-            printf( "(%lld)\n", expression->integer );
+            printf( "(%lld)", expression->integer );
             break;
         }
 
         case EXPRESSIONKIND_FLOAT:
         {
-            printf( "(%lf)\n", expression->floating );
+            printf( "(%lf)", expression->floating );
             break;
         }
 
         case EXPRESSIONKIND_BOOLEAN:
         {
-            printf( "(%s)\n", expression->boolean ? "true" : "false" );
+            printf( "(%s)", expression->boolean ? "true" : "false" );
             break;
         }
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
-            printf( "(%s)\n", expression->identifier.as_string );
+            printf( "(%s)", expression->identifier.as_string );
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
-            printf( "(\"%s\")\n", expression->string );
+            printf( "(\"%s\")", expression->string );
             break;
         }
 
         case EXPRESSIONKIND_CHARACTER:
         {
-            printf( "(\'%c\')\n", expression->character );
+            printf( "(\'%c\')", expression->character );
             break;
         }
 
@@ -260,16 +260,14 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "left = " );
             expression_print( expression->binary.left );
-            putchar( '\n' );
 
             INDENT();
             printf( "right = " );
             expression_print( expression->binary.right );
-            putchar( '\n' );
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -290,7 +288,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -311,7 +309,7 @@ void expression_print( Expression* expression )
             {
                 INDENT();
                 printf( "[%lld] = ", i );
-                expression_print( expression->function_call.args[ i ] );
+                expression_print( &expression->function_call.args[ i ] );
             }
 
             depth--;
@@ -322,7 +320,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -350,13 +348,12 @@ void expression_print( Expression* expression )
             }
             else
             {
-                printf( "(null)" );
+                printf( "UNINITIALIZED\n" );
             }
 
-            // putchar( '\n' );
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -377,7 +374,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -396,7 +393,7 @@ void expression_print( Expression* expression )
             printf( "return type = " );
             expression_print( expression->function_declaration.return_type_rvalue );
             // debug_print_type( expression->function_declaration.return_type );
-            putchar( '\n' );
+            // putchar( '\n' );
 
             for( int i = 0; i < expression->function_declaration.param_count; i++ )
             {
@@ -408,7 +405,7 @@ void expression_print( Expression* expression )
                 printf( "param[%d] = %s: ", i, param_identifier_token.as_string );
                 expression_print( &param_type_rvalue );
                 // debug_print_type( param_type );
-                putchar( '\n' );
+                // putchar( '\n' );
             }
 
             INDENT();
@@ -417,16 +414,22 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
 
         case EXPRESSIONKIND_RETURN:
         {
-            printf( "(");
+            printf( " {\n");
+            depth++;
+            INDENT();
             expression_print( expression->return_expression.rvalue );
-            printf( ")\n");
+
+            // putchar( '\n' );
+            depth--;
+            INDENT();
+            printf( "}");
             break;
         }
 
@@ -447,7 +450,7 @@ void expression_print( Expression* expression )
             putchar( '\n' );
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -462,7 +465,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -485,7 +488,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -507,7 +510,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -528,7 +531,7 @@ void expression_print( Expression* expression )
             depth--;
             printf( "\n");
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -552,7 +555,7 @@ void expression_print( Expression* expression )
             depth--;
             printf( "\n");
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -571,7 +574,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -592,7 +595,7 @@ void expression_print( Expression* expression )
             }
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -613,7 +616,7 @@ void expression_print( Expression* expression )
             depth--;
             printf( "\n");
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -646,13 +649,13 @@ void expression_print( Expression* expression )
             depth--;
             printf( "\n");
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
         case EXPRESSIONKIND_TYPEIDENTIFIER:
         {
-            printf( "(%s)\n", expression->type_identifier.token.as_string );
+            printf( "(%s)", expression->type_identifier.token.as_string );
             break;
         }
 
@@ -666,7 +669,7 @@ void expression_print( Expression* expression )
             expression_print( expression->pointer_type.base_type_rvalue );
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
 
             break;
         }
@@ -685,7 +688,7 @@ void expression_print( Expression* expression )
 
             depth--;
             INDENT();
-            printf( "}\n" );
+            printf( "}" );
             break;
         }
 
@@ -695,4 +698,6 @@ void expression_print( Expression* expression )
             break;
         }
     }
+
+    putchar('\n');
 }

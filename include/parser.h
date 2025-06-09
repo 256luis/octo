@@ -136,7 +136,7 @@ typedef struct Expression
         {
             Token identifier_token;
 
-            struct Expression** args; // array of expression pointers
+            struct Expression* args; // array of expressions
             size_t arg_count;
         } function_call;
 

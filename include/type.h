@@ -9,17 +9,16 @@ typedef struct SymbolTable SymbolTable;
 
 typedef enum TypeKind
 {
-    // primitive types
+    // built-in named types
     TYPEKIND_VOID,
     TYPEKIND_INTEGER,
     TYPEKIND_FLOAT,
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
 
-    TYPEKIND_FUNCTION,
-
     // anonymous types
     TYPEKIND_COMPOUND,
+    TYPEKIND_FUNCTION,
 
     // referential types
     TYPEKIND_POINTER,
@@ -29,7 +28,7 @@ typedef enum TypeKind
     TYPEKIND_NAMED,
 
     TYPEKIND_TOINFER,
-    TYPEKIND_INVALID,
+    // TYPEKIND_INVALID,
 } TypeKind;
 
 typedef struct Type

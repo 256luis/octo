@@ -257,7 +257,7 @@ static Expression* parse_function_call( Parser* parser )
     }
     else
     {
-        Expression** args = lvec_new( Expression* );
+        Expression* args = lvec_new( Expression );
         if( args == NULL ) ALLOC_ERROR();
 
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
@@ -267,7 +267,7 @@ static Expression* parse_function_call( Parser* parser )
             {
                 return NULL;
             }
-            lvec_append( args, e );
+            lvec_append_aggregate( args, *e );
 
             expression->function_call.arg_count++;
 
@@ -749,6 +749,8 @@ static Expression* parse_rvalue( Parser* parser )
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
     if( is_next_token_kind_binary_operator )
     {
+        Token rvalue_starting_token = parser->current_token;
+
         advance( parser );
 
         Expression* left = calloc( 1, sizeof( Expression ) );
@@ -758,6 +760,7 @@ static Expression* parse_rvalue( Parser* parser )
         memset( expression, 0, sizeof( Expression ) );
 
         expression->kind = EXPRESSIONKIND_BINARY;
+        expression->starting_token = rvalue_starting_token;
         expression->binary.operation = token_kind_to_binary_operation( parser->current_token.kind );
         expression->binary.operator_token = parser->current_token;
         expression->binary.left = left;

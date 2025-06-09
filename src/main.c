@@ -53,11 +53,11 @@ int main( int argc, char* argv[] )
     /* generate_code( generated_c, &semantic_context, program ); */
     /* fclose( generated_c ); */
 
-    for( int i = 0; i < semantic_context.symbol_table.length; i++ )
-    {
-        Symbol symbol = semantic_context.symbol_table.symbols[ i ];
-        printf( "%s\n", symbol.token.as_string );
-    }
+    /* for( int i = 0; i < semantic_context.symbol_table.length; i++ ) */
+    /* { */
+    /*     Symbol symbol = semantic_context.symbol_table.symbols[ i ]; */
+    /*     printf( "%s\n", symbol.token.as_string ); */
+    /* } */
 
     expression_print( program );
 
