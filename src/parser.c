@@ -642,6 +642,11 @@ static Expression* parse_postfix( Parser* parser, Expression* left )
 
 static Expression* parse_atom( Parser* parser )
 {
+    if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
     Expression* expression;
     Token starting_token = parser->current_token;
 
@@ -731,11 +736,6 @@ static Expression* parse_atom( Parser* parser )
 
 static Expression* parse_rvalue( Parser* parser )
 {
-    if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
     Token starting_token = parser->current_token;
     Expression* expression = parse_atom( parser );
 

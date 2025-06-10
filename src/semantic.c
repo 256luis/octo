@@ -22,6 +22,21 @@ typedef struct TypeKindPair
     TypeKind tk2;
 } TypeKindPair;
 
+// primitive types for convenience
+Type void_type;
+Type char_type;
+Type bool_type;
+Type i8_type;
+Type i16_type;
+Type i32_type;
+Type i64_type;
+Type u8_type;
+Type u16_type;
+Type u32_type;
+Type u64_type;
+Type f32_type;
+Type f64_type;
+
 void push_return_type( SemanticContext* context, Type type )
 {
     lvec_append_aggregate( context->return_type_stack, type );
@@ -59,12 +74,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    void_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = void_info,
+    };
+
     Symbol void_symbol = {
         .token = { .as_string = "void" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = void_info,
-        }
+        .type = void_type,
     };
 
     Type* char_definition = malloc( sizeof( Type ) );
@@ -83,12 +100,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    char_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = char_info,
+    };
+
     Symbol char_symbol = {
         .token = { .as_string = "char" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = char_info,
-        }
+        .type = char_type,
     };
 
     Type* bool_definition = malloc( sizeof( Type ) );
@@ -107,12 +126,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    bool_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = bool_info,
+    };
+
     Symbol bool_symbol = {
         .token = { .as_string = "bool" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = bool_info,
-        }
+        .type = bool_type,
     };
 
     Symbol true_symbol = {
@@ -159,12 +180,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    i8_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = i8_info,
+    };
+
     Symbol i8_symbol = {
         .token = { .as_string = "i8" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = i8_info,
-        }
+        .type = i8_type,
     };
 
     Type* i16_definition = malloc( sizeof( Type ) );
@@ -185,6 +208,11 @@ void semantic_context_initialize( SemanticContext* context )
             .pointer_types = lvec_new( Type ),
             .array_types = lvec_new( Type ),
         }
+    };
+
+    i16_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = i16_info,
     };
 
     Symbol i16_symbol = {
@@ -215,12 +243,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    i32_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = i32_info,
+    };
+
     Symbol i32_symbol = {
         .token = { .as_string = "i32" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = i32_info,
-        }
+        .type = i32_type,
     };
 
     Type* i64_definition = malloc( sizeof( Type ) );
@@ -243,12 +273,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    i64_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = i64_info,
+    };
+
     Symbol i64_symbol = {
         .token = { .as_string = "i64" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = i64_info,
-        }
+        .type = i64_type,
     };
 
     Type* u8_definition = malloc( sizeof( Type ) );
@@ -271,12 +303,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    u8_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = u8_info,
+    };
+
     Symbol u8_symbol = {
         .token = { .as_string = "u8" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = u8_info,
-        }
+        .type = u8_type,
     };
 
     Type* u16_definition = malloc( sizeof( Type ) );
@@ -299,12 +333,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    u16_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = u16_info,
+    };
+
     Symbol u16_symbol = {
         .token = { .as_string = "u16" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = u16_info,
-        }
+        .type = u16_type,
     };
 
     Type* u32_definition = malloc( sizeof( Type ) );
@@ -327,12 +363,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    u32_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = u32_info,
+    };
+
     Symbol u32_symbol = {
         .token = { .as_string = "u32" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = u32_info,
-        }
+        .type = u32_type,
     };
 
     Type* u64_definition = malloc( sizeof( Type ) );
@@ -355,12 +393,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    u64_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = u64_info,
+    };
+
     Symbol u64_symbol = {
         .token = { .as_string = "u64" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = u64_info,
-        }
+        .type = u64_type,
     };
 
     Type* f32_definition = malloc( sizeof( Type ) );
@@ -380,12 +420,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    f32_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = f32_info,
+    };
+
     Symbol f32_symbol = {
         .token = { .as_string = "f32" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = f32_info,
-        }
+        .type = f32_type,
     };
 
     Type* f64_definition = malloc( sizeof( Type ) );
@@ -405,12 +447,14 @@ void semantic_context_initialize( SemanticContext* context )
         }
     };
 
+    f64_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.info = f64_info,
+    };
+
     Symbol f64_symbol = {
         .token = { .as_string = "f64" },
-        .type = {
-            .kind = TYPEKIND_TYPE,
-            .type.info = f64_info,
-        }
+        .type = f64_type,
     };
 
     symbol_table_push_symbol( &context->symbol_table, void_symbol );
@@ -1117,9 +1161,7 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
 {
     Type void_pointer = {
         .kind = TYPEKIND_POINTER,
-        .pointer.base_type = &( Type ){
-            .kind = TYPEKIND_VOID,
-        },
+        .pointer.base_type = void_type.type.info
     };
 
     if( operation == UNARYOPERATION_DEREFERENCE && type_equals( type, void_pointer ) )
@@ -1145,6 +1187,11 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
         [ UNARYOPERATION_ADDRESSOF ] = NULL,
     };
 
+    while( type.kind == TYPEKIND_NAMED )
+    {
+        type = *type.named.definition;
+    }
+
     TypeKind* valid_type_kind = valid_unary_operation[ operation ];
     bool is_valid = false;
     for( TypeKind tk = *valid_type_kind; tk != -1; valid_type_kind++, tk = *valid_type_kind )
@@ -1162,7 +1209,11 @@ static bool is_unary_operation_valid( UnaryOperation operation, Type type )
 static bool check_lvalue( SemanticContext* context, Expression* expression, Type* out_type );
 static bool check_unary( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    // UNIMPLEMENTED();
+    // FIXME: it segfaults when you take the address of a dereferenced pointer
+    //        ex:
+    //            let a: &char;
+    //            let b = &*a;
+
     Expression* operand = expression->unary.operand;
     Type operand_type;
     bool is_operand_valid = check_rvalue( context, operand, &operand_type );
@@ -1492,23 +1543,22 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
 
     switch( expression->kind )
     {
-        // case EXPRESSIONKIND_STRING:    inferred_type->kind = TYPEKIND_STRING;    break;
         case EXPRESSIONKIND_CHARACTER:
         {
-            *inferred_type = *symbol_table_lookup( context->symbol_table, "char" )->type.type.info;
+            *inferred_type = *char_type.type.info;
             break;
         }
 
         case EXPRESSIONKIND_BOOLEAN:
         {
-            *inferred_type = *symbol_table_lookup( context->symbol_table, "bool" )->type.type.info;
+            *inferred_type = *bool_type.type.info;
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
             inferred_type->kind = TYPEKIND_POINTER;
-            inferred_type->pointer.base_type = symbol_table_lookup( context->symbol_table, "char" )->type.type.info;
+            inferred_type->pointer.base_type = char_type.type.info;
             break;
         }
 
@@ -1553,7 +1603,6 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
             }
             else// if( floating <= INT64_MAX )
             {
-                printf("here\n");
                 bit_count = 64;
             }
 
@@ -2456,8 +2505,6 @@ static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue
             UNREACHABLE();
         }
     }
-
-    // return is_valid;
 }
 
 static bool check_type_declaration( SemanticContext* context, Expression* expression )
