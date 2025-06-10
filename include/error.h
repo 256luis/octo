@@ -1,7 +1,6 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-#include "parser.h"
 #include "tokenizer.h"
 #include "type.h"
 
@@ -43,6 +42,7 @@ typedef enum ErrorKind
     ERRORKIND_NOTCOMPOUND,
     ERRORKIND_INVALIDANONYMOUSTYPE,
     ERRORKIND_UNINITIALIZEDMEMBER,
+    ERRORKIND_MULTIPLEMEMBERINITIALIZEDUNION,
 } ErrorKind;
 
 typedef struct SourceCode

@@ -1507,7 +1507,12 @@ static bool check_compound_literal( SemanticContext* context, Expression* expres
     else if( !is_struct && initialized_count > 1 )
     {
         // TODO: report error for this case
-        UNIMPLEMENTED();
+        Error error = {
+            .kind = ERRORKIND_MULTIPLEMEMBERINITIALIZEDUNION,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
     }
 
     Expression* initialized_member_rvalues = expression->compound_literal.initialized_member_rvalues;
