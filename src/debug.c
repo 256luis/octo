@@ -650,17 +650,14 @@ void expression_print( Expression* expression )
                 Expression initialized_member_rvalue = expression->compound_literal.initialized_member_rvalues[ i ];
 
                 INDENT();
-                // printf( "param[%d] = %s: %d\n", i, param_identifier, param_type.kind );
                 printf( ".%s = ", member_identifier );
                 expression_print( &initialized_member_rvalue );
-                putchar( '\n' );
             }
             depth--;
             INDENT();
             printf( "}\n" );
 
             depth--;
-            printf( "\n");
             INDENT();
             printf( "}" );
             break;

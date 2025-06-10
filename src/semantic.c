@@ -1039,7 +1039,6 @@ static bool implicit_cast_possible( Type to, Type from )
         case TYPEKIND_FLOAT:
         {
             // only lossless conversions are allowed
-            printf("%zu %zu\n", to.floating.bit_count, from.floating.bit_count);
             return to.floating.bit_count >= from.floating.bit_count;
         }
 
@@ -1460,79 +1459,100 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
 
 static bool check_compound_literal( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    UNIMPLEMENTED();
+    // TODO: make this function accomodate anonymous types
 
-    /* Token type_identifier_token = expression->compound_literal.type_identifier_token; */
+    Token type_identifier_token = expression->compound_literal.type_identifier_token;
 
-    /* // check if type has been declared */
-    /* Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier_token.as_string ); */
-    /* if( type_symbol == NULL ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_UNDECLAREDSYMBOL, */
-    /*         .offending_token = type_identifier_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    // check if type has been declared
+    Symbol* type_symbol = symbol_table_lookup( context->symbol_table, type_identifier_token.as_string );
+    if( type_symbol == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = type_identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* Type type = type_symbol->type; */
-    /* if( type.kind != TYPEKIND_TYPE ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL, */
-    /*         .offending_token = type_identifier_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    Type type = type_symbol->type;
+    if( type.kind != TYPEKIND_TYPE )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL,
+            .offending_token = type_identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* Type type_info = *type.type.info; */
-    /* if( type_info.kind != TYPEKIND_COMPOUND ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_INVALIDCOMPOUNDLITERAL, */
-    /*         .offending_token = type.token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    Type type_info = *type.type.info;
+    Type definition = *type_info.named.definition;
+    bool is_struct = definition.compound.is_struct;
 
-    /* int initialized_count = expression->compound_literal.initialized_count; */
-    /* for( int i = 0; i < initialized_count; i++ ) */
-    /* { */
-    /*     Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ]; */
-    /*     Symbol* member_symbol = symbol_table_lookup( *type_info.compound.member_symbol_table, member_identifier_token.as_string ); */
-    /*     if( member_symbol == NULL ) */
-    /*     { */
-    /*         Error error = { */
-    /*             .kind = ERRORKIND_UNDECLAREDSYMBOL, */
-    /*             .offending_token = member_identifier_token, */
-    /*         }; */
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
+    int member_count = definition.compound.member_symbol_table->length;
+    int initialized_count = expression->compound_literal.initialized_count;
 
-    /*     Expression rvalue = expression->compound_literal.initialized_member_rvalues[ i ]; */
-    /*     Type rvalue_type; */
-    /*     if( !check_rvalue( context, &rvalue, &rvalue_type ) ) */
-    /*     { */
-    /*         return false; */
-    /*     } */
+    // structs must have all of their members initialized
+    if( is_struct && initialized_count < member_count )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNINITIALIZEDMEMBER,
+            .offending_token = expression->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+    // unions must only have one member initialized
+    else if( !is_struct && initialized_count > 1 )
+    {
+        // TODO: report error for this case
+        UNIMPLEMENTED();
+    }
 
-    /*     Error error; */
-    /*     bool are_types_compatible = check_type_compatibility( member_symbol->type, &rvalue_type, &error ); */
-    /*     if( !are_types_compatible ) */
-    /*     { */
-    /*         error.offending_token = rvalue.starting_token; */
-    /*         report_error( error ); */
-    /*         return false; */
-    /*     } */
-    /* } */
+    Expression* initialized_member_rvalues = expression->compound_literal.initialized_member_rvalues;
+    for( int i = 0; i < initialized_count; i++ )
+    {
+        // check if member is the type
+        Token member_identifier_token = expression->compound_literal.member_identifier_tokens[ i ];
+        Symbol* member_symbol = symbol_table_lookup( *definition.compound.member_symbol_table, member_identifier_token.as_string );
+        if( member_symbol == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_MISSINGMEMBER,
+                .offending_token = member_identifier_token,
+                .missing_member.parent_type = type_info
+            };
+            report_error( error );
+            return false;
+        }
 
-    /* *inferred_type = type_info; */
+        Expression initializer_rvalue = initialized_member_rvalues[ i ];
+        Type initializer_type;
+        if( !check_rvalue( context, &initializer_rvalue, &initializer_type ) )
+        {
+            return false;
+        }
 
-    /* return true; */
+        Type member_type = member_symbol->type;
+        if( !implicit_cast_possible( member_type, initializer_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = initializer_rvalue.starting_token,
+                .type_mismatch = {
+                    .expected = member_type,
+                    .found = initializer_type
+                }
+            };
+            report_error( error );
+            return false;
+        }
+    }
+
+    *inferred_type = type_info;
+
+    return true;
 }
 
 static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type )
