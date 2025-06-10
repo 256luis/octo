@@ -157,7 +157,7 @@ void print_type( Type type )
 
         case TYPEKIND_COMPOUND:
         {
-            printf( "struct { " );
+            printf( "%s { ", type.compound.is_struct ? "struct" : "union" );
             int member_count = type.compound.member_symbol_table->length;
             for( int i = 0; i < member_count; i++ )
             {

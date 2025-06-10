@@ -1290,9 +1290,9 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
 }
 
 static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
-static bool check_array( SemanticContext* context, Expression* expression, Type* inferred_type )
+static bool check_array_literal( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    Expression* declared_type_rvalue = expression->array.base_type_rvalue;
+    Expression* declared_type_rvalue = expression->array_literal.base_type_rvalue;
     Type array_type;
     if( !check_type_rvalue( context, declared_type_rvalue, &array_type ) )
     {
@@ -1302,7 +1302,7 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
     array_type = *array_type.type.info;
 
     int found_length = array_type.array.length;
-    int count_initialized = expression->array.count_initialized;
+    int count_initialized = expression->array_literal.count_initialized;
 
     // declared_length being -1 means it is to be inferred
     if( ( found_length == -1 && count_initialized == 0 ) ||
@@ -1339,7 +1339,7 @@ static bool check_array( SemanticContext* context, Expression* expression, Type*
     for( int i = 0; i < count_initialized; i++ )
     {
         Type element_type;
-        Expression* element_rvalue = &expression->array.initialized_rvalues[ i ];
+        Expression* element_rvalue = &expression->array_literal.initialized_rvalues[ i ];
         if( !check_rvalue( context, element_rvalue, &element_type ) )
         {
             are_initializers_valid = false;
@@ -1638,9 +1638,9 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
             break;
         }
 
-        case EXPRESSIONKIND_ARRAY:
+        case EXPRESSIONKIND_ARRAYLITERAL:
         {
-            is_valid = check_array( context, expression, inferred_type );
+            is_valid = check_array_literal( context, expression, inferred_type );
             break;
         }
 
@@ -1876,6 +1876,7 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
     /* } */
 
     *return_type = *return_type->type.info;
+    expression->function_declaration.return_type = *return_type;
 
     Token* param_identifiers_tokens = expression->function_declaration.param_identifiers_tokens;
     Expression* param_type_rvalues = expression->function_declaration.param_type_rvalues;
@@ -1942,6 +1943,8 @@ static bool check_function_declaration( SemanticContext* context,Expression* exp
             return false;
         }
     }
+
+    expression->function_declaration.param_types = param_types;
 
     // add to symbol table
     Symbol symbol = {
@@ -2282,6 +2285,7 @@ static bool check_compound_definition( SemanticContext* context, Expression* typ
     SymbolTable* member_symbol_table = malloc( sizeof( SymbolTable ) );
     symbol_table_initialize( member_symbol_table );
 
+    Type* member_types = lvec_new( Type );
     for( int i = 0; i < member_count; i++ )
     {
         // check type of member
@@ -2292,6 +2296,7 @@ static bool check_compound_definition( SemanticContext* context, Expression* typ
             return false;
         }
         member_type = *member_type.type.info;
+        lvec_append_aggregate( member_types, member_type );
 
         // void members are not allowed in struct types
         if( member_type.kind == TYPEKIND_VOID && is_struct )
@@ -2324,6 +2329,8 @@ static bool check_compound_definition( SemanticContext* context, Expression* typ
         };
         symbol_table_push_symbol( member_symbol_table, member_symbol );
     }
+
+    type_rvalue->compound_definition.member_types = member_types;
 
     Type* info = malloc( sizeof( Type ) );
     *info = ( Type ){
@@ -2547,12 +2554,16 @@ static bool check_type_declaration( SemanticContext* context, Expression* expres
         },
     };
 
+    Type type = {
+        .kind = TYPEKIND_TYPE,
+        .type.info = info,
+    };
+
+    expression->type_declaration.type = type;
+
     Symbol type_symbol = {
         .token = identifier_token,
-        .type = ( Type ){
-            .kind = TYPEKIND_TYPE,
-            .type.info = info,
-        },
+        .type = type,
     };
     symbol_table_push_symbol( &context->symbol_table, type_symbol );
 

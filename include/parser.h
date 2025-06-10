@@ -48,7 +48,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_FUNCTIONCALL,
     EXPRESSIONKIND_BOOLEAN,
-    EXPRESSIONKIND_ARRAY,
+    EXPRESSIONKIND_ARRAYLITERAL,
     EXPRESSIONKIND_COMPOUNDLITERAL,
 
     // can be lvalue or rvalue
@@ -165,8 +165,11 @@ typedef struct Expression
             bool is_variadic;
 
             struct Expression* return_type_rvalue;
-
             struct Expression* body;
+
+            // to be filled in during semantic analysis
+            Type return_type;
+            Type* param_types;
         } function_declaration;
 
         struct
@@ -202,7 +205,7 @@ typedef struct Expression
             struct Expression* base_type_rvalue;
             int count_initialized; // number of values initialized in the array literal
             struct Expression* initialized_rvalues;
-        } array;
+        } array_literal;
 
         struct
         {
@@ -227,6 +230,7 @@ typedef struct Expression
         {
             Token identifier_token;
             struct Expression* rvalue;
+            Type type; // to be filled in during semantic analysis
         } type_declaration;
 
         struct
@@ -241,6 +245,7 @@ typedef struct Expression
             int member_count;
             Token* member_identifier_tokens;
             struct Expression* member_type_rvalues;
+            Type* member_types; // to be filled in during semantic analysis
         } compound_definition;
 
         struct

@@ -423,10 +423,10 @@ static Expression* parse_array_literal( Parser* parser )
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
 
-    expression->kind = EXPRESSIONKIND_ARRAY;
+    expression->kind = EXPRESSIONKIND_ARRAYLITERAL;
     expression->starting_token = parser->current_token;
 
-    expression->array.base_type_rvalue = parse_type_rvalue( parser );
+    expression->array_literal.base_type_rvalue = parse_type_rvalue( parser );
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_LEFTBRACKET ) )
@@ -469,8 +469,8 @@ static Expression* parse_array_literal( Parser* parser )
             advance( parser );
         }
 
-        expression->array.initialized_rvalues = initialized_rvalues;
-        expression->array.count_initialized = count_initialized;
+        expression->array_literal.initialized_rvalues = initialized_rvalues;
+        expression->array_literal.count_initialized = count_initialized;
     }
 
     return expression;
