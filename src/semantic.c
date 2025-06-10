@@ -1373,48 +1373,47 @@ static bool check_array_literal( SemanticContext* context, Expression* expressio
 
 static bool check_array_subscript( SemanticContext* context, Expression* expression, Type* out_type )
 {
-    UNIMPLEMENTED();
+    Expression* lvalue = expression->array_subscript.lvalue;
+    Type lvalue_type;
+    if( !check_lvalue( context, lvalue, &lvalue_type ) )
+    {
+        return false;
+    }
 
-    /* Expression* index_rvalue = expression->array_subscript.index_rvalue; */
-    /* Expression* lvalue = expression->array_subscript.lvalue; */
+    // only arrays can be subscripted
+    if( lvalue_type.kind != TYPEKIND_ARRAY )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTANARRAY,
+            .offending_token = lvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* Type lvalue_type; */
-    /* if( !check_lvalue( context, lvalue, &lvalue_type ) ) */
-    /* { */
-    /*     return false; */
-    /* } */
+    Expression* index_rvalue = expression->array_subscript.index_rvalue;
+    Type index_rvalue_type;
+    if( !check_rvalue( context, index_rvalue, &index_rvalue_type ) )
+    {
+        return false;
+    }
 
-    /* // only arrays can be subscripted */
-    /* if( lvalue_type.kind != TYPEKIND_ARRAY ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_NOTANARRAY, */
-    /*         .offending_token = lvalue->starting_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    // TODO: read below and address
+    // subscripts will temporarily accept i32 for more convenient testing but
+    // it should really only accept u64
+    Type expected_type = *i32_type.type.info;
+    if( !implicit_cast_possible( expected_type, index_rvalue_type ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDARRAYSUBSCRIPT,
+            .offending_token = index_rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* Type index_rvalue_type; */
-    /* if( !check_rvalue( context, index_rvalue, &index_rvalue_type ) ) */
-    /* { */
-    /*     return false; */
-    /* } */
-
-    /* if( index_rvalue_type.kind != TYPEKIND_INTEGER ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_INVALIDARRAYSUBSCRIPT, */
-    /*         .offending_token = index_rvalue->starting_token, */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
-
-    /* expression->array_subscript.type = lvalue_type; */
-    /* *out_type = *lvalue_type.array.base_type; */
-
-    /* return true; */
+    *out_type = expected_type;
+    return true;
 }
 
 static bool check_member_access( SemanticContext* context, Expression* expression, Type* inferred_type )

@@ -534,13 +534,11 @@ void expression_print( Expression* expression )
             printf( "lvalue = " );
             expression_print( expression->array_subscript.lvalue );
 
-            printf( "\n" );
             INDENT();
             printf( "index = " );
             expression_print( expression->array_subscript.index_rvalue );
 
             depth--;
-            printf( "\n");
             INDENT();
             printf( "}" );
             break;
