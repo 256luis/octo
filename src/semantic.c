@@ -1788,6 +1788,16 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         // we can assume here that declared_type.kind can never be TOINFER because
         // that would be a parsing error
         variable_type = declared_type;
+
+        if( variable_type.kind == TYPEKIND_ARRAY && variable_type.array.length == -1 )
+        {
+            Error error = {
+                .kind = ERRORKIND_CANNOTINFERARRAYLENGTH,
+                .offending_token = type_rvalue->starting_token,
+            };
+            report_error( error );
+            return false;
+        }
     }
 
     // for debug purposes
