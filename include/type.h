@@ -1,9 +1,6 @@
 #ifndef TYPE_H
 #define TYPE_H
 
-#include "tokenizer.h"
-#include <emmintrin.h>
-
 // forward declaration to avoid circular include
 typedef struct SymbolTable SymbolTable;
 
@@ -15,6 +12,9 @@ typedef enum TypeKind
     TYPEKIND_FLOAT,
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
+
+    // only for integers and floats
+    TYPEKIND_LITERAL,
 
     // anonymous types
     TYPEKIND_COMPOUND,
@@ -38,6 +38,11 @@ typedef struct Type
 
     union
     {
+        struct
+        {
+            TypeKind kind;
+        } literal;
+
         struct
         {
             struct Type* info;

@@ -702,6 +702,8 @@ void add_pointer_type( Type base_type )
 
 static bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
 {
+    // TODO: make this work correctly with the new literal types
+
     TypeKindPair* valid_binary_operations[] = {
         [ BINARYOPERATION_ADD ] = ( TypeKindPair[] ){
             ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
@@ -990,6 +992,20 @@ static bool implicit_cast_possible( Type to, Type from )
     if( type_equals( to, from ) )
     {
         return true;
+    }
+
+    // special case for handling numeric literals
+    if( from.kind == TYPEKIND_LITERAL )
+    {
+        if( to.kind == TYPEKIND_NAMED )
+        {
+            to = *to.named.definition;
+        }
+
+        if( to.kind == from.literal.kind )
+        {
+            return true;
+        }
     }
 
     if( to.kind != from.kind )
@@ -1588,53 +1604,63 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
 
         case EXPRESSIONKIND_INTEGER:
         {
-            uint64_t num = expression->integer;
-            int bit_count;
-            bool is_signed;
-            if( num <= INT32_MAX )
-            {
-                bit_count = 32;
-                is_signed = true;
-            }
-            else if( num <= INT64_MAX )
-            {
-                bit_count = 64;
-                is_signed = true;
-            }
-            else // if( num <= UINT64_MAX )
-            {
-                bit_count = 64;
-                is_signed = false;
-            }
+            *inferred_type = ( Type ){
+                .kind = TYPEKIND_LITERAL,
+                .literal.kind = TYPEKIND_INTEGER,
+            };
 
-            char as_string[4] = { 0 };
-            sprintf( as_string, "%c%d",
-                     is_signed ? 'i' : 'u',
-                     bit_count );
+            /* uint64_t num = expression->integer; */
+            /* int bit_count; */
+            /* bool is_signed; */
+            /* if( num <= INT32_MAX ) */
+            /* { */
+            /*     bit_count = 32; */
+            /*     is_signed = true; */
+            /* } */
+            /* else if( num <= INT64_MAX ) */
+            /* { */
+            /*     bit_count = 64; */
+            /*     is_signed = true; */
+            /* } */
+            /* else // if( num <= UINT64_MAX ) */
+            /* { */
+            /*     bit_count = 64; */
+            /*     is_signed = false; */
+            /* } */
 
-            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
+            /* char as_string[4] = { 0 }; */
+            /* sprintf( as_string, "%c%d", */
+            /*          is_signed ? 'i' : 'u', */
+            /*          bit_count ); */
+
+            /* *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info; */
             break;
         }
 
         case EXPRESSIONKIND_FLOAT:
         {
-            double floating = expression->floating;
-            int bit_count;
+            *inferred_type = ( Type ){
+                .kind = TYPEKIND_LITERAL,
+                .literal.kind = TYPEKIND_FLOAT,
+            };
 
-            if( floating <= FLT_MAX )
-            {
-                bit_count = 32;
-            }
-            else// if( floating <= INT64_MAX )
-            {
-                bit_count = 64;
-            }
+            /* double floating = expression->floating; */
+            /* int bit_count; */
 
-            char as_string[4] = { 0 };
-            sprintf( as_string, "f%d",
-                     bit_count );
+            /* if( floating <= FLT_MAX ) */
+            /* { */
+            /*     bit_count = 32; */
+            /* } */
+            /* else// if( floating <= INT64_MAX ) */
+            /* { */
+            /*     bit_count = 64; */
+            /* } */
 
-            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
+            /* char as_string[4] = { 0 }; */
+            /* sprintf( as_string, "f%d", */
+            /*          bit_count ); */
+
+            /* *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info; */
             break;
         }
 
@@ -1772,9 +1798,24 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
             return false;
         }
 
+
         if( declared_type.kind == TYPEKIND_TOINFER )
         {
-            variable_type = inferred_type;
+            // this entire block is so ugly
+            // TODO: make better ??
+            if( inferred_type.kind != TYPEKIND_LITERAL )
+            {
+                variable_type = inferred_type;
+            }
+            else
+            {
+                switch( inferred_type.literal.kind )
+                {
+                    case TYPEKIND_INTEGER: variable_type = *i32_type.type.info; break;
+                    case TYPEKIND_FLOAT:   variable_type = *f32_type.type.info; break;
+                    default: UNREACHABLE();
+                }
+            }
         }
         else
         {
