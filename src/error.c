@@ -205,6 +205,16 @@ void print_type( Type type )
             // print_type( type.named.as_string );
             break;
         }
+
+        case TYPEKIND_LITERAL:
+        {
+            printf( "%s literal",
+                    type.literal.kind == TYPEKIND_INTEGER
+                    ? "integer"
+                    : "floating point" );
+            // print_type( type.named.as_string );
+            break;
+        }
     }
 
     /* switch( type.kind ) */
@@ -602,6 +612,22 @@ void report_error( Error error )
         case ERRORKIND_MULTIPLEMEMBERINITIALIZEDUNION:
         {
             printf( "union initializer must only have one member initialized\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_NONPOINTERDEREFERENCE:
+        {
+            printf( "cannot dereference non-pointer type\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_VOIDPOINTERDEREFERENCE:
+        {
+            printf( "cannot dereference void pointer\n" );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;

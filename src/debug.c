@@ -579,9 +579,9 @@ void expression_print( Expression* expression )
 
             INDENT();
             printf( "rvalue = " );
-            // expression_print( expression->type_declaration.rvalue );
-            debug_print_type( expression->type_declaration.type );
-            putchar( '\n' );
+            expression_print( expression->type_declaration.rvalue );
+            // debug_print_type( expression->type_declaration.type );
+            // putchar( '\n' );
 
             depth--;
             INDENT();

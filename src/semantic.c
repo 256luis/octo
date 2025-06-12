@@ -1172,136 +1172,113 @@ static bool check_function_call( SemanticContext* context, Expression* expressio
     return true;
 }
 
-static bool is_unary_operation_valid( UnaryOperation operation, Type type )
-{
-    Type void_pointer = {
-        .kind = TYPEKIND_POINTER,
-        .pointer.base_type = void_type.type.info
-    };
-
-    if( operation == UNARYOPERATION_DEREFERENCE && type_equals( type, void_pointer ) )
-    {
-        return false;
-    }
-
-    TypeKind* valid_unary_operation[] = {
-        [ UNARYOPERATION_NEGATIVE ] = ( TypeKind[] ) {
-            TYPEKIND_INTEGER, TYPEKIND_FLOAT, -1,
-            // the -1 kinda acts like a null terminator
-        },
-
-        [ UNARYOPERATION_NOT ] = ( TypeKind[] ) {
-            TYPEKIND_BOOLEAN, -1,
-        },
-
-        [ UNARYOPERATION_DEREFERENCE ] = ( TypeKind[] ) {
-            TYPEKIND_POINTER, -1,
-        },
-
-        // not applicable (code path handles it separately)
-        [ UNARYOPERATION_ADDRESSOF ] = NULL,
-    };
-
-    while( type.kind == TYPEKIND_NAMED )
-    {
-        type = *type.named.definition;
-    }
-
-    TypeKind* valid_type_kind = valid_unary_operation[ operation ];
-    bool is_valid = false;
-    for( TypeKind tk = *valid_type_kind; tk != -1; valid_type_kind++, tk = *valid_type_kind )
-    {
-        if( tk == type.kind )
-        {
-            is_valid = true;
-            break;
-        }
-    }
-
-    return is_valid;
-}
-
 static bool check_lvalue( SemanticContext* context, Expression* expression, Type* out_type );
 static bool check_unary( SemanticContext* context, Expression* expression, Type* inferred_type )
 {
-    // FIXME: it segfaults when you take the address of a dereferenced pointer
-    //        ex:
-    //            let a: &char;
-    //            let b = &*a;
-
-    Expression* operand = expression->unary.operand;
+    UnaryOperation operation = expression->unary.operation;
+    Token operator_token = expression->unary.operator_token;
     Type operand_type;
-    bool is_operand_valid = check_rvalue( context, operand, &operand_type );
-    if( !is_operand_valid )
+    if( !check_rvalue( context, expression->unary.operand, &operand_type ) )
     {
         return false;
     }
 
-    UnaryOperation operation = expression->unary.operation;
-    if( operation == UNARYOPERATION_ADDRESSOF )
+    switch( operation )
     {
-        // operand must be lvalue
-        bool operand_lvalue_check = check_lvalue( context, operand, &operand_type );
-        if( !operand_lvalue_check )
+        case UNARYOPERATION_NEGATIVE:
         {
-            Error error = {
-                .kind = ERRORKIND_INVALIDADDRESSOF,
-                .offending_token = operand->starting_token
-            };
+            // TODO: handle case for literal types
+            //       The result of negating a literal must be signed but its
+            //       bit count must not be specified
 
-            report_error( error );
-            return false;
-        }
+            if( !implicit_cast_possible( *i64_type.type.info, operand_type ) &&
+                !implicit_cast_possible( *f64_type.type.info, operand_type ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_INVALIDUNARYOPERATION,
+                    .offending_token = operator_token,
+                    .invalid_unary_operation = {
+                        .operand_type = operand_type
+                    }
+                };
+                report_error( error );
+                return false;
+            }
 
-        // check if operand is in symbol table
-        Symbol* operand_symbol = symbol_table_lookup( context->symbol_table, operand->associated_token.identifier );
-        if( operand_symbol == NULL )
-        {
-            Error error = {
-                .kind = ERRORKIND_UNDECLAREDSYMBOL,
-                .offending_token = operand->associated_token,
-            };
-
-            report_error( error );
-            return false;
-        }
-
-        *inferred_type = ( Type ){
-            .kind = TYPEKIND_POINTER,
-            .pointer.base_type = &operand_symbol->type,
-        };
-
-        /* Type operand_type_definition = get_definition_type( context, *inferred_type->pointer.base_type ); */
-        /* add_pointer_type( operand_type_definition, *inferred_type->pointer.base_type ); */
-    }
-    else
-    {
-        bool is_operation_valid = is_unary_operation_valid( operation, operand_type );
-        if( !is_operation_valid )
-        {
-            Token operator_token = expression->unary.operator_token;
-            Error error = {
-                .kind = ERRORKIND_INVALIDUNARYOPERATION,
-                .offending_token = operator_token,
-                .invalid_unary_operation = {
-                    .operand_type = operand_type
-                }
-            };
-            report_error( error );
-            return false;
-        }
-
-        if( operation == UNARYOPERATION_DEREFERENCE )
-        {
-            *inferred_type = *operand_type.pointer.base_type;
-        }
-        else
-        {
             *inferred_type = operand_type;
+            return true;
+        }
+
+        case UNARYOPERATION_NOT:
+        {
+            if( !implicit_cast_possible( *bool_type.type.info, operand_type ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_INVALIDUNARYOPERATION,
+                    .offending_token = operator_token,
+                    .invalid_unary_operation = {
+                        .operand_type = operand_type
+                    }
+                };
+                report_error( error );
+                return false;
+            }
+
+            *inferred_type = operand_type;
+            return true;
+        }
+
+        case UNARYOPERATION_ADDRESSOF:
+        {
+            if( !check_lvalue( context, expression->unary.operand, &operand_type ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_INVALIDADDRESSOF,
+                    .offending_token = expression->unary.operand->starting_token
+                };
+                report_error( error );
+                return false;
+            }
+
+            Type* base_type = malloc( sizeof( Type ) );
+            *base_type = operand_type;
+            Type pointer_type = {
+                .kind = TYPEKIND_POINTER,
+                .pointer.base_type = base_type,
+            };
+
+            *inferred_type = pointer_type;
+            return true;
+        }
+
+        case UNARYOPERATION_DEREFERENCE:
+        {
+            if( operand_type.kind != TYPEKIND_POINTER )
+            {
+                Error error = {
+                    .kind = ERRORKIND_NONPOINTERDEREFERENCE,
+                    .offending_token = expression->unary.operand->starting_token
+                };
+                report_error( error );
+                return false;
+            }
+
+            Type base_type = *operand_type.pointer.base_type;
+            if( type_equals( base_type, *void_type.type.info ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_VOIDPOINTERDEREFERENCE,
+                    .offending_token = expression->unary.operand->starting_token
+                };
+                report_error( error );
+                return false;
+
+            }
+
+            *inferred_type = *operand_type.pointer.base_type;
+            return true;
         }
     }
-
-    return true;
 }
 
 static bool check_type_rvalue( SemanticContext* context, Expression* type_rvalue, Type* out_type );
@@ -1416,18 +1393,22 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
     // TODO: read below and address
     // subscripts will temporarily accept i32 for more convenient testing but
     // it should really only accept u64
-    Type expected_type = *i32_type.type.info;
-    if( !implicit_cast_possible( expected_type, index_rvalue_type ) )
+    Type expected_index_type = *u64_type.type.info;
+    if( !implicit_cast_possible( expected_index_type, index_rvalue_type ) )
     {
         Error error = {
-            .kind = ERRORKIND_INVALIDARRAYSUBSCRIPT,
+            .kind = ERRORKIND_TYPEMISMATCH,
             .offending_token = index_rvalue->starting_token,
+            .type_mismatch = {
+                .expected = expected_index_type,
+                .found = index_rvalue_type,
+            },
         };
         report_error( error );
         return false;
     }
 
-    *out_type = expected_type;
+    *out_type = *lvalue_type.array.base_type;
     return true;
 }
 
@@ -2136,7 +2117,7 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
     bool is_valid;
     switch( expression->kind )
     {
-        case EXPRESSIONKIND_COMPOUNDLITERAL:
+        // case EXPRESSIONKIND_COMPOUNDLITERAL:
         case EXPRESSIONKIND_MEMBERACCESS:
         case EXPRESSIONKIND_ARRAYSUBSCRIPT:
         case EXPRESSIONKIND_IDENTIFIER:
@@ -2153,7 +2134,8 @@ static bool check_lvalue( SemanticContext* context, Expression* expression, Type
             {
                 // returning false here because error has already been reported in
                 // check_unary
-                return false;
+                is_valid = false;
+                break;
             }
 
             if( expression->unary.operation != UNARYOPERATION_DEREFERENCE )
