@@ -1028,6 +1028,12 @@ static bool implicit_cast_possible( Type to, Type from )
 
         case TYPEKIND_POINTER:
         {
+            Type base_type = *to.pointer.base_type;
+            if( type_equals( base_type, *void_type.type.info ) )
+            {
+                return true;
+            }
+
             return implicit_cast_possible( *to.pointer.base_type, *from.pointer.base_type );
         }
 
@@ -1390,9 +1396,6 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
         return false;
     }
 
-    // TODO: read below and address
-    // subscripts will temporarily accept i32 for more convenient testing but
-    // it should really only accept u64
     Type expected_index_type = *u64_type.type.info;
     if( !implicit_cast_possible( expected_index_type, index_rvalue_type ) )
     {
@@ -2166,11 +2169,11 @@ bool check_assignment( SemanticContext* context, Expression* expression )
     bool is_lvalue_valid = check_lvalue( context, expression->assignment.lvalue, &found_lvalue_type );
     if( !is_lvalue_valid )
     {
-        Error error = {
-            .kind = ERRORKIND_INVALIDLVALUE,
-            .offending_token = expression->starting_token,
-        };
-        report_error( error );
+        /* Error error = { */
+        /*     .kind = ERRORKIND_INVALIDLVALUE, */
+        /*     .offending_token = expression->starting_token, */
+        /* }; */
+        /* report_error( error ); */
         return false;
     }
 
@@ -2215,52 +2218,54 @@ bool check_assignment( SemanticContext* context, Expression* expression )
 
 static bool check_conditional( SemanticContext* context, Expression* expression )
 {
-    // check the condition (must evaluate to bool type)
-    Type condition_type;
-    bool condition_is_valid = check_rvalue( context, expression->conditional.condition, &condition_type );
-    if( !condition_is_valid )
-    {
-        return false;
-    }
+    UNIMPLEMENTED();
 
-    if( condition_type.kind != TYPEKIND_BOOLEAN )
-    {
-        Type expected_type = { .kind = TYPEKIND_BOOLEAN };
-        Error error = {
-            .kind = ERRORKIND_TYPEMISMATCH,
-            .offending_token = expression->conditional.condition->starting_token,
-            .type_mismatch = {
-                .expected = expected_type,
-                .found = condition_type
-            },
-        };
-        report_error( error );
-        return false;
-    }
+    /* // check the condition (must evaluate to bool type) */
+    /* Type condition_type; */
+    /* bool condition_is_valid = check_rvalue( context, expression->conditional.condition, &condition_type ); */
+    /* if( !condition_is_valid ) */
+    /* { */
+    /*     return false; */
+    /* } */
 
-    // while loops must NOT have an else
-    Expression* false_body = expression->conditional.false_body;
-    if( expression->conditional.is_loop && false_body != NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_WHILEWITHELSE,
-            .offending_token = expression->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
+    /* if( condition_type.kind != TYPEKIND_BOOLEAN ) */
+    /* { */
+    /*     Type expected_type = { .kind = TYPEKIND_BOOLEAN }; */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_TYPEMISMATCH, */
+    /*         .offending_token = expression->conditional.condition->starting_token, */
+    /*         .type_mismatch = { */
+    /*             .expected = expected_type, */
+    /*             .found = condition_type */
+    /*         }, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    // check true and false bodies (if applicable)
-    if( !check_semantics( context, expression->conditional.true_body ) )
-    {
-        return false;
-    }
-    if( false_body != NULL && !check_semantics( context, false_body ) )
-    {
-        return false;
-    }
+    /* // while loops must NOT have an else */
+    /* Expression* false_body = expression->conditional.false_body; */
+    /* if( expression->conditional.is_loop && false_body != NULL ) */
+    /* { */
+    /*     Error error = { */
+    /*         .kind = ERRORKIND_WHILEWITHELSE, */
+    /*         .offending_token = expression->starting_token, */
+    /*     }; */
+    /*     report_error( error ); */
+    /*     return false; */
+    /* } */
 
-    return true;
+    /* // check true and false bodies (if applicable) */
+    /* if( !check_semantics( context, expression->conditional.true_body ) ) */
+    /* { */
+    /*     return false; */
+    /* } */
+    /* if( false_body != NULL && !check_semantics( context, false_body ) ) */
+    /* { */
+    /*     return false; */
+    /* } */
+
+    /* return true; */
 }
 
 static bool check_for_loop( SemanticContext* context, Expression* expression )
