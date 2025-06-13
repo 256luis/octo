@@ -756,8 +756,11 @@ static bool implicit_cast_possible( Type to, Type from )
 
         case TYPEKIND_POINTER:
         {
-            Type base_type = *to.pointer.base_type;
-            if( type_equals( base_type, *void_type.type.info ) )
+            // &T -> &void is allowed
+            // &void -> &T is allowed
+            // &T -> &U where T, U != void is not allowed
+            if( type_equals( *to.pointer.base_type, *void_type.type.info ) ||
+                type_equals( *from.pointer.base_type, *void_type.type.info ) )
             {
                 return true;
             }
