@@ -14,7 +14,7 @@ typedef enum TypeKind
     TYPEKIND_BOOLEAN,
 
     // only for integers and floats
-    TYPEKIND_LITERAL,
+    TYPEKIND_NUMERICLITERAL,
 
     // anonymous types
     TYPEKIND_COMPOUND,

@@ -206,7 +206,7 @@ void print_type( Type type )
             break;
         }
 
-        case TYPEKIND_LITERAL:
+        case TYPEKIND_NUMERICLITERAL:
         {
             printf( "%s literal",
                     type.literal.kind == TYPEKIND_INTEGER

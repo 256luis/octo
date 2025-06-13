@@ -497,6 +497,11 @@ bool type_equals( Type t1, Type t2 )
             return true;
         }
 
+        case TYPEKIND_NUMERICLITERAL:
+        {
+            return t1.literal.kind == t2.literal.kind;
+        }
+
         case TYPEKIND_INTEGER:
         {
             bool is_same_size = t1.integer.bit_count == t2.integer.bit_count;
@@ -700,293 +705,6 @@ void add_pointer_type( Type base_type )
     lvec_append_aggregate( named_type.named.pointer_types, base_type );
 }
 
-static bool is_binary_operation_valid( BinaryOperation operation, Type left_type, Type right_type )
-{
-    // TODO: make this work correctly with the new literal types
-
-    TypeKindPair* valid_binary_operations[] = {
-        [ BINARYOPERATION_ADD ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-
-            // this is needed because we do not know the length of each entry in the
-            // valid_binary_operation array. this would kinda act like the null
-            // terminator in strings.
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_SUBTRACT ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_MULTIPLY ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_DIVIDE ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_MODULO ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_EQUAL ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
-            // ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
-            ( TypeKindPair ){ TYPEKIND_CHARACTER, TYPEKIND_CHARACTER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_NOTEQUAL ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,     TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
-            // ( TypeKindPair ){ TYPEKIND_STRING,    TYPEKIND_STRING },
-            ( TypeKindPair ){ TYPEKIND_CHARACTER, TYPEKIND_CHARACTER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_GREATER ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_GREATEREQUAL ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_LESS ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_LESSEQUAL ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_INTEGER },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_INTEGER, TYPEKIND_FLOAT },
-            ( TypeKindPair ){ TYPEKIND_FLOAT,   TYPEKIND_INTEGER },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_AND ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-
-        [ BINARYOPERATION_OR ] = ( TypeKindPair[] ){
-            ( TypeKindPair ){ TYPEKIND_BOOLEAN,   TYPEKIND_BOOLEAN },
-            TYPEKINDPAIR_TERMINATOR,
-        },
-    };
-
-    while( left_type.kind == TYPEKIND_NAMED )
-    {
-        left_type = *left_type.named.definition;
-    }
-
-    while( right_type.kind == TYPEKIND_NAMED )
-    {
-        right_type = *right_type.named.definition;
-    }
-
-    TypeKindPair* pairs = valid_binary_operations[ operation ];
-
-    // iterate over all valid pairs
-    bool is_valid_pair = false;
-    for( TypeKindPair pair = *pairs; pair.tk1 != -1; pairs++, pair = *pairs )
-    {
-        TypeKind pair_left = pair.tk1;
-        TypeKind pair_right = pair.tk2;
-
-        if( pair_left == left_type.kind && pair_right == right_type.kind )
-        {
-            is_valid_pair = true;
-            break;
-        }
-    }
-
-    if( !is_valid_pair )
-    {
-        return false;
-    }
-
-    // not allowed for numeric types
-    // signed and unsigned ints
-    // int and float
-    switch( left_type.kind * right_type.kind )
-    {
-        case TYPEKIND_INTEGER * TYPEKIND_INTEGER:
-        {
-            if( left_type.integer.is_signed != right_type.integer.is_signed )
-            {
-                return false;
-            }
-            break;
-        }
-
-        case TYPEKIND_FLOAT * TYPEKIND_INTEGER:
-        {
-            return false;
-            break;
-        }
-    }
-
-    return true;
-}
-
-static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type );
-static bool check_binary( SemanticContext* context, Expression* expression, Type* inferred_type )
-{
-    Expression* left_expression = expression->binary.left;
-    Expression* right_expression = expression->binary.right;
-
-    Type left_type;
-    Type right_type;
-
-    bool is_left_valid = check_rvalue( context, left_expression, &left_type );
-    bool is_right_valid = check_rvalue( context, right_expression, &right_type );
-
-    if( !is_left_valid || !is_right_valid )
-    {
-        return false;
-    }
-
-    BinaryOperation operation = expression->binary.operation;
-    if( left_type.kind == TYPEKIND_REFERENCE || right_type.kind == TYPEKIND_REFERENCE )
-    {
-        Type* reference_type = left_type.kind == TYPEKIND_REFERENCE ? &left_type : &right_type;
-        *reference_type = *reference_type->reference.base_type;
-    }
-
-    bool is_operation_valid = is_binary_operation_valid( operation, left_type, right_type );
-
-    if( !is_operation_valid )
-    {
-        Token operator_token = expression->binary.operator_token;
-        Error error = {
-            .kind = ERRORKIND_INVALIDBINARYOPERATION,
-            .offending_token = operator_token,
-            .invalid_binary_operation = {
-                .left_type = left_type,
-                .right_type = right_type,
-            },
-        };
-        report_error( error );
-        return false;
-    }
-
-    // TODO: handle pointer types
-
-    Type left_type_definition = left_type;
-    while( left_type_definition.kind == TYPEKIND_NAMED )
-    {
-        left_type_definition = *left_type_definition.named.definition;
-    }
-
-    Type right_type_definition = right_type;
-    while( right_type_definition.kind == TYPEKIND_NAMED )
-    {
-        right_type_definition = *right_type_definition.named.definition;
-    }
-
-    // if operation is one of the boolean operators
-    if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
-    {
-        *inferred_type = symbol_table_lookup( context->symbol_table, "bool" )->type;
-    }
-    else
-    {
-        // if left_type or right_type is float, then float. otherwise its int
-        if( left_type_definition.kind == TYPEKIND_FLOAT || right_type_definition.kind == TYPEKIND_FLOAT )
-        {
-            char as_string[4] = { 0 };
-            sprintf( as_string, "f%zu",
-                     MAX( left_type_definition.floating.bit_count, right_type_definition.floating.bit_count ) );
-
-            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
-        }
-        else
-        {
-            char as_string[4] = { 0 };
-            sprintf( as_string, "%c%zu",
-                     right_type_definition.integer.is_signed ? 'i' : 'u',
-                     MAX( left_type_definition.integer.bit_count, right_type_definition.integer.bit_count ) );
-
-            *inferred_type = *symbol_table_lookup( context->symbol_table, as_string )->type.type.info;
-
-            /* inferred_type->kind = TYPEKIND_INTEGER; */
-            /* inferred_type->integer.is_signed = right_type.integer.is_signed; */
-            /* inferred_type->integer.bit_count = fmax( left_type.integer.bit_count, right_type.integer.bit_count ); */
-        }
-    }
-
-    return true;
-}
-
-static bool check_rvalue_identifier( SemanticContext* context, Expression* expression, Type* inferred_type )
-{
-    Token identifier_token = expression->associated_token;
-
-    // check if identifier already in symbol table
-    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
-    if( original_declaration == NULL )
-    {
-        Error error = {
-            .kind = ERRORKIND_UNDECLAREDSYMBOL,
-            .offending_token = identifier_token,
-        };
-
-        report_error( error );
-        return false;
-    }
-
-    if( original_declaration->type.kind == TYPEKIND_TYPE )
-    {
-        Error error = {
-            .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
-            .offending_token = identifier_token,
-        };
-        report_error( error );
-        return false;
-    }
-
-    *inferred_type = original_declaration->type;
-
-    return true;
-}
-
 static bool implicit_cast_possible( Type to, Type from )
 {
     if( type_equals( to, from ) )
@@ -995,7 +713,7 @@ static bool implicit_cast_possible( Type to, Type from )
     }
 
     // special case for handling numeric literals
-    if( from.kind == TYPEKIND_LITERAL )
+    if( from.kind == TYPEKIND_NUMERICLITERAL )
     {
         if( to.kind == TYPEKIND_NAMED )
         {
@@ -1091,6 +809,249 @@ static bool implicit_cast_possible( Type to, Type from )
             UNREACHABLE();
         }
     }
+}
+
+static bool check_rvalue( SemanticContext* context, Expression* expression, Type* inferred_type );
+static bool check_binary( SemanticContext* context, Expression* expression, Type* inferred_type )
+{
+    // FIXME: THIS ENTIRE FUNCTION IS SO ASS!!!!!!!
+
+    Expression* left_expression = expression->binary.left;
+    Expression* right_expression = expression->binary.right;
+
+    Type left_type;
+    Type right_type;
+
+    bool is_left_valid = check_rvalue( context, left_expression, &left_type );
+    bool is_right_valid = check_rvalue( context, right_expression, &right_type );
+
+    if( !is_left_valid || !is_right_valid )
+    {
+        return false;
+    }
+
+    Type left_type_definition = left_type;
+    if( left_type.kind == TYPEKIND_NAMED )
+    {
+        left_type_definition = *left_type.named.definition;
+    }
+
+    Type right_type_definition = right_type;
+    if( right_type.kind == TYPEKIND_NAMED )
+    {
+        right_type_definition = *right_type.named.definition;
+    }
+
+    TypeKind left_type_kind = left_type_definition.kind;
+    if( left_type_definition.kind == TYPEKIND_NUMERICLITERAL )
+    {
+        left_type_kind = left_type_definition.literal.kind;
+    }
+
+    TypeKind right_type_kind = right_type_definition.kind;
+    if( right_type_definition.kind == TYPEKIND_NUMERICLITERAL )
+    {
+        right_type_kind = right_type_definition.literal.kind;
+    }
+
+    bool types_are_compatible =
+        implicit_cast_possible( left_type, right_type ) ||
+        implicit_cast_possible( right_type, left_type );
+
+    if( !types_are_compatible )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDBINARYOPERATION,
+            .offending_token = expression->binary.operator_token,
+            .invalid_binary_operation = {
+                .left_type = left_type,
+                .right_type = right_type,
+            }
+        };
+        report_error( error );
+        return false;
+    }
+
+    BinaryOperation operation = expression->binary.operation;
+    bool is_valid;
+    switch( operation )
+    {
+        case BINARYOPERATION_GREATER:
+        case BINARYOPERATION_LESS:
+        case BINARYOPERATION_GREATEREQUAL:
+        case BINARYOPERATION_LESSEQUAL:
+        case BINARYOPERATION_ADD:
+        case BINARYOPERATION_SUBTRACT:
+        case BINARYOPERATION_MULTIPLY:
+        case BINARYOPERATION_DIVIDE:
+        {
+            bool left_type_is_numeric = left_type_kind == TYPEKIND_INTEGER || left_type_kind == TYPEKIND_FLOAT;
+            bool right_type_is_numeric = right_type_kind == TYPEKIND_INTEGER || right_type_kind == TYPEKIND_FLOAT;
+            bool both_operands_are_numeric = left_type_is_numeric && right_type_is_numeric;
+
+            if( !both_operands_are_numeric )
+            {
+                is_valid = false;
+                break;
+            }
+
+            // TODO: make everything below here better in terms of control flow
+            //       and readability/understandability
+
+            // if int, signedness must be the same
+            if( left_type_kind == TYPEKIND_INTEGER )
+            {
+                if( left_type.kind == TYPEKIND_NUMERICLITERAL || right_type.kind == TYPEKIND_NUMERICLITERAL )
+                {
+                    // do nothing
+                }
+                else if( left_type_definition.integer.is_signed != right_type_definition.integer.is_signed )
+                {
+                    is_valid = false;
+                    break;
+                }
+            }
+
+            if( operation >= BINARYOPERATION_BOOLEAN_START && operation < BINARYOPERATION_BOOLEAN_END )
+            {
+                *inferred_type = *bool_type.type.info;
+            }
+            else if( left_type.kind == TYPEKIND_NUMERICLITERAL || right_type.kind == TYPEKIND_NUMERICLITERAL )
+            {
+                // the inferred type is the type of the non-literal
+                *inferred_type = ( left_type.kind == TYPEKIND_NUMERICLITERAL )
+                    ? right_type
+                    : left_type;
+            }
+            else
+            {
+                char type_name[ 4 ] = { 0 };
+                if( left_type_kind == TYPEKIND_INTEGER )
+                {
+                    sprintf( type_name, "%c%zu",
+                             left_type_definition.integer.is_signed ? 'i' : 'u',
+                             MAX( left_type_definition.integer.bit_count, right_type_definition.integer.bit_count ) );
+                }
+                else
+                {
+                    sprintf( type_name, "f%zu",
+                             MAX( left_type_definition.floating.bit_count, right_type_definition.floating.bit_count ) );
+                }
+                *inferred_type = *symbol_table_lookup( context->symbol_table, type_name )->type.type.info;
+            }
+
+            is_valid = true;
+            break;
+        }
+
+        // only for ints
+        case BINARYOPERATION_MODULO:
+        {
+            bool left_type_is_int = left_type_kind == TYPEKIND_INTEGER;
+            bool right_type_is_int = right_type_kind == TYPEKIND_INTEGER;
+            bool both_operands_are_int = left_type_is_int && right_type_is_int;
+
+            // signedness must be the same
+            if( left_type.kind == TYPEKIND_NUMERICLITERAL || right_type.kind == TYPEKIND_NUMERICLITERAL )
+            {
+                // do nothing
+            }
+            else if( left_type_definition.integer.is_signed != right_type_definition.integer.is_signed )
+            {
+                is_valid = false;
+                break;
+            }
+
+            if( !both_operands_are_int )
+            {
+                is_valid = false;
+                break;
+            }
+
+            // the inferred type is the type of the non-literal
+            *inferred_type = ( left_type.kind == TYPEKIND_NUMERICLITERAL )
+                ? right_type
+                : left_type;
+
+            is_valid = true;
+            break;
+        }
+
+        // boolean operations that are only for bool type
+        case BINARYOPERATION_AND:
+        case BINARYOPERATION_OR:
+        {
+            bool operands_are_bool = left_type_kind == TYPEKIND_BOOLEAN && right_type_kind == TYPEKIND_BOOLEAN;
+            if( !operands_are_bool )
+            {
+                is_valid = false;
+                break;
+            }
+
+            *inferred_type = *bool_type.type.info;
+
+            is_valid = true;
+            break;
+        }
+
+        // boolean operations that are for everything
+        case BINARYOPERATION_EQUAL:
+        case BINARYOPERATION_NOTEQUAL:
+        {
+            *inferred_type = *bool_type.type.info;
+            is_valid = true;
+            break;
+        }
+
+    }
+
+    if( !is_valid )
+    {
+        Error error = {
+            .kind = ERRORKIND_INVALIDBINARYOPERATION,
+            .offending_token = expression->binary.operator_token,
+            .invalid_binary_operation = {
+                .left_type = left_type,
+                .right_type = right_type,
+            }
+        };
+        report_error( error );
+        return false;
+    }
+
+    return true;
+}
+
+static bool check_rvalue_identifier( SemanticContext* context, Expression* expression, Type* inferred_type )
+{
+    Token identifier_token = expression->associated_token;
+
+    // check if identifier already in symbol table
+    Symbol* original_declaration = symbol_table_lookup( context->symbol_table, identifier_token.identifier );
+    if( original_declaration == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = identifier_token,
+        };
+
+        report_error( error );
+        return false;
+    }
+
+    if( original_declaration->type.kind == TYPEKIND_TYPE )
+    {
+        Error error = {
+            .kind = ERRORKIND_CANNOTUSETYPEASVALUE,
+            .offending_token = identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    *inferred_type = original_declaration->type;
+
+    return true;
 }
 
 static bool check_function_call( SemanticContext* context, Expression* expression, Type* inferred_type )
@@ -1589,7 +1550,7 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
         case EXPRESSIONKIND_INTEGER:
         {
             *inferred_type = ( Type ){
-                .kind = TYPEKIND_LITERAL,
+                .kind = TYPEKIND_NUMERICLITERAL,
                 .literal.kind = TYPEKIND_INTEGER,
             };
 
@@ -1624,7 +1585,7 @@ static bool check_rvalue( SemanticContext* context, Expression* expression, Type
         case EXPRESSIONKIND_FLOAT:
         {
             *inferred_type = ( Type ){
-                .kind = TYPEKIND_LITERAL,
+                .kind = TYPEKIND_NUMERICLITERAL,
                 .literal.kind = TYPEKIND_FLOAT,
             };
 
@@ -1787,7 +1748,7 @@ static bool check_variable_declaration( SemanticContext* context, Expression* ex
         {
             // this entire block is so ugly
             // TODO: make better ??
-            if( inferred_type.kind != TYPEKIND_LITERAL )
+            if( inferred_type.kind != TYPEKIND_NUMERICLITERAL )
             {
                 variable_type = inferred_type;
             }
