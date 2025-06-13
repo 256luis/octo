@@ -181,7 +181,7 @@ void print_type( Type type )
 
         case TYPEKIND_REFERENCE:
         {
-            printf( "REFERENCE " );
+            // printf( "REFERENCE " );
             print_type( *type.reference.base_type );
             break;
         }

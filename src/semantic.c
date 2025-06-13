@@ -712,6 +712,16 @@ static bool implicit_cast_possible( Type to, Type from )
         return true;
     }
 
+    if( to.kind == TYPEKIND_REFERENCE )
+    {
+        to = *to.reference.base_type;
+    }
+
+    if( from.kind == TYPEKIND_REFERENCE )
+    {
+        from = *from.reference.base_type;
+    }
+
     // special case for handling numeric literals
     if( from.kind == TYPEKIND_NUMERICLITERAL )
     {
@@ -2228,69 +2238,66 @@ static bool check_conditional( SemanticContext* context, Expression* expression 
 
 static bool check_for_loop( SemanticContext* context, Expression* expression )
 {
-    UNIMPLEMENTED();
+    // no symbol redeclarations!
+    Token iterator_token = expression->for_loop.iterator_token;
+    Symbol* iterator_symbol = symbol_table_lookup( context->symbol_table, iterator_token.identifier );
+    if( iterator_symbol != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = iterator_token,
+            .symbol_redeclaration.original_declaration_token = iterator_token
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* // no symbol redeclarations! */
-    /* Token iterator_token = expression->for_loop.iterator_token; */
-    /* Symbol* iterator_symbol = symbol_table_lookup( context->symbol_table, iterator_token.identifier ); */
-    /* if( iterator_symbol != NULL ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_SYMBOLREDECLARATION, */
-    /*         .offending_token = iterator_token, */
-    /*         .symbol_redeclaration.original_declaration_token = iterator_token */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    // check iterable and get type
+    Expression* iterable_rvalue = expression->for_loop.iterable_rvalue;
+    Type inferred_type;
+    if ( !check_rvalue( context, iterable_rvalue, &inferred_type ) )
+    {
+        return NULL;
+    }
 
-    /* // check iterable and get type */
-    /* Expression* iterable_rvalue = expression->for_loop.iterable_rvalue; */
-    /* Type inferred_type; */
-    /* if ( !check_rvalue( context, iterable_rvalue, &inferred_type ) ) */
-    /* { */
-    /*     return NULL; */
-    /* } */
+    if( inferred_type.kind != TYPEKIND_ARRAY )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTANITERATOR,
+            .offending_token = iterable_rvalue->starting_token
+        };
+        report_error( error );
+        return false;
+    }
 
-    /* if( inferred_type.kind != TYPEKIND_ARRAY ) */
-    /* { */
-    /*     Error error = { */
-    /*         .kind = ERRORKIND_NOTANITERATOR, */
-    /*         .offending_token = iterable_rvalue->starting_token */
-    /*     }; */
-    /*     report_error( error ); */
-    /*     return false; */
-    /* } */
+    symbol_table_push_scope( &context->symbol_table );
 
-    /* symbol_table_push_scope( &context->symbol_table ); */
+    Type iterator_type = {
+        .kind = TYPEKIND_REFERENCE,
+        .reference.base_type = inferred_type.array.base_type
+    };
 
-    /* // add iterator to symbeol table */
-    /* // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol */
-    /* // because its a pointer and id have to either allocate memory or create */
-    /* // a compound literal then get its address and i DONT WANNA DO EITHER OF THOSE */
-    /* Type iterator_type = { */
-    /*     .kind = TYPEKIND_REFERENCE, */
-    /*     .reference.base_type = inferred_type.array.base_type */
-    /* }; */
-    /* // *iterator_type.reference.base_type = *; */
+    // add iterator to symbol table
+    // calling it iterator_symbol2 because i dont wanna reuse iterator_symbol
+    // because its a pointer and id have to either allocate memory or create
+    // a compound literal then get its address and i DONT WANNA DO EITHER OF THOSE
+    Symbol iterator_symbol2 = {
+        .token = iterator_token,
+        .type = iterator_type
+    };
+    symbol_table_push_symbol( &context->symbol_table, iterator_symbol2 );
+    expression->for_loop.iterator_type = iterator_type;
 
-    /* Symbol iterator_symbol2 = { */
-    /*     .token = iterator_token, */
-    /*     .type = iterator_type */
-    /* }; */
-    /* symbol_table_push_symbol( &context->symbol_table, iterator_symbol2 ); */
-    /* expression->for_loop.iterator_type = iterator_type; */
+    Expression* body = expression->for_loop.body;
+    if( !check_compound( context, body ) )
+    {
+        symbol_table_pop_scope( &context->symbol_table );
+        return false;
+    }
 
-    /* Expression* body = expression->for_loop.body; */
-    /* if( !check_compound( context, body ) ) */
-    /* { */
-    /*     symbol_table_pop_scope( &context->symbol_table ); */
-    /*     return false; */
-    /* } */
+    symbol_table_pop_scope( &context->symbol_table );
 
-    /* symbol_table_pop_scope( &context->symbol_table ); */
-
-    /* return true; */
+    return true;
 }
 
 static bool check_compound_definition( SemanticContext* context, Expression* type_rvalue, Type* out_type )

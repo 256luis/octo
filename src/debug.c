@@ -200,6 +200,14 @@ void debug_print_type( Type type )
             break;
         }
 
+        case TYPEKIND_REFERENCE:
+        {
+            printf( "(" );
+            debug_print_type( *type.reference.base_type );
+            printf( ")" );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();
@@ -550,7 +558,9 @@ void expression_print( Expression* expression )
             depth++;
             INDENT();
 
-            printf( "iterator = %s\n", expression->for_loop.iterator_token.as_string );
+            printf( "iterator = %s: ", expression->for_loop.iterator_token.as_string );
+            debug_print_type( expression->for_loop.iterator_type );
+            putchar('\n');
 
             INDENT();
             printf( "iterable = " );

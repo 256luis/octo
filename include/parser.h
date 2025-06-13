@@ -220,7 +220,7 @@ typedef struct Expression
             // "num" is the iterator
             // "nums" is the iterable
 
-            // Type iterator_type; // to be filled in during semantic analysis
+            Type iterator_type; // to be filled in during semantic analysis
             Token iterator_token;
             struct Expression* iterable_rvalue;
             struct Expression* body;
