@@ -1063,6 +1063,7 @@ static bool check_rvalue_identifier( SemanticContext* context, Expression* expre
     }
 
     *inferred_type = original_declaration->type;
+    expression->identifier.type = *inferred_type;
 
     return true;
 }
@@ -1228,6 +1229,7 @@ static bool check_unary( SemanticContext* context, Expression* expression, Type*
             };
 
             *inferred_type = pointer_type;
+            add_pointer_type( *base_type );
             return true;
         }
 
@@ -1337,6 +1339,8 @@ static bool check_array_literal( SemanticContext* context, Expression* expressio
         return false;
     }
 
+    expression->array_literal.type = array_type;
+
     *inferred_type = array_type;
     add_array_type( *array_type.array.base_type );
 
@@ -1385,6 +1389,8 @@ static bool check_array_subscript( SemanticContext* context, Expression* express
         return false;
     }
 
+    expression->array_subscript.element_type = *lvalue_type.array.base_type;
+
     *out_type = *lvalue_type.array.base_type;
     return true;
 }
@@ -1401,6 +1407,11 @@ static bool check_member_access( SemanticContext* context, Expression* expressio
     while( lvalue_type.kind == TYPEKIND_REFERENCE )
     {
         lvalue_type = *lvalue_type.reference.base_type;
+    }
+
+    if( lvalue_type.kind == TYPEKIND_NAMED )
+    {
+        lvalue_type = *lvalue_type.named.definition;
     }
 
     if( lvalue_type.kind != TYPEKIND_COMPOUND )
@@ -2449,6 +2460,8 @@ static bool check_pointer_type( SemanticContext* context, Expression* type_rvalu
         .type.info = info,
     };
 
+    add_pointer_type( *base_type_definition.type.info );
+
     return true;
 }
 
@@ -2509,6 +2522,8 @@ static bool check_array_type( SemanticContext* context, Expression* type_rvalue,
         .kind = TYPEKIND_TYPE,
         .type.info = info,
     };
+
+    add_array_type( *base_type_definition );
 
     return true;
 }

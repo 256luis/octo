@@ -112,6 +112,7 @@ typedef struct Expression
 
         struct
         {
+            Type type; // to be filled in during semantic analysis
             char* as_string;
         } identifier;
 
@@ -202,6 +203,7 @@ typedef struct Expression
 
         struct
         {
+            Type type; // to be filled in during semantic analysisxs
             struct Expression* base_type_rvalue;
             int count_initialized; // number of values initialized in the array literal
             struct Expression* initialized_rvalues;
@@ -209,7 +211,7 @@ typedef struct Expression
 
         struct
         {
-            // Type type; // to be filled in during semantic analysis
+            Type element_type; // to be filled in during semantic analysis
             struct Expression* lvalue;
             struct Expression* index_rvalue;
         } array_subscript;

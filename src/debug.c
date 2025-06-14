@@ -174,7 +174,7 @@ void debug_print_type( Type type )
 
         case TYPEKIND_FUNCTION:
         {
-            UNIMPLEMENTED();
+            // UNIMPLEMENTED();
             break;
         }
 

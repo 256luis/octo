@@ -40,7 +40,7 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/src/tokenizer.c
                ${CMAKE_CURRENT_LIST_DIR}/src/error.c
                ${CMAKE_CURRENT_LIST_DIR}/src/semantic.c
-               # ${CMAKE_CURRENT_LIST_DIR}/src/codegen.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/codegen.c
                ${CMAKE_CURRENT_LIST_DIR}/src/symboltable.c
                ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.c
 
@@ -49,7 +49,7 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/include/tokenizer.h
                ${CMAKE_CURRENT_LIST_DIR}/include/error.h
                ${CMAKE_CURRENT_LIST_DIR}/include/semantic.h
-               # ${CMAKE_CURRENT_LIST_DIR}/include/codegen.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/codegen.h
                ${CMAKE_CURRENT_LIST_DIR}/include/symboltable.h
                ${CMAKE_CURRENT_LIST_DIR}/include/type.h
                ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.h)
