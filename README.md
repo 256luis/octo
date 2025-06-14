@@ -31,7 +31,7 @@ Note: Currently, the compiler calls `gcc` to build the generated C code but it i
 | Variable reassignment | ✅ | ✅ | ✅ |
 | Type inference | ⬛ | ✅ | ✅ |
 | Pointers | ✅ | ✅ | ✅ |
-| Arrays | ⚠️ | ⚠️ | ⚠️ |
+| Arrays | ✅ | ✅ | ✅ |
 | Modules | ❌| ❌ | ❌ |
 | If-statements | ✅ | ✅ | ✅ |
 | If-expressions | ❌ | ❌ | ❌ |
@@ -39,7 +39,7 @@ Note: Currently, the compiler calls `gcc` to build the generated C code but it i
 | Switch-expressions | ❌ | ❌ | ❌ |
 | While-loops | ✅ | ✅ | ✅ |
 | For-loops | ✅ | ✅ | ✅ |
-| Structs | ⚠️ | ⚠️ | ⚠️ |
+| Structs | ✅ | ✅ | ✅ |
 | Unions | ⚠️ | ⚠️ | ⚠️ |
 | Enums | ❌ | ❌ | ❌ |
 | Tagged unions | ❌ | ❌ | ❌ |
@@ -76,6 +76,31 @@ Reassignments are in the form `<identifier> = <rvalue>;`.
 ```rust
 age = 23;
 ```
+### Arrays
+Arrays can be declared like so.
+```rust
+// the following declarations are all equivalent
+let arr: [10]i32;
+let arr = [10]i32[];
+```
+Some or all of the array elements can be initialized
+```rust
+let arr = []i32[1, 2, 3, 4, 5] // the length is inferred
+```
+### Pointers
+Pointers in are declared using the `&` operator. To get the address of a variable, simply prefix the variable's identifier with the `&` operator.
+```rust
+let my_var = 10;
+let my_ptr = &my_var;
+```
+In the above example, `my_ptr` is of type `&i32`.
+
+Pointers can be dereferenced with the `*` operator.
+```rust
+let deref = *my_ptr;
+```
+
+
 ### Functions
 Function declarations are in the form:
 ```rust
@@ -127,17 +152,13 @@ while number > 0
 ```
 The expression beside the `while` and `if` keywords must evaluate to a `bool`. Otherwise, the compiler will throw an error.
 
-### Pointers
-Pointers in are declared using the `&` operator. To get the address of a variable, simply prefix the variable's identifier with the `&` operator.
+For-loops in Octo are similar to Python's for-loops
 ```rust
-let my_var = 10;
-let my_ptr = &my_var;
-```
-In the above example, `my_ptr` is of type `&i32`.
-
-Pointers can be dereferenced with the `*` operator.
-```rust
-let deref = *my_ptr;
+let arr = []i32[1, 2, 3, 4, 5];
+for num in arr
+{
+    num = num + 10;
+}
 ```
 
 ### Types
@@ -176,3 +197,21 @@ Also unlike C, `char`s are not treated as `u8`s. Meaning operations that are nor
 'a' + 10 // ERROR
 ```
 Octo also supports null-terminated string literals which are no different from string literals in C.
+
+### User-defined types
+Octo supports user-defined types such as structs and unions.
+```rust
+type Rgba = struct {
+    r: u8;
+    g: u8;
+    b: u8;
+    a: u8;
+};
+
+type Color = union {
+    rgba: Rgba;
+    hex: u32;
+};
+
+let black = Color.{ .hex = 0 };
+```
