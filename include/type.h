@@ -1,54 +1,73 @@
 #ifndef TYPE_H
 #define TYPE_H
 
-#include "tokenizer.h"
-
 // forward declaration to avoid circular include
 typedef struct SymbolTable SymbolTable;
 
 typedef enum TypeKind
 {
+    // built-in named types
     TYPEKIND_VOID,
     TYPEKIND_INTEGER,
     TYPEKIND_FLOAT,
     TYPEKIND_CHARACTER,
     TYPEKIND_BOOLEAN,
-    TYPEKIND_FUNCTION,
+
+    // only for integers and floats
+    TYPEKIND_NUMERICLITERAL,
+
+    // anonymous types
     TYPEKIND_COMPOUND,
+    TYPEKIND_FUNCTION,
 
     // referential types
     TYPEKIND_POINTER,
     TYPEKIND_REFERENCE,
     TYPEKIND_ARRAY,
-    TYPEKIND_DEFINITION,
+    TYPEKIND_TYPE,
+    TYPEKIND_NAMED,
 
     TYPEKIND_TOINFER,
-    TYPEKIND_INVALID,
+    // TYPEKIND_INVALID,
 } TypeKind;
 
 typedef struct Type
 {
     TypeKind kind;
-    Token token;
+    // Token token;
 
     union
     {
         struct
         {
-            struct Type* info;
-            struct Type* pointer_types;
-            struct Type* array_types;
-        } definition;
+            TypeKind kind;
+        } literal;
 
         struct
         {
-            char* identifier;
-            SymbolTable* member_symbols;
+            struct Type* info;
+        } type;
+
+        struct
+        {
+            char* as_string;
+            struct Type* definition;
+
+            // arrays
+            struct Type* pointer_types;
+            struct Type* array_types;
+        } named;
+
+        struct
+        {
+            // char* identifier;
+            SymbolTable* member_symbol_table;
+            bool is_struct;
         } compound;
 
         struct
         {
-            struct Type* param_types;
+            struct Type* param_types; // array
             struct Type* return_type;
             int param_count;
             bool is_variadic;

@@ -11,6 +11,7 @@
 #include "whereami.h"
 
 SourceCode g_source_code;
+void debug_print_type( Type type );
 
 int main( int argc, char* argv[] )
 {
@@ -53,6 +54,16 @@ int main( int argc, char* argv[] )
     generate_code( generated_c, &semantic_context, program );
     fclose( generated_c );
 
+    for( int i = 0; i < semantic_context.symbol_table.length; i++ )
+    {
+        Symbol symbol = semantic_context.symbol_table.symbols[ i ];
+        printf( "%s: ", symbol.token.as_string );
+        debug_print_type( symbol.type );
+        putchar( '\n' );
+    }
+
+    expression_print( program );
+
     int octo_exe_path_length = wai_getExecutablePath( NULL, 0, NULL );
     char* octo_exe_dir = calloc( 1, octo_exe_path_length + 1 );
     wai_getExecutablePath( octo_exe_dir, octo_exe_path_length, NULL );
@@ -69,7 +80,7 @@ int main( int argc, char* argv[] )
     }
 
     char command[1024];
-    sprintf( command, "gcc %s -I%s/.. -o main.exe -std=gnu99 -Wall -Wextra && del %s",
+    sprintf( command, "gcc %s -I%s/.. -o %s.exe -std=gnu99 -Wall -Wextra",
              file_name,
              octo_exe_dir,
              file_name );

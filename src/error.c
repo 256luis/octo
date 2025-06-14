@@ -5,6 +5,8 @@
 #include "globals.h"
 #include "lvec.h"
 #include "parser.h"
+#include "type.h"
+#include "symboltable.h"
 
 static char* file_to_string( const char* filename, int* length )
 {
@@ -111,12 +113,11 @@ void print_type( Type type )
 {
     switch( type.kind )
     {
-        case TYPEKIND_INVALID:
+        // case TYPEKIND_INVALID:
         case TYPEKIND_TOINFER:
         case TYPEKIND_VOID:
         case TYPEKIND_CHARACTER:
         case TYPEKIND_BOOLEAN:
-            // case TYPEKIND_STRING:
         {
             printf( "%s", type_kind_to_string[ type.kind ] );
             break;
@@ -154,6 +155,23 @@ void print_type( Type type )
             break;
         }
 
+        case TYPEKIND_COMPOUND:
+        {
+            printf( "%s { ", type.compound.is_struct ? "struct" : "union" );
+            int member_count = type.compound.member_symbol_table->length;
+            for( int i = 0; i < member_count; i++ )
+            {
+                char* member_identifier = type.compound.member_symbol_table->symbols[ i ].token.as_string;
+                Type member_type = type.compound.member_symbol_table->symbols[ i ].type;
+
+                printf( "%s: ", member_identifier );
+                print_type( member_type );
+                printf( "; " );
+            }
+            printf( "}" );
+            break;
+        }
+
         case TYPEKIND_POINTER:
         {
             printf( "&" );
@@ -161,32 +179,128 @@ void print_type( Type type )
             break;
         }
 
-        case TYPEKIND_COMPOUND:
+        case TYPEKIND_REFERENCE:
         {
-            printf( "%s", type.compound.identifier );
+            // printf( "REFERENCE " );
+            print_type( *type.reference.base_type );
             break;
         }
 
         case TYPEKIND_ARRAY:
         {
-            if( type.array.length > 0 )
-            {
-                printf( "[%d]", type.array.length );
-            }
-            else
-            {
-                printf( "[]" );
-            }
+            printf( "[%d]", type.array.length );
             print_type( *type.array.base_type );
             break;
         }
 
-        case TYPEKIND_DEFINITION:
+        case TYPEKIND_TYPE:
         {
             printf( "type" );
             break;
         }
+
+        case TYPEKIND_NAMED:
+        {
+            printf("%s", type.named.as_string);
+            // print_type( type.named.as_string );
+            break;
+        }
+
+        case TYPEKIND_NUMERICLITERAL:
+        {
+            printf( "%s literal",
+                    type.literal.kind == TYPEKIND_INTEGER
+                    ? "integer"
+                    : "floating point" );
+            // print_type( type.named.as_string );
+            break;
+        }
     }
+
+    /* switch( type.kind ) */
+    /* { */
+    /*     case TYPEKIND_INVALID: */
+    /*     case TYPEKIND_TOINFER: */
+    /*     case TYPEKIND_VOID: */
+    /*     case TYPEKIND_CHARACTER: */
+    /*     case TYPEKIND_BOOLEAN: */
+    /*         // case TYPEKIND_STRING: */
+    /*     { */
+    /*         printf( "%s", type_kind_to_string[ type.kind ] ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_INTEGER: */
+    /*     { */
+    /*         printf( "%c%zu", */
+    /*                 type.integer.is_signed ? 'i' : 'u', */
+    /*                 type.integer.bit_count ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_FLOAT: */
+    /*     { */
+    /*         printf( "f%zu", type.integer.bit_count ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_FUNCTION: */
+    /*     { */
+    /*         printf( "func(" ); */
+    /*         size_t param_count = lvec_get_length( type.function.param_types ); */
+    /*         for( size_t i = 0; i < param_count; i++ ) */
+    /*         { */
+    /*             Type param_type = type.function.param_types[ i ]; */
+    /*             print_type( param_type ); */
+    /*             if( i < param_count - 1 ) */
+    /*             { */
+    /*                 printf( ", " ); */
+    /*             } */
+    /*         } */
+    /*         printf( ") -> " ); */
+    /*         print_type( *type.function.return_type ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_POINTER: */
+    /*     { */
+    /*         printf( "&" ); */
+    /*         print_type( *type.pointer.base_type ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_COMPOUND: */
+    /*     { */
+    /*         UNIMPLEMENTED(); */
+    /*         // printf( "%s", type.compound.identifier ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_ARRAY: */
+    /*     { */
+    /*         if( type.array.length > 0 ) */
+    /*         { */
+    /*             printf( "[%d]", type.array.length ); */
+    /*         } */
+    /*         else */
+    /*         { */
+    /*             printf( "[]" ); */
+    /*         } */
+    /*         print_type( *type.array.base_type ); */
+    /*         break; */
+    /*     } */
+
+    /*     case TYPEKIND_TYPE: */
+    /*     { */
+    /*         printf( "type" ); */
+    /*         break; */
+    /*     } */
+
+    /*     default: */
+    /*     { */
+    /*         fprintf(stderr, "%s", type_kind_to_string[ type.kind ]); */
+    /*     } */
+    /* } */
 }
 
 void report_error( Error error )
@@ -439,9 +553,9 @@ void report_error( Error error )
         case ERRORKIND_MISSINGMEMBER:
         {
             Type parent_type = error.missing_member.parent_type;
-            printf( "no member \'%s\' in type \'%s\'\n",
-                    offending_token.as_string,
-                    parent_type.token.as_string );
+            printf( "no member \'%s\' in type \'", offending_token.as_string );
+            print_type( parent_type );
+            printf( "\'\n" );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;
@@ -466,6 +580,54 @@ void report_error( Error error )
         case ERRORKIND_NOTATYPE:
         {
             printf( "cannot use non-type name here\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_NOTCOMPOUND:
+        {
+            printf( "not a compound type\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_INVALIDANONYMOUSTYPE:
+        {
+            printf( "anonymous type not allowed here\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_UNINITIALIZEDMEMBER:
+        {
+            printf( "all struct members must be initialized\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_MULTIPLEMEMBERINITIALIZEDUNION:
+        {
+            printf( "union initializer must only have one member initialized\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_NONPOINTERDEREFERENCE:
+        {
+            printf( "cannot dereference non-pointer type\n" );
+            source_code_print_line( g_source_code, offending_token.line );
+            printf( "\n        %*c\n", offending_token.column, '^' );
+            break;
+        }
+
+        case ERRORKIND_VOIDPOINTERDEREFERENCE:
+        {
+            printf( "cannot dereference void pointer\n" );
             source_code_print_line( g_source_code, offending_token.line );
             printf( "\n        %*c\n", offending_token.column, '^' );
             break;

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "tokenizer.h"
 #include "type.h"
+// #include "type.h"
 
 typedef enum BinaryOperation
 {
@@ -47,7 +48,7 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_BINARY,
     EXPRESSIONKIND_FUNCTIONCALL,
     EXPRESSIONKIND_BOOLEAN,
-    EXPRESSIONKIND_ARRAY,
+    EXPRESSIONKIND_ARRAYLITERAL,
     EXPRESSIONKIND_COMPOUNDLITERAL,
 
     // can be lvalue or rvalue
@@ -66,6 +67,12 @@ typedef enum ExpressionKind
     EXPRESSIONKIND_CONDITIONAL, // if statements and while-loops
     EXPRESSIONKIND_FORLOOP,
     EXPRESSIONKIND_TYPEDECLARATION,
+
+    // type rvalues
+    EXPRESSIONKIND_TYPEIDENTIFIER,
+    EXPRESSIONKIND_POINTERTYPE,
+    EXPRESSIONKIND_ARRAYTYPE,
+    EXPRESSIONKIND_COMPOUNDDEFINITION,
 } ExpressionKind;
 
 typedef struct Expression
@@ -89,8 +96,24 @@ typedef struct Expression
 
         struct
         {
+            struct Expression* base_type_rvalue;
+            int length; // if -1, then its to be inferred
+        } array_type;
+
+        struct
+        {
+            struct Expression* base_type_rvalue;
+        } pointer_type;
+
+        struct
+        {
+            Token token;
+        } type_identifier;
+
+        struct
+        {
+            Type type; // to be filled in during semantic analysis
             char* as_string;
-            Type type;
         } identifier;
 
         struct
@@ -112,20 +135,18 @@ typedef struct Expression
 
         struct
         {
-            char* identifier;
             Token identifier_token;
 
-            struct Expression** args; // array of expression pointers
+            struct Expression* args; // array of expressions
             size_t arg_count;
         } function_call;
 
         struct
         {
-            char* identifier;
             Token identifier_token;
 
-            Type type;
-
+            Type variable_type; // to be filled in during semantic analysis
+            struct Expression* type_rvalue;
             struct Expression* rvalue;
         } variable_declaration;
 
@@ -137,22 +158,19 @@ typedef struct Expression
 
         struct
         {
-            char* identifier;
             Token identifier_token;
 
-            Type return_type;
-
-            // arrays to hold params info
-            char** param_identifiers;
             Token* param_identifiers_tokens;
-
-            Type* param_types;
-
+            struct Expression* param_type_rvalues;
             int param_count;
-
             bool is_variadic;
 
+            struct Expression* return_type_rvalue;
             struct Expression* body;
+
+            // to be filled in during semantic analysis
+            Type return_type;
+            Type* param_types;
         } function_declaration;
 
         struct
@@ -185,15 +203,15 @@ typedef struct Expression
 
         struct
         {
-            Type type;
-            // Token type_token;
+            Type type; // to be filled in during semantic analysisxs
+            struct Expression* base_type_rvalue;
             int count_initialized; // number of values initialized in the array literal
             struct Expression* initialized_rvalues;
-        } array;
+        } array_literal;
 
         struct
         {
-            Type type; // to be filled in during semantic analysis
+            Type element_type; // to be filled in during semantic analysis
             struct Expression* lvalue;
             struct Expression* index_rvalue;
         } array_subscript;
@@ -212,11 +230,9 @@ typedef struct Expression
 
         struct
         {
-            bool is_struct; // if false, is union
-            Token type_identifier_token;
-            Token* member_identifier_tokens;
-            Type* member_types;
-            int member_count;
+            Token identifier_token;
+            struct Expression* rvalue;
+            Type type; // to be filled in during semantic analysis
         } type_declaration;
 
         struct
@@ -224,6 +240,15 @@ typedef struct Expression
             struct Expression* lvalue;
             Token member_identifier_token;
         } member_access;
+
+        struct
+        {
+            bool is_struct; // if false, is union
+            int member_count;
+            Token* member_identifier_tokens;
+            struct Expression* member_type_rvalues;
+            Type* member_types; // to be filled in during semantic analysis
+        } compound_definition;
 
         struct
         {

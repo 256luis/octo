@@ -51,6 +51,7 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/include/semantic.h
                ${CMAKE_CURRENT_LIST_DIR}/include/codegen.h
                ${CMAKE_CURRENT_LIST_DIR}/include/symboltable.h
+               ${CMAKE_CURRENT_LIST_DIR}/include/type.h
                ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.h)
 
 

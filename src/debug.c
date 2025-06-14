@@ -77,12 +77,16 @@ char* expression_kind_to_string[] = {
     [ EXPRESSIONKIND_ASSIGNMENT ]          = "ASSIGNMENT",
     [ EXPRESSIONKIND_EXTERN ]              = "EXTERN",
     [ EXPRESSIONKIND_CONDITIONAL ]         = "CONDITIONAL",
-    [ EXPRESSIONKIND_ARRAY ]               = "ARRAY",
+    [ EXPRESSIONKIND_ARRAYLITERAL ]        = "ARRAY LITERAL",
     [ EXPRESSIONKIND_ARRAYSUBSCRIPT ]      = "ARRAY SUBSCRIPT",
     [ EXPRESSIONKIND_FORLOOP ]             = "FOR LOOP",
     [ EXPRESSIONKIND_TYPEDECLARATION ]     = "TYPE DECLARATION",
     [ EXPRESSIONKIND_MEMBERACCESS ]        = "MEMBER ACCESS",
     [ EXPRESSIONKIND_COMPOUNDLITERAL ]     = "COMPOUND LITERAL",
+    [ EXPRESSIONKIND_COMPOUNDDEFINITION ]  = "COMPOUND DEFINITION",
+    [ EXPRESSIONKIND_TYPEIDENTIFIER ]      = "TYPE IDENTIFIER",
+    [ EXPRESSIONKIND_POINTERTYPE ]         = "POINTER TYPE",
+    [ EXPRESSIONKIND_ARRAYTYPE ]           = "ARRAY TYPE",
 };
 
 char* binary_operation_to_string[] = {
@@ -114,12 +118,15 @@ char* type_kind_to_string[] = {
     [ TYPEKIND_FLOAT ]     = "float",
     [ TYPEKIND_CHARACTER ] = "char",
     [ TYPEKIND_BOOLEAN ]   = "bool",
-    [ TYPEKIND_COMPOUND ]    = "COMPOUND",
-    [ TYPEKIND_POINTER ]   = "POINTER",
     [ TYPEKIND_FUNCTION ]  = "FUNCTION",
+    [ TYPEKIND_COMPOUND ]  = "COMPOUND",
+    [ TYPEKIND_POINTER ]   = "POINTER",
+    [ TYPEKIND_REFERENCE ] = "REFERENCE",
     [ TYPEKIND_ARRAY ]     = "ARRAY",
+    [ TYPEKIND_TYPE ]      = "TYPE",
+    [ TYPEKIND_NAMED ]     = "NAMED",
+    // [ TYPEKIND_INVALID ]   = "INVALID",
     [ TYPEKIND_TOINFER ]   = "TOINFER",
-    [ TYPEKIND_INVALID ]   = "INVALID",
 };
 
 void debug_print_type( Type type )
@@ -152,7 +159,8 @@ void debug_print_type( Type type )
 
         case TYPEKIND_COMPOUND:
         {
-            printf( "(%s)", type.compound.identifier );
+            // TODO: finish this
+            printf( "(%s)", type.compound.is_struct ? "struct" : "union" );
             break;
         }
 
@@ -166,7 +174,13 @@ void debug_print_type( Type type )
 
         case TYPEKIND_FUNCTION:
         {
-            UNIMPLEMENTED();
+            // UNIMPLEMENTED();
+            break;
+        }
+
+        case TYPEKIND_NAMED:
+        {
+            printf( "(%s)", type.named.as_string );
             break;
         }
 
@@ -178,10 +192,25 @@ void debug_print_type( Type type )
             break;
         }
 
-        case TYPEKIND_INVALID:
+        case TYPEKIND_TYPE:
         {
-            UNREACHABLE();
+            printf( "(" );
+            debug_print_type( *type.type.info );
+            printf( ")" );
             break;
+        }
+
+        case TYPEKIND_REFERENCE:
+        {
+            printf( "(" );
+            debug_print_type( *type.reference.base_type );
+            printf( ")" );
+            break;
+        }
+
+        default:
+        {
+            UNIMPLEMENTED();
         }
     }
 }
@@ -196,48 +225,41 @@ void expression_print( Expression* expression )
     }
 
     printf( "%s", expression_kind_to_string[ expression->kind ] );
-    bool should_newline = true;
     switch( expression->kind )
     {
         case EXPRESSIONKIND_INTEGER:
         {
             printf( "(%lld)", expression->integer );
-            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_FLOAT:
         {
             printf( "(%lf)", expression->floating );
-            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_BOOLEAN:
         {
             printf( "(%s)", expression->boolean ? "true" : "false" );
-            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_IDENTIFIER:
         {
             printf( "(%s)", expression->identifier.as_string );
-            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_STRING:
         {
             printf( "(\"%s\")", expression->string );
-            should_newline = false;
             break;
         }
 
         case EXPRESSIONKIND_CHARACTER:
         {
             printf( "(\'%c\')", expression->character );
-            should_newline = false;
             break;
         }
 
@@ -254,12 +276,10 @@ void expression_print( Expression* expression )
             INDENT();
             printf( "left = " );
             expression_print( expression->binary.left );
-            putchar( '\n' );
 
             INDENT();
             printf( "right = " );
             expression_print( expression->binary.right );
-            putchar( '\n' );
 
             depth--;
             INDENT();
@@ -295,7 +315,7 @@ void expression_print( Expression* expression )
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", expression->function_call.identifier );
+            printf( "identifier = %s\n", expression->function_call.identifier_token.as_string );
 
             INDENT();
             printf( "args = {\n" );
@@ -305,7 +325,7 @@ void expression_print( Expression* expression )
             {
                 INDENT();
                 printf( "[%lld] = ", i );
-                expression_print( expression->function_call.args[ i ] );
+                expression_print( &expression->function_call.args[ i ] );
             }
 
             depth--;
@@ -327,11 +347,13 @@ void expression_print( Expression* expression )
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", expression->variable_declaration.identifier );
+            printf( "identifier = %s\n", expression->variable_declaration.identifier_token.as_string );
 
             INDENT();
             printf( "type = " );
-            debug_print_type( expression->variable_declaration.type );
+            debug_print_type( expression->variable_declaration.variable_type );
+
+            // debug_print_type( expression->variable_declaration.type );
             putchar( '\n' );
 
             INDENT();
@@ -343,10 +365,9 @@ void expression_print( Expression* expression )
             }
             else
             {
-                printf( "(null)" );
+                printf( "UNINITIALIZED\n" );
             }
 
-            putchar( '\n' );
             depth--;
             INDENT();
             printf( "}" );
@@ -377,25 +398,30 @@ void expression_print( Expression* expression )
 
         case EXPRESSIONKIND_FUNCTIONDECLARATION:
         {
+            // UNIMPLEMENTED();
+
             printf( " {\n" );
             depth++;
 
             INDENT();
-            printf( "identifier = %s\n", expression->function_declaration.identifier );
+            printf( "identifier = %s\n", expression->function_declaration.identifier_token.as_string );
 
             INDENT();
             printf( "return type = " );
+            // expression_print( expression->function_declaration.return_type_rvalue );
             debug_print_type( expression->function_declaration.return_type );
             putchar( '\n' );
 
             for( int i = 0; i < expression->function_declaration.param_count; i++ )
             {
-                char* param_identifier = expression->function_declaration.param_identifiers[ i ];
+                Token param_identifier_token = expression->function_declaration.param_identifiers_tokens[ i ];
+                // Expression param_type_rvalue = expression->function_declaration.param_type_rvalues[ i ];
                 Type param_type = expression->function_declaration.param_types[ i ];
 
                 INDENT();
                 // printf( "param[%d] = %s: %d\n", i, param_identifier, param_type.kind );
-                printf( "param[%d] = %s: ", i, param_identifier );
+                printf( "param[%d] = %s: ", i, param_identifier_token.as_string );
+                // expression_print( &param_type_rvalue );
                 debug_print_type( param_type );
                 putchar( '\n' );
             }
@@ -413,9 +439,15 @@ void expression_print( Expression* expression )
 
         case EXPRESSIONKIND_RETURN:
         {
-            printf( "(");
+            printf( " {\n");
+            depth++;
+            INDENT();
             expression_print( expression->return_expression.rvalue );
-            printf( ")");
+
+            // putchar( '\n' );
+            depth--;
+            INDENT();
+            printf( "}");
             break;
         }
 
@@ -478,24 +510,24 @@ void expression_print( Expression* expression )
             break;
         }
 
-        case EXPRESSIONKIND_ARRAY:
+        case EXPRESSIONKIND_ARRAYLITERAL:
         {
-            printf( "(" );
-            debug_print_type( *expression->array.type.array.base_type );
-            printf( "; %d) {\n", expression->array.type.array.length );
+            /* UNIMPLEMENTED(); */
+            printf( " {\n" );
             depth++;
+            // INDENT();
 
-            INDENT();
-            for( int i = 0; i < expression->array.count_initialized; i++ )
+            /* printf( "type = "); */
+            /* expression_print( expression->array.base_type_rvalue ); */
+
+            for( int i = 0; i < expression->array_literal.count_initialized; i++ )
             {
-                printf( "[%d] = ", i );
-                expression_print( &expression->array.initialized_rvalues[ i ] );
-                printf( "\n" );
                 INDENT();
+                printf( "[%d] = ", i );
+                expression_print( &expression->array_literal.initialized_rvalues[ i ] );
             }
 
             depth--;
-            printf( "\n");
             INDENT();
             printf( "}" );
             break;
@@ -510,13 +542,11 @@ void expression_print( Expression* expression )
             printf( "lvalue = " );
             expression_print( expression->array_subscript.lvalue );
 
-            printf( "\n" );
             INDENT();
             printf( "index = " );
             expression_print( expression->array_subscript.index_rvalue );
 
             depth--;
-            printf( "\n");
             INDENT();
             printf( "}" );
             break;
@@ -528,7 +558,9 @@ void expression_print( Expression* expression )
             depth++;
             INDENT();
 
-            printf( "iterator = %s\n", expression->for_loop.iterator_token.as_string );
+            printf( "iterator = %s: ", expression->for_loop.iterator_token.as_string );
+            debug_print_type( expression->for_loop.iterator_type );
+            putchar('\n');
 
             INDENT();
             printf( "iterable = " );
@@ -548,28 +580,46 @@ void expression_print( Expression* expression )
 
         case EXPRESSIONKIND_TYPEDECLARATION:
         {
-            printf( "(%s) {\n",
-                    expression->type_declaration.is_struct ? "struct" : "union" );
+            printf( " {\n" );
+
             depth++;
             INDENT();
+            printf( "identifier = %s\n",
+                    expression->type_declaration.identifier_token.as_string );
 
-            printf( "identifier = %s\n", expression->type_declaration.type_identifier_token.as_string );
+            INDENT();
+            printf( "rvalue = " );
+            expression_print( expression->type_declaration.rvalue );
+            // debug_print_type( expression->type_declaration.type );
+            // putchar( '\n' );
 
-            for( int i = 0; i < expression->type_declaration.member_count; i++ )
+            depth--;
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_COMPOUNDDEFINITION:
+        {
+            printf( "(%s) {\n",
+                    expression->compound_definition.is_struct ? "struct" : "union" );
+
+            depth++;
+            for( int i = 0; i < expression->compound_definition.member_count; i++ )
             {
-                char* member_identifier = expression->type_declaration.member_identifier_tokens[ i ].as_string;
-                Type member_type = expression->type_declaration.member_types[ i ];
+                char* member_identifier = expression->compound_definition.member_identifier_tokens[ i ].as_string;
+                // Expression member_type_rvalue = expression->compound_definition.member_type_rvalues[ i ];
+                Type member_type = expression->compound_definition.member_types[ i ];
 
                 INDENT();
                 printf( "member[%d] = %s: ", i, member_identifier );
                 debug_print_type( member_type );
                 putchar( '\n' );
             }
-
             depth--;
-            printf( "\n");
             INDENT();
             printf( "}" );
+
             break;
         }
 
@@ -610,17 +660,53 @@ void expression_print( Expression* expression )
                 Expression initialized_member_rvalue = expression->compound_literal.initialized_member_rvalues[ i ];
 
                 INDENT();
-                // printf( "param[%d] = %s: %d\n", i, param_identifier, param_type.kind );
                 printf( ".%s = ", member_identifier );
                 expression_print( &initialized_member_rvalue );
-                putchar( '\n' );
             }
             depth--;
             INDENT();
             printf( "}\n" );
 
             depth--;
-            printf( "\n");
+            INDENT();
+            printf( "}" );
+            break;
+        }
+
+        case EXPRESSIONKIND_TYPEIDENTIFIER:
+        {
+            printf( "(%s)", expression->type_identifier.token.as_string );
+            break;
+        }
+
+        case EXPRESSIONKIND_POINTERTYPE:
+        {
+            printf( " {\n" );
+            depth++;
+            INDENT();
+
+            printf( "base type = " );
+            expression_print( expression->pointer_type.base_type_rvalue );
+            depth--;
+            INDENT();
+            printf( "}" );
+
+            break;
+        }
+
+        case EXPRESSIONKIND_ARRAYTYPE:
+        {
+            printf(" {\n");
+            depth++;
+            INDENT();
+
+            printf( "base type = " );
+            expression_print( expression->array_type.base_type_rvalue );
+
+            INDENT();
+            printf( "length = %d\n", expression->array_type.length );
+
+            depth--;
             INDENT();
             printf( "}" );
             break;
@@ -633,8 +719,5 @@ void expression_print( Expression* expression )
         }
     }
 
-    if( should_newline )
-    {
-        putchar( '\n' );
-    }
+    putchar('\n');
 }

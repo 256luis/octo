@@ -9,7 +9,6 @@
 #include "debug.h"
 #include "error.h"
 #include "lvec.h"
-#include "type.h"
 
 #define EXPECT( parser_ptr, ... )\
     _expect( parser_ptr, ( TokenKind[] ){ __VA_ARGS__ },\
@@ -151,6 +150,7 @@ static Expression* parse_identifier( Parser* parser )
     expression->kind = EXPRESSIONKIND_IDENTIFIER;
     expression->identifier.as_string = parser->current_token.identifier;
     expression->associated_token = parser->current_token;
+    expression->starting_token = parser->current_token;
 
     return expression;
 }
@@ -223,6 +223,7 @@ static Expression* parse_unary( Parser* parser )
     expression->kind = EXPRESSIONKIND_UNARY;
     expression->unary.operation = token_kind_to_unary_operation( parser->current_token.kind );
     expression->unary.operator_token = parser->current_token;
+    expression->starting_token = parser->current_token;
 
     advance( parser );
     expression->unary.operand = parse_atom( parser );
@@ -237,7 +238,6 @@ static Expression* parse_function_call( Parser* parser )
     if( expression ==  NULL ) ALLOC_ERROR();
 
     expression->kind = EXPRESSIONKIND_FUNCTIONCALL;
-    expression->function_call.identifier = parser->current_token.identifier;
     expression->function_call.identifier_token = parser->current_token;
 
     advance( parser );
@@ -257,7 +257,7 @@ static Expression* parse_function_call( Parser* parser )
     }
     else
     {
-        Expression** args = lvec_new( Expression* );
+        Expression* args = lvec_new( Expression );
         if( args == NULL ) ALLOC_ERROR();
 
         while( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
@@ -267,7 +267,7 @@ static Expression* parse_function_call( Parser* parser )
             {
                 return NULL;
             }
-            lvec_append( args, e );
+            lvec_append_aggregate( args, *e );
 
             expression->function_call.arg_count++;
 
@@ -289,173 +289,133 @@ static Expression* parse_function_call( Parser* parser )
     return expression;
 }
 
-static Type parse_base_type( Parser* parser )
+/* static Type parse_base_type( Parser* parser ) */
+/* { */
+/*     Type result; */
+/*     result.token = parser->current_token; */
+/*     char* type_identifier = parser->current_token.identifier; */
+
+/*     if( strcmp( type_identifier, "i8" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 8; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "i16" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 16; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "i32" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 32; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "i64" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 64; */
+/*         result.integer.is_signed = true; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u8" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 8; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u16" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 16; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u32" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 32; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "u64" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_INTEGER; */
+/*         result.integer.bit_count = 64; */
+/*         result.integer.is_signed = false; */
+/*     } */
+/*     else if( strcmp( type_identifier, "f32" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_FLOAT; */
+/*         result.floating.bit_count = 32; */
+/*     } */
+/*     else if( strcmp( type_identifier, "f64" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_FLOAT; */
+/*         result.floating.bit_count = 64; */
+/*     } */
+/*     else if( strcmp( type_identifier, "char" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_CHARACTER; */
+/*     } */
+/*     else if( strcmp( type_identifier, "bool" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_BOOLEAN; */
+/*     } */
+/*     else if( strcmp( type_identifier, "void" ) == 0 ) */
+/*     { */
+/*         result.kind = TYPEKIND_VOID; */
+/*     } */
+/*     else // custom type */
+/*     { */
+/*         result.kind = TYPEKIND_COMPOUND; */
+/*         // result.compound.identifier = type_identifier; */
+/*     } */
+
+/*     return result; */
+/* } */
+
+// static Type parse_type( Parser* parser );
+static Expression* parse_type_rvalue( Parser* parser );
+static Expression* parse_array_type( Parser* parser )
 {
-    Type result;
-    result.token = parser->current_token;
-    char* type_identifier = parser->current_token.identifier;
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
 
-    if( strcmp( type_identifier, "i8" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 8;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "i16" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 16;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "i32" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 32;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "i64" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 64;
-        result.integer.is_signed = true;
-    }
-    else if( strcmp( type_identifier, "u8" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 8;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "u16" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 16;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "u32" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 32;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "u64" ) == 0 )
-    {
-        result.kind = TYPEKIND_INTEGER;
-        result.integer.bit_count = 64;
-        result.integer.is_signed = false;
-    }
-    else if( strcmp( type_identifier, "f32" ) == 0 )
-    {
-        result.kind = TYPEKIND_FLOAT;
-        result.floating.bit_count = 32;
-    }
-    else if( strcmp( type_identifier, "f64" ) == 0 )
-    {
-        result.kind = TYPEKIND_FLOAT;
-        result.floating.bit_count = 64;
-    }
-    else if( strcmp( type_identifier, "char" ) == 0 )
-    {
-        result.kind = TYPEKIND_CHARACTER;
-    }
-    else if( strcmp( type_identifier, "bool" ) == 0 )
-    {
-        result.kind = TYPEKIND_BOOLEAN;
-    }
-    else if( strcmp( type_identifier, "void" ) == 0 )
-    {
-        result.kind = TYPEKIND_VOID;
-    }
-    else // compound type
-    {
-        result.kind = TYPEKIND_COMPOUND;
-        result.compound.identifier = type_identifier;
-    }
+    expression->kind = EXPRESSIONKIND_ARRAYTYPE;
+    expression->starting_token = parser->current_token;
 
-    return result;
-}
-
-static Type parse_type( Parser* parser );
-static Type parse_array_type( Parser* parser )
-{
-    Type result;
-    result.kind = TYPEKIND_ARRAY;
-    result.token = parser->current_token;
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_INTEGER, TOKENKIND_RIGHTBRACKET ) )
     {
-        result.kind = TYPEKIND_INVALID;
-        return result;
+        return NULL;
     }
 
-    // default value to indicate if length is to be infered
-    result.array.length = -1;
     if( parser->current_token.kind == TOKENKIND_INTEGER )
     {
-        result.array.length = parser->current_token.integer;
+        expression->array_type.length = parser->current_token.integer;
+
         advance( parser );
         if( !EXPECT( parser, TOKENKIND_RIGHTBRACKET ) )
         {
-            result.kind = TYPEKIND_INVALID;
-            return result;
+            return NULL;
         }
+
+    }
+    else
+    {
+        // this means that the length is to be inferred
+        expression->array_type.length = -1;
     }
 
     advance( parser );
-    result.array.base_type = malloc( sizeof( Type ) );
-    *result.array.base_type = parse_type( parser );
-
-    return result;
-}
-
-// todo HASHMAP!!!
-static Type parse_type( Parser* parser )
-{
-    if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
+    Expression* base_type_rvalue = parse_type_rvalue( parser );
+    if( base_type_rvalue == NULL )
     {
-        return ( Type ){ .kind = TYPEKIND_INVALID };
+        return NULL;
     }
+    expression->array_type.base_type_rvalue = base_type_rvalue;
 
-    Type result;
-    result.token = parser->current_token;
-
-    switch( parser->current_token.kind )
-    {
-        case TOKENKIND_IDENTIFIER:
-        {
-            result = parse_base_type( parser );
-            break;
-        }
-
-        case TOKENKIND_LEFTBRACKET:
-        {
-            result = parse_array_type( parser );
-            break;
-        }
-
-        case TOKENKIND_AMPERSAND: // pointers
-        {
-            result.kind = TYPEKIND_POINTER;
-            advance( parser );
-            if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
-            {
-                result.kind = TYPEKIND_INVALID;
-                return result;
-            }
-
-            // i have to allocate here... SO ANNOYING!!!
-            result.pointer.base_type = malloc( sizeof( Type ) );
-            *result.pointer.base_type = parse_type( parser );
-            break;
-        }
-
-        default:
-        {
-            UNREACHABLE();
-            break;
-        }
-    }
-
-    return result;
+    return expression;
 }
 
 static Expression* parse_array_literal( Parser* parser )
@@ -463,11 +423,10 @@ static Expression* parse_array_literal( Parser* parser )
     Expression* expression = calloc( 1, sizeof( Expression ) );
     if( expression ==  NULL ) ALLOC_ERROR();
 
-    expression->kind = EXPRESSIONKIND_ARRAY;
+    expression->kind = EXPRESSIONKIND_ARRAYLITERAL;
     expression->starting_token = parser->current_token;
 
-    expression->array.type = parse_type( parser );
-    // expression->array.type_token = parser->current_token;
+    expression->array_literal.base_type_rvalue = parse_type_rvalue( parser );
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_LEFTBRACKET ) )
@@ -510,8 +469,8 @@ static Expression* parse_array_literal( Parser* parser )
             advance( parser );
         }
 
-        expression->array.initialized_rvalues = initialized_rvalues;
-        expression->array.count_initialized = count_initialized;
+        expression->array_literal.initialized_rvalues = initialized_rvalues;
+        expression->array_literal.count_initialized = count_initialized;
     }
 
     return expression;
@@ -683,6 +642,11 @@ static Expression* parse_postfix( Parser* parser, Expression* left )
 
 static Expression* parse_atom( Parser* parser )
 {
+    if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
     Expression* expression;
     Token starting_token = parser->current_token;
 
@@ -696,13 +660,6 @@ static Expression* parse_atom( Parser* parser )
                 expression = parse_function_call( parser );
                 break;
             }
-
-            /* // if struct/union instantiation */
-            /* if( parser->next_token.kind == TOKENKIND_LEFTBRACE) */
-            /* { */
-            /*     expression = parse_compound_literal( parser ); */
-            /*     break; */
-            /* } */
 
             [[ fallthrough ]];
         }
@@ -779,11 +736,6 @@ static Expression* parse_atom( Parser* parser )
 
 static Expression* parse_rvalue( Parser* parser )
 {
-    if( !EXPECT( parser, TOKENKIND_RVALUE_STARTERS ) )
-    {
-        return NULL;
-    }
-
     Token starting_token = parser->current_token;
     Expression* expression = parse_atom( parser );
 
@@ -797,6 +749,8 @@ static Expression* parse_rvalue( Parser* parser )
     bool is_next_token_kind_binary_operator = IS_TOKENKIND_IN_GROUP( parser->next_token.kind, TOKENKIND_BINARY_OPERATORS );
     if( is_next_token_kind_binary_operator )
     {
+        Token rvalue_starting_token = parser->current_token;
+
         advance( parser );
 
         Expression* left = calloc( 1, sizeof( Expression ) );
@@ -806,6 +760,7 @@ static Expression* parse_rvalue( Parser* parser )
         memset( expression, 0, sizeof( Expression ) );
 
         expression->kind = EXPRESSIONKIND_BINARY;
+        expression->starting_token = rvalue_starting_token;
         expression->binary.operation = token_kind_to_binary_operation( parser->current_token.kind );
         expression->binary.operator_token = parser->current_token;
         expression->binary.left = left;
@@ -815,6 +770,153 @@ static Expression* parse_rvalue( Parser* parser )
         if( expression->binary.right == NULL )
         {
             return NULL;
+        }
+    }
+
+    return expression;
+}
+
+static Expression* parse_compound_definition( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_COMPOUNDDEFINITION;
+    expression->starting_token = parser->current_token;
+    expression->compound_definition.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
+
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
+    {
+        return NULL;
+    }
+
+    Token* member_identifier_tokens = lvec_new( Token );
+    Expression* member_type_rvalues = lvec_new( Expression );
+
+    advance( parser );
+    while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
+        {
+            return NULL;
+        }
+
+        Token member_identifier_token = parser->current_token;
+        lvec_append_aggregate( member_identifier_tokens, member_identifier_token );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_COLON ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        Expression* member_type_rvalue = parse_type_rvalue( parser );
+        if( member_type_rvalue == NULL )
+        {
+            return NULL;
+        }
+        lvec_append_aggregate( member_type_rvalues, *member_type_rvalue );
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
+        {
+            return NULL;
+        }
+
+        advance( parser );
+        if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTBRACE ) )
+        {
+            return NULL;
+        }
+    }
+
+    // current token is right brace
+
+    expression->compound_definition.member_identifier_tokens = member_identifier_tokens;
+    expression->compound_definition.member_type_rvalues = member_type_rvalues;
+    expression->compound_definition.member_count = lvec_get_length( member_identifier_tokens );
+
+    return expression;
+}
+
+static Expression* parse_type_identifier( Parser *parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_TYPEIDENTIFIER;
+    expression->starting_token = parser->current_token;
+    expression->type_identifier.token = parser->current_token;
+
+    return expression;
+}
+
+static Expression* parse_pointer_type( Parser* parser )
+{
+    Expression* expression = calloc( 1, sizeof( Expression ) );
+    if( expression == NULL ) ALLOC_ERROR();
+
+    expression->kind = EXPRESSIONKIND_POINTERTYPE;
+    expression->starting_token = parser->current_token;
+
+    advance( parser );
+    Expression* base_type_rvalue = parse_type_rvalue( parser );
+    if( base_type_rvalue == NULL )
+    {
+        return NULL;
+    }
+    expression->pointer_type.base_type_rvalue = base_type_rvalue;
+
+    return expression;
+}
+
+static Expression* parse_type_rvalue( Parser* parser )
+{
+    if( !EXPECT( parser, TOKENKIND_TYPE_RVALUE_STARTERS ) )
+    {
+        return NULL;
+    }
+
+    Expression* expression;
+
+    switch( parser->current_token.kind )
+    {
+        case TOKENKIND_STRUCT:
+        case TOKENKIND_UNION:
+        {
+            expression = parse_compound_definition( parser );
+            break;
+        }
+
+        case TOKENKIND_IDENTIFIER:
+        {
+            expression = parse_type_identifier( parser );
+            break;
+        }
+
+        case TOKENKIND_AMPERSAND:
+        {
+            expression = parse_pointer_type( parser );
+            break;
+        }
+
+        case TOKENKIND_LEFTBRACKET:
+        {
+            expression = parse_array_type( parser );
+            break;
+        }
+
+        // todo
+        /* case TOKENKIND_ENUM: */
+        /* { */
+        /*     break; */
+        /* } */
+
+        default:
+        {
+            UNREACHABLE();
         }
     }
 
@@ -835,7 +937,6 @@ static Expression* parse_variable_declaration( Parser* parser )
         return NULL;
     }
 
-    expression->variable_declaration.identifier = parser->current_token.identifier;
     expression->variable_declaration.identifier_token = parser->current_token;
 
     advance( parser );
@@ -844,11 +945,16 @@ static Expression* parse_variable_declaration( Parser* parser )
         return NULL;
     }
 
-    expression->variable_declaration.type = ( Type ){ .kind = TYPEKIND_TOINFER };
+    // expression->variable_declaration.type_rvalue = NULL;
     if( parser->current_token.kind == TOKENKIND_COLON )
     {
         advance( parser );
-        expression->variable_declaration.type = parse_type( parser );
+        Expression* type_rvalue = parse_type_rvalue( parser );
+        if( type_rvalue == NULL )
+        {
+            return NULL;
+        }
+        expression->variable_declaration.type_rvalue = type_rvalue;
 
         advance( parser );
         if( !EXPECT( parser, TOKENKIND_SEMICOLON, TOKENKIND_EQUAL ) )
@@ -939,7 +1045,6 @@ static Expression* parse_function_declaration( Parser* parser )
     }
 
     expression->kind = EXPRESSIONKIND_FUNCTIONDECLARATION;
-    expression->function_declaration.identifier = parser->current_token.identifier;
     expression->function_declaration.identifier_token = parser->current_token;
 
     advance( parser );
@@ -958,11 +1063,11 @@ static Expression* parse_function_declaration( Parser* parser )
 
     if( parser->current_token.kind != TOKENKIND_RIGHTPAREN )
     {
-        char** param_identifiers = lvec_new( char* );
-        if( param_identifiers == NULL ) ALLOC_ERROR();
+        /* char** param_identifiers = lvec_new( char* ); */
+        /* if( param_identifiers == NULL ) ALLOC_ERROR(); */
 
-        Type* param_types = lvec_new( Type );
-        if( param_types == NULL ) ALLOC_ERROR();
+        Expression* param_type_rvalues = lvec_new( Expression );
+        if( param_type_rvalues == NULL ) ALLOC_ERROR();
 
         Token* param_identifiers_tokens = lvec_new( Token );
         if( param_identifiers_tokens == NULL ) ALLOC_ERROR();
@@ -975,10 +1080,10 @@ static Expression* parse_function_declaration( Parser* parser )
         {
             if( parser->current_token.kind == TOKENKIND_IDENTIFIER )
             {
-                char* param_identifier = parser->current_token.identifier;
+                // char* param_identifier = parser->current_token.identifier;
                 Token param_identifier_token = parser->current_token;
 
-                lvec_append( param_identifiers, param_identifier );
+                /* lvec_append( param_identifiers, param_identifier ); */
                 lvec_append_aggregate( param_identifiers_tokens, param_identifier_token );
 
                 advance( parser );
@@ -988,10 +1093,15 @@ static Expression* parse_function_declaration( Parser* parser )
                 }
 
                 advance( parser );
-                Type param_type = parse_type( parser );
+                Expression* param_type_rvalue = parse_type_rvalue( parser );
+                if( param_type_rvalue == NULL )
+                {
+                    return NULL;
+                }
+
                 Token param_type_token = parser->current_token;
 
-                lvec_append_aggregate( param_types, param_type );
+                lvec_append_aggregate( param_type_rvalues, *param_type_rvalue );
                 lvec_append_aggregate( param_types_tokens, param_type_token );
 
                 expression->function_declaration.param_count++;
@@ -1023,9 +1133,8 @@ static Expression* parse_function_declaration( Parser* parser )
             }
         }
 
-        expression->function_declaration.param_identifiers = param_identifiers;
-        expression->function_declaration.param_types = param_types;
-
+        // expression->function_declaration.param_identifiers = param_identifiers;
+        expression->function_declaration.param_type_rvalues = param_type_rvalues;
         expression->function_declaration.param_identifiers_tokens = param_identifiers_tokens;
     }
 
@@ -1038,12 +1147,7 @@ static Expression* parse_function_declaration( Parser* parser )
     }
 
     advance( parser );
-    if( !EXPECT( parser, TOKENKIND_TYPE_STARTERS ) )
-    {
-        return NULL;
-    }
-
-    expression->function_declaration.return_type = parse_type( parser );
+    expression->function_declaration.return_type_rvalue = parse_type_rvalue( parser );
 
     advance( parser );
     if( !EXPECT( parser, TOKENKIND_LEFTBRACE, TOKENKIND_SEMICOLON ) )
@@ -1251,73 +1355,33 @@ static Expression* parse_type_declaration( Parser* parser )
     expression->starting_token = parser->current_token;
 
     advance( parser );
-    if( !EXPECT( parser, TOKENKIND_STRUCT, TOKENKIND_UNION ) )
-    {
-        return NULL;
-    }
-
-    expression->type_declaration.is_struct = parser->current_token.kind == TOKENKIND_STRUCT;
-
-    advance( parser );
     if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
     {
         return NULL;
     }
 
-    expression->type_declaration.type_identifier_token = parser->current_token;
+    expression->type_declaration.identifier_token = parser->current_token;
 
     advance( parser );
-    if( !EXPECT( parser, TOKENKIND_LEFTBRACE ) )
+    if( !EXPECT( parser, TOKENKIND_EQUAL ) )
     {
         return NULL;
     }
 
-    Token* member_identifier_tokens = lvec_new( Token );
-    Type* member_types = lvec_new( Type );
-
     advance( parser );
-    while( parser->current_token.kind != TOKENKIND_RIGHTBRACE )
+    Expression* type_rvalue = parse_type_rvalue( parser );
+    if( type_rvalue == NULL )
     {
-        if( !EXPECT( parser, TOKENKIND_IDENTIFIER ) )
-        {
-            return NULL;
-        }
-
-        Token member_identifier_token = parser->current_token;
-        lvec_append_aggregate( member_identifier_tokens, member_identifier_token );
-
-        advance( parser );
-        if( !EXPECT( parser, TOKENKIND_COLON ) )
-        {
-            return NULL;
-        }
-
-        advance( parser );
-        Type member_type = parse_type( parser );
-        if( member_type.kind == TYPEKIND_INVALID )
-        {
-            return NULL;
-        }
-        lvec_append_aggregate( member_types, member_type );
-
-        advance( parser );
-        if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
-        {
-            return NULL;
-        }
-
-        advance( parser );
-        if( !EXPECT( parser, TOKENKIND_IDENTIFIER, TOKENKIND_RIGHTBRACE ) )
-        {
-            return NULL;
-        }
+        return NULL;
     }
 
-    // current token is right brace
+    expression->type_declaration.rvalue = type_rvalue;
 
-    expression->type_declaration.member_identifier_tokens = member_identifier_tokens;
-    expression->type_declaration.member_types = member_types;
-    expression->type_declaration.member_count = lvec_get_length( member_identifier_tokens );
+    advance( parser );
+    if( !EXPECT( parser, TOKENKIND_SEMICOLON ) )
+    {
+        return NULL;
+    }
 
     return expression;
 }
