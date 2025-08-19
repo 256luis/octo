@@ -2,7 +2,6 @@
 #define ERROR_H
 
 #include "tokenizer.h"
-#include "type.h"
 
 typedef enum ErrorKind
 {
@@ -12,39 +11,9 @@ typedef enum ErrorKind
     ERRORKIND_UNCLOSEDPARENS,
     ERRORKIND_MULTICHARACTERCHARACTER,
 
-    // parser error
+    // parser errors
+    ERRORKIND_INCORRECTSYNTAX,
     ERRORKIND_UNEXPECTEDSYMBOL,
-    ERRORKIND_INVALIDLVALUE,
-
-    // semantic errors
-    ERRORKIND_SYMBOLREDECLARATION,
-    ERRORKIND_INVALIDBINARYOPERATION,
-    ERRORKIND_INVALIDUNARYOPERATION,
-    ERRORKIND_TYPEMISMATCH,
-    ERRORKIND_UNDECLAREDSYMBOL,
-    ERRORKIND_INVALIDARGUMENTCOUNT,
-    ERRORKIND_INVALIDADDRESSOF,
-    ERRORKIND_INVALIDIMPLICITCAST,
-    ERRORKIND_MISSINGFUNCTIONBODY,
-    ERRORKIND_EXTERNWITHBODY,
-    ERRORKIND_WHILEWITHELSE,
-    ERRORKIND_VOIDVARIABLE,
-    ERRORKIND_ZEROLENGTHARRAY,
-    ERRORKING_ARRAYLENGTHMISMATCH,
-    ERRORKIND_CANNOTINFERARRAYLENGTH,
-    ERRORKIND_INVALIDARRAYSUBSCRIPT,
-    ERRORKIND_NOTANITERATOR,
-    ERRORKIND_NOTANARRAY,
-    ERRORKIND_MISSINGMEMBER,
-    ERRORKIND_INVALIDCOMPOUNDLITERAL,
-    ERRORKIND_CANNOTUSETYPEASVALUE,
-    ERRORKIND_NOTATYPE,
-    ERRORKIND_NOTCOMPOUND,
-    ERRORKIND_INVALIDANONYMOUSTYPE,
-    ERRORKIND_UNINITIALIZEDMEMBER,
-    ERRORKIND_MULTIPLEMEMBERINITIALIZEDUNION,
-    ERRORKIND_NONPOINTERDEREFERENCE,
-    ERRORKIND_VOIDPOINTERDEREFERENCE,
 } ErrorKind;
 
 typedef struct SourceCode
@@ -61,54 +30,7 @@ typedef struct Error
 {
     ErrorKind kind;
     Token offending_token;
-
-    union
-    {
-        struct
-        {
-            Token original_declaration_token;
-        } symbol_redeclaration;
-
-        struct
-        {
-            Type left_type;
-            Type right_type;
-        } invalid_binary_operation;
-
-        struct
-        {
-            Type operand_type;
-        } invalid_unary_operation;
-
-        struct
-        {
-            Type expected;
-            Type found;
-        } type_mismatch;
-
-        struct
-        {
-            int expected;
-            int found;
-        } too_many_arguments;
-
-        struct
-        {
-            Type to;
-            Type from;
-        } invalid_implicit_cast;
-
-        struct
-        {
-            int expected;
-            int found;
-        } array_length_mismatch;
-
-        struct
-        {
-            Type parent_type;
-        } missing_member;
-    };
+    char* note;
 } Error;
 
 SourceCode source_code_load( char* path );

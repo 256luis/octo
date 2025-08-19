@@ -18,7 +18,7 @@ typedef enum CharacterType
     CHARACTERTYPE_WORD    = 0x03,
 } CharacterType;
 
-bool _is_token_kind_in_group( TokenKind kind, TokenKind* group, size_t count )
+bool _token_kind_is_in_group( TokenKind kind, TokenKind* group, size_t count )
 {
     for( size_t i = 0; i < count; i++ )
     {
@@ -288,7 +288,7 @@ Token* tokenize()
 
     // this is needed because the parser will only parse multiple statements if
     // they are enclosed in `{}`
-    lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_LEFTBRACE } );
+    // lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_LEFTBRACE } );
 
     bool in_comment = false;
     while( advance( &tokenizer ) )
@@ -565,7 +565,7 @@ Token* tokenize()
 
     // this is needed because the parser will only parse multiple statements if
     // they are enclosed in `{}`
-    lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_RIGHTBRACE } );
+    // lvec_append_aggregate( tokens, ( Token ){ .kind = TOKENKIND_RIGHTBRACE } );
 
     // eof token
     Token eof = {
