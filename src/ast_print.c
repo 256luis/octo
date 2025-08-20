@@ -255,5 +255,25 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_TYPEDECLARATION:
+        {
+            printf( "TYPE DECLARATION:" );
+            depth++;
+            newline();
+
+            printf( "identifier: %s", node.type_declaration.identifier_token.as_string );
+            newline();
+
+            printf( "type:" );
+            depth++;
+            newline();
+
+            ast_node_type_print( node.type_declaration.type_node );
+            depth--;
+
+            depth--;
+            break;
+        }
     }
 }

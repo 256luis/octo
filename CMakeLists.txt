@@ -36,7 +36,6 @@ add_subdirectory(lvec.c)
 add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/src/main.c
                ${CMAKE_CURRENT_LIST_DIR}/src/error.c
-               ${CMAKE_CURRENT_LIST_DIR}/src/debug.c
                ${CMAKE_CURRENT_LIST_DIR}/src/tokenizer.c
                ${CMAKE_CURRENT_LIST_DIR}/src/ast.c
                ${CMAKE_CURRENT_LIST_DIR}/src/ast_print.c

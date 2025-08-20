@@ -234,7 +234,11 @@ static AstNodeType parse_type( AstContext* ctx )
             break;
         }
 
-        case TOKENKIND_STRUCT: UNIMPLEMENTED();
+        case TOKENKIND_STRUCT:
+        {
+            type_node.kind = ASTNODETYPEKIND_STRUCT;
+            break;
+        }
         case TOKENKIND_UNION: UNIMPLEMENTED();
 
         default:
@@ -325,6 +329,46 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     return variable_declaration;
 }
 
+static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
+{
+    char* error_note = "type declarations take the form `type <identifier> = <type>`";
+
+    AstNodeTypeDeclaration type_declaration = { 0 };
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_INCORRECTSYNTAX,
+            .offending_token = ctx->current_token,
+            .note = error_note,
+        };
+        report_error( error );
+        ctx->error_found = true;
+        return type_declaration;
+    }
+
+    type_declaration.identifier_token = ctx->current_token;
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_EQUAL ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_INCORRECTSYNTAX,
+            .offending_token = ctx->current_token,
+            .note = error_note,
+        };
+        report_error( error );
+        ctx->error_found = true;
+        return type_declaration;
+    }
+
+    advance( ctx );
+    type_declaration.type_node = parse_type( ctx );
+
+    return type_declaration;
+}
+
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -395,6 +439,13 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_VARIABLEDECLARATION;
             node->variable_declaration = parse_variable_declaration( ctx );
+            break;
+        }
+
+        case TOKENKIND_TYPE:
+        {
+            node->kind = ASTNODEKIND_TYPEDECLARATION;
+            node->type_declaration = parse_type_declaration( ctx );
             break;
         }
 

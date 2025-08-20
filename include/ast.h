@@ -21,6 +21,7 @@ typedef enum AstNodeKind {
     ASTNODEKIND_SUBSCRIPT,
     ASTNODEKIND_FUNCTIONCALL,
     ASTNODEKIND_VARIABLEDECLARATION,
+    ASTNODEKIND_TYPEDECLARATION,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -116,6 +117,12 @@ typedef struct AstNodeVariableDeclaration
     struct AstNode* value;
 } AstNodeVariableDeclaration;
 
+typedef struct AstNodeTypeDeclaration
+{
+    Token identifier_token;
+    AstNodeType type_node;
+} AstNodeTypeDeclaration;
+
 typedef struct AstNode {
     AstNodeKind kind;
     Type type;
@@ -135,6 +142,7 @@ typedef struct AstNode {
         AstNodeSubscript subscript;
         AstNodeFunctionCall function_call;
         AstNodeVariableDeclaration variable_declaration;
+        AstNodeTypeDeclaration type_declaration;
     };
 } AstNode;
 
