@@ -3,3 +3,6 @@
 *.pdb
 *.octo
 *.octo.c
+build/
+bin/
+.cache/

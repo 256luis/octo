@@ -6,6 +6,8 @@
 #include "type.h"
 #include "operation.h"
 
+typedef struct AstNodeType AstNodeType;
+
 typedef enum AstNodeKind {
     ASTNODEKIND_STRINGLITERAL,
     ASTNODEKIND_CHARACTERLITERAL,
@@ -101,12 +103,19 @@ typedef struct AstNodeTypeIdentifier
     Token token;
 } AstNodeTypeIdentifier;
 
+typedef struct AstNodeTypeStruct
+{
+    Token* member_identifiers; // lvec
+    AstNodeType* member_types; // lvec
+} AstNodeTypeStruct;
+
 typedef struct AstNodeType
 {
     AstNodeTypeKind kind;
     union
     {
         AstNodeTypeIdentifier identifier;
+        AstNodeTypeStruct struct_definition;
     };
 } AstNodeType;
 

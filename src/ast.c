@@ -30,6 +30,7 @@ static bool _expect( AstContext* ctx, TokenKind* expecteds, size_t length )
         }
     }
 
+    ctx->error_found = true;
     return false;
 }
 
@@ -43,6 +44,7 @@ static void advance( AstContext* ctx )
 static AstNode* parse_expression( AstContext* ctx );
 static AstNode* parse_term( AstContext* ctx );
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous );
+static AstNodeType parse_type( AstContext* ctx );
 
 static AstNodeCompound parse_compound( AstContext* ctx )
 {
@@ -119,7 +121,7 @@ static AstNodeSubscript parse_subscript( AstContext* ctx, AstNode* target )
             .note = "array subscripts take the form `<array>[<expression>]`"
         };
         report_error( error );
-        ctx->error_found = true;
+        // ctx->error_found = true;
     }
 
     return subscript;
@@ -173,7 +175,7 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
                 .note = "function calls take the form `<identifier>(<expression>[, <expression>])`"
             };
             report_error( error );
-            ctx->error_found = true;
+            // ctx->error_found = true;
             return function_call;
         }
 
@@ -222,6 +224,91 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
     return node;
 }
 
+static AstNodeTypeStruct parse_type_struct( AstContext* ctx )
+{
+    char* error_note =
+        "struct definitions take the form\n"
+        "struct {\n"
+        "    <identifier> : <type> ,\n"
+        "    ...\n"
+        "}";
+
+    AstNodeTypeStruct struct_definition = {
+        .member_identifiers = lvec_new( Token ),
+        .member_types = lvec_new( AstNodeType ),
+    };
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_LEFTBRACE ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_INCORRECTSYNTAX,
+            .offending_token = ctx->current_token,
+            .note = error_note,
+        };
+        report_error( error );
+        return struct_definition;
+    }
+
+    advance( ctx );
+    while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_INCORRECTSYNTAX,
+                .offending_token = ctx->current_token,
+                .note = error_note,
+            };
+            report_error( error );
+            return struct_definition;
+        }
+
+        lvec_append_aggregate( struct_definition.member_identifiers, ctx->current_token );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COLON ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_INCORRECTSYNTAX,
+                .offending_token = ctx->current_token,
+                .note = error_note,
+            };
+            report_error( error );
+            return struct_definition;
+        }
+
+        advance( ctx );
+        AstNodeType member_type = parse_type( ctx );
+        if( ctx->error_found )
+        {
+            return struct_definition;
+        }
+
+        lvec_append_aggregate( struct_definition.member_types, member_type );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
+        {
+            printf( "here\n" );
+            Error error = {
+                .kind = ERRORKIND_INCORRECTSYNTAX,
+                .offending_token = ctx->current_token,
+                .note = error_note,
+            };
+            report_error( error );
+            return struct_definition;
+        }
+
+        if( ctx->current_token.kind == TOKENKIND_COMMA )
+        {
+            advance( ctx );
+        }
+    }
+
+    return struct_definition;
+}
+
 static AstNodeType parse_type( AstContext* ctx )
 {
     AstNodeType type_node = { 0 };
@@ -237,6 +324,7 @@ static AstNodeType parse_type( AstContext* ctx )
         case TOKENKIND_STRUCT:
         {
             type_node.kind = ASTNODETYPEKIND_STRUCT;
+            type_node.struct_definition = parse_type_struct( ctx );
             break;
         }
         case TOKENKIND_UNION: UNIMPLEMENTED();
@@ -279,7 +367,7 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
             .note = error_note,
         };
         report_error( error );
-        ctx->error_found = true;
+        // ctx->error_found = true;
         return variable_declaration; // ignore warning here. we just want to early
                                      // return
     }
@@ -295,7 +383,7 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
             .note = error_note,
         };
         report_error( error );
-        ctx->error_found = true;
+        // ctx->error_found = true;
         return variable_declaration; // ignore warning here. we just want to early
                                      // return
     }
@@ -344,7 +432,7 @@ static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
             .note = error_note,
         };
         report_error( error );
-        ctx->error_found = true;
+        // ctx->error_found = true;
         return type_declaration;
     }
 
@@ -359,7 +447,7 @@ static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
             .note = error_note,
         };
         report_error( error );
-        ctx->error_found = true;
+        // ctx->error_found = true;
         return type_declaration;
     }
 

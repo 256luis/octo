@@ -167,6 +167,6 @@ void report_error( Error error )
 
     if( error.note != NULL )
     {
-        printf( "note: %s", error.note );
+        printf( "note: %s\n", error.note );
     }
 }

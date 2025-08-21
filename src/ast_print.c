@@ -55,7 +55,24 @@ static void ast_node_type_print( AstNodeType node )
             break;
         }
 
-        case ASTNODETYPEKIND_STRUCT: UNIMPLEMENTED();
+        case ASTNODETYPEKIND_STRUCT:
+        {
+            printf( "STRUCT: " );
+            depth++;
+            newline();
+
+            size_t member_count = lvec_get_length( node.struct_definition.member_identifiers );
+            for( size_t i = 0; i < member_count; i++ )
+            {
+                printf( "%s: ", node.struct_definition.member_identifiers[ i ].as_string );
+                ast_node_type_print( node.struct_definition.member_types[ i ] );
+                newline();
+            }
+
+            depth--;
+            break;
+        }
+
         case ASTNODETYPEKIND_ENUM: UNIMPLEMENTED();
         case ASTNODETYPEKIND_UNION: UNIMPLEMENTED();
     }
@@ -276,4 +293,5 @@ void ast_node_print( AstNode node )
             break;
         }
     }
+    newline();
 }
