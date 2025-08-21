@@ -120,7 +120,6 @@ static AstNodeSubscript parse_subscript( AstContext* ctx, AstNode* target )
             .note = "array subscripts take the form `<array>[<expression>]`"
         };
         report_error( error );
-        // ctx->error_found = true;
     }
 
     return subscript;
@@ -166,7 +165,6 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
 
         if ( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN ) )
         {
-            // report error here
             Error error = {
                 .kind = ERRORKIND_INCORRECTSYNTAX,
                 .offending_token = ctx->current_token,
@@ -174,7 +172,6 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
                 .note = "function calls take the form `<identifier>(<expression>[, <expression>])`"
             };
             report_error( error );
-            // ctx->error_found = true;
             return function_call;
         }
 
@@ -225,12 +222,6 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
 
 static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
 {
-    char* error_note =
-        "struct definitions take the form\n"
-        "struct {\n"
-        "    <identifier> : <type> ,\n"
-        "    ...\n"
-        "}";
 
     AstNodeStructDefinition struct_definition = {
         .member_identifiers = lvec_new( Token ),
@@ -240,13 +231,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_LEFTBRACE ) )
     {
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note,
-        };
-        report_error( error );
-        return struct_definition;
+        goto return_error;
     }
 
     advance( ctx );
@@ -254,13 +239,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
     {
         if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
         {
-            Error error = {
-                .kind = ERRORKIND_INCORRECTSYNTAX,
-                .offending_token = ctx->current_token,
-                .note = error_note,
-            };
-            report_error( error );
-            return struct_definition;
+            goto return_error;
         }
 
         lvec_append_aggregate( struct_definition.member_identifiers, ctx->current_token );
@@ -268,13 +247,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
         advance( ctx );
         if( !EXPECT( ctx, TOKENKIND_COLON ) )
         {
-            Error error = {
-                .kind = ERRORKIND_INCORRECTSYNTAX,
-                .offending_token = ctx->current_token,
-                .note = error_note,
-            };
-            report_error( error );
-            return struct_definition;
+            goto return_error;
         }
 
         advance( ctx );
@@ -289,13 +262,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
         advance( ctx );
         if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
         {
-            Error error = {
-                .kind = ERRORKIND_INCORRECTSYNTAX,
-                .offending_token = ctx->current_token,
-                .note = error_note,
-            };
-            report_error( error );
-            return struct_definition;
+            goto return_error;
         }
 
         if( ctx->current_token.kind == TOKENKIND_COMMA )
@@ -305,69 +272,31 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
     }
 
     return struct_definition;
+
+ return_error:
+    char* error_note =
+        "struct definitions take the form\n"
+        "struct {\n"
+        "    <identifier> : <type> ,\n"
+        "    ...\n"
+        "}";
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = error_note,
+    };
+    report_error( error );
+    return struct_definition;
 }
-
-/* static AstNode* parse_type_definition( AstContext* ctx ) */
-/* { */
-/*     AstNode* type_node = octo_malloc( sizeof( AstNode ) ); */
-/*     switch( ctx->current_token.kind ) */
-/*     { */
-/*         case TOKENKIND_IDENTIFIER: */
-/*         { */
-/*             type_node.kind = ASTNODETYPEKIND_IDENTIFIER; */
-/*             type_node.identifier.token = ctx->current_token; */
-/*             break; */
-/*         } */
-
-/*         case TOKENKIND_STRUCT: */
-/*         { */
-/*             type_node.kind = ASTNODETYPEKIND_STRUCT; */
-/*             type_node.struct_definition = parse_type_struct( ctx ); */
-/*             break; */
-/*         } */
-/*         case TOKENKIND_UNION: UNIMPLEMENTED(); */
-
-/*         default: */
-/*         { */
-/*             char* error_note = */
-/*                 "types may take one of the following the forms:\n" */
-/*                 "- `<identifier>`\n"; */
-/*             Error error = { */
-/*                 .kind = ERRORKIND_INCORRECTSYNTAX, */
-/*                 .offending_token = ctx->current_token, */
-/*                 .note = error_note, */
-/*             }; */
-/*             report_error( error ); */
-/*             ctx->error_found = true; */
-/*             return type_node; // ignore warning. we just wanna return early */
-/*         } */
-/*     } */
-
-/*     return type_node; */
-/* } */
 
 static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
 {
-    char* error_note =
-        "variable declarations may take one of the following forms:\n"
-        "- `let <identifier> = <expression>`\n"
-        "- `let <identifier> : <type>`\n"
-        "- `let <identifier> : <type> = <expression>`";
-
     AstNodeVariableDeclaration variable_declaration = { 0 };
     advance( ctx );
 
     if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
     {
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note,
-        };
-        report_error( error );
-        // ctx->error_found = true;
-        return variable_declaration; // ignore warning here. we just want to early
-                                     // return
+        goto return_error;
     }
 
     variable_declaration.identifier_token = ctx->current_token;
@@ -375,15 +304,7 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_EQUAL, TOKENKIND_COLON ) )
     {
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note,
-        };
-        report_error( error );
-        // ctx->error_found = true;
-        return variable_declaration; // ignore warning here. we just want to early
-                                     // return
+        goto return_error;
     }
 
     if( ctx->current_token.kind == TOKENKIND_COLON )
@@ -409,25 +330,30 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     }
 
     return variable_declaration;
+
+ return_error:
+    char* error_note =
+        "variable declarations may take one of the following forms:\n"
+        "- `let <identifier> = <expression>`\n"
+        "- `let <identifier> : <type>`\n"
+        "- `let <identifier> : <type> = <expression>`";
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = error_note,
+    };
+    report_error( error );
+    return variable_declaration;
 }
 
 static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
 {
-    char* error_note = "type declarations take the form `type <identifier> = <type>`";
-
     AstNodeTypeDeclaration type_declaration = { 0 };
 
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
     {
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note,
-        };
-        report_error( error );
-        // ctx->error_found = true;
-        return type_declaration;
+        goto return_error;
     }
 
     type_declaration.identifier_token = ctx->current_token;
@@ -435,19 +361,21 @@ static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_EQUAL ) )
     {
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note,
-        };
-        report_error( error );
-        // ctx->error_found = true;
-        return type_declaration;
+        goto return_error;
     }
 
     advance( ctx );
     type_declaration.type_definition = parse_expression( ctx );
 
+    return type_declaration;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "type declarations take the form `type <identifier> = <type>`",
+    };
+    report_error( error );
     return type_declaration;
 }
 
@@ -522,7 +450,10 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     }
 
     advance( ctx );
-    if( !EXPECT( ctx, TOKENKIND_ARROW ) ) goto return_error;
+    if( !EXPECT( ctx, TOKENKIND_ARROW ) )
+    {
+        goto return_error;
+    }
 
     advance( ctx );
     routine_definition.return_type_definition = parse_expression( ctx );
@@ -553,21 +484,12 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
 
 static AstNodeRoutineDeclaration parse_routine_declaration( AstContext* ctx )
 {
-    char* error_note = "routine declarations take the form `routine <identifier> = <definition>`";
-
     AstNodeRoutineDeclaration routine_declaration = { 0 };
 
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
     {
-        // report error
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note
-        };
-        report_error( error );
-        return routine_declaration;
+        goto return_error;
     }
 
     routine_declaration.identifier_token = ctx->current_token;
@@ -575,21 +497,22 @@ static AstNodeRoutineDeclaration parse_routine_declaration( AstContext* ctx )
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_EQUAL ) )
     {
-        // report error
-        Error error = {
-            .kind = ERRORKIND_INCORRECTSYNTAX,
-            .offending_token = ctx->current_token,
-            .note = error_note
-        };
-        report_error( error );
-        return routine_declaration;
+        goto return_error;
     }
 
     advance( ctx );
     routine_declaration.routine_definition = parse_expression( ctx );
 
     return routine_declaration;
-    // routine my_func = func() -> asdad {};
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "routine declarations take the form `routine <identifier> = <definition>`"
+    };
+    report_error( error );
+    return routine_declaration;
 }
 
 static AstNode* parse_term( AstContext* ctx )
