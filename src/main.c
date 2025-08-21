@@ -55,4 +55,5 @@ int main( int argc, char* argv[] )
     }
 
     ast_node_print( *ast );
+    printf("\n");
 }

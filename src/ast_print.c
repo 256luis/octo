@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include "ast.h"
 #include "debug.h"
@@ -39,47 +40,9 @@ static void newline()
     }
 }
 
-static void ast_node_type_print( AstNodeType node )
-{
-    switch( node.kind )
-    {
-        case ASTNOTETYPEKIND_NONE:
-        {
-            printf( "NONE" );
-            break;
-        }
-
-        case ASTNODETYPEKIND_IDENTIFIER:
-        {
-            printf( "IDENTIFIER(\"%s\")", node.identifier.token.as_string );
-            break;
-        }
-
-        case ASTNODETYPEKIND_STRUCT:
-        {
-            printf( "STRUCT: " );
-            depth++;
-            newline();
-
-            size_t member_count = lvec_get_length( node.struct_definition.member_identifiers );
-            for( size_t i = 0; i < member_count; i++ )
-            {
-                printf( "%s: ", node.struct_definition.member_identifiers[ i ].as_string );
-                ast_node_type_print( node.struct_definition.member_types[ i ] );
-                newline();
-            }
-
-            depth--;
-            break;
-        }
-
-        case ASTNODETYPEKIND_ENUM: UNIMPLEMENTED();
-        case ASTNODETYPEKIND_UNION: UNIMPLEMENTED();
-    }
-}
-
 void ast_node_print( AstNode node )
 {
+    newline();
     switch( node.kind )
     {
         case ASTNODEKIND_STRINGLITERAL:
@@ -121,9 +84,10 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_COMPOUND:
         {
+
             printf( "COMPOUND:" );
             depth++;
-            newline();
+
 
             for( size_t i = 0; i < lvec_get_length( node.compound.nodes ); i++)
             {
@@ -137,6 +101,7 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_BINARY:
         {
+
             printf( "BINARY:" );
             depth++;
             newline();
@@ -146,7 +111,7 @@ void ast_node_print( AstNode node )
 
             printf( "left:");
             depth++;
-            newline();
+
 
             ast_node_print( *node.binary.left );
             depth--;
@@ -154,7 +119,7 @@ void ast_node_print( AstNode node )
 
             printf( "right:");
             depth++;
-            newline();
+
 
             ast_node_print( *node.binary.right );
             depth--;
@@ -165,9 +130,10 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_UNARY:
         {
+
             printf( "UNARY:" );
             depth++;
-            newline();
+
 
             printf( "operation: %s", unary_operation_string[ node.unary.operation ] );
             newline();
@@ -183,13 +149,14 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_SUBSCRIPT:
         {
+
             printf( "SUBSCRIPT:" );
             depth++;
             newline();
 
             printf( "target:" );
             depth++;
-            newline();
+
 
             ast_node_print( *node.subscript.target );
 
@@ -198,7 +165,7 @@ void ast_node_print( AstNode node )
 
             printf( "index:" );
             depth++;
-            newline();
+
 
             ast_node_print( *node.subscript.index );
             depth--;
@@ -209,13 +176,14 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_FUNCTIONCALL:
         {
+
             printf( "FUNCTION CALL:" );
             depth++;
             newline();
 
             printf( "function:" );
             depth++;
-            newline();
+
 
             ast_node_print( *node.function_call.function );
             depth--;
@@ -226,13 +194,13 @@ void ast_node_print( AstNode node )
                 newline();
                 printf( "args:" );
                 depth++;
-                newline();
+
                 for( size_t i = 0; i < arg_count; i++ )
                 {
                     AstNode* arg = node.function_call.args[i];
-                    printf( "- ");
+                    // printf( "- ");
                     ast_node_print( *arg );
-                    newline();
+
                 }
 
                 depth--;
@@ -244,26 +212,30 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_VARIABLEDECLARATION:
         {
+
             printf( "VARIABLE DECLARATION:" );
             depth++;
             newline();
 
             printf( "identifier: %s", node.variable_declaration.identifier_token.as_string );
-            newline();
 
-            printf( "type:" );
-            depth++;
-            newline();
+            if( node.variable_declaration.type_definition != NULL )
+            {
+                newline();
+                printf( "type:" );
+                depth++;
 
-            ast_node_type_print( node.variable_declaration.type_node );
-            depth--;
+
+                ast_node_print( *node.variable_declaration.type_definition );
+                depth--;
+            }
 
             if( node.variable_declaration.value != NULL )
             {
                 newline();
                 printf( "value:" );
                 depth++;
-                newline();
+
                 ast_node_print( *node.variable_declaration.value );
                 depth--;
                 newline();
@@ -275,6 +247,7 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_TYPEDECLARATION:
         {
+
             printf( "TYPE DECLARATION:" );
             depth++;
             newline();
@@ -284,14 +257,102 @@ void ast_node_print( AstNode node )
 
             printf( "type:" );
             depth++;
+
+
+            ast_node_print( *node.type_declaration.type_definition );
+            depth--;
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_STRUCTDEFINITION:
+        {
+
+            printf( "STRUCT: " );
+            depth++;
             newline();
 
-            ast_node_type_print( node.type_declaration.type_node );
+            size_t member_count = lvec_get_length( node.struct_definition.member_identifiers );
+            for( size_t i = 0; i < member_count; i++ )
+            {
+                printf( "%s: ", node.struct_definition.member_identifiers[ i ].as_string );
+                depth++;
+                ast_node_print( *node.struct_definition.member_types[ i ] );
+                depth--;
+                newline();
+            }
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_ROUTINEDECLARATION:
+        {
+            printf( "ROUTINE DECLARATION:" );
+            depth++;
+            newline();
+
+            printf( "identifier: %s", node.routine_declaration.identifier_token.as_string );
+            newline();
+
+            printf( "definition:" );
+            depth++;
+
+            ast_node_print( *node.routine_declaration.routine_definition );
+            depth--;
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_ROUTINEDEFINITION:
+        {
+            printf( "ROUTINE DEFINITION:" );
+            depth++;
+            newline();
+
+            printf( "kind: %s",
+                    node.routine_definition.is_func ? "func" : "proc" );
+            newline();
+
+            printf( "return type:" );
+            depth++;
+            ast_node_print( *node.routine_definition.return_type_definition );
+            depth--;
+            newline();
+
+            size_t param_count = lvec_get_length( node.routine_definition.param_type_definitions );
+            if( param_count > 0 )
+            {
+                printf( "params:");
+                depth++;
+
+                for( size_t i = 0; i < param_count; i++ )
+                {
+                    newline();
+
+                    char* identifier = node.routine_definition.param_identifier_tokens[ i ].as_string;
+                    printf( "identifier: %s", identifier );
+                    newline();
+                    printf( "type:" );
+                    depth++;
+                    ast_node_print( *node.routine_definition.param_type_definitions[ i ] );
+                    depth--;
+                }
+
+                depth--;
+                newline();
+            }
+
+            printf( "body:" );
+            depth++;
+            ast_node_print( *node.routine_definition.body);
             depth--;
 
             depth--;
             break;
         }
     }
-    newline();
+
 }

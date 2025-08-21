@@ -6,9 +6,11 @@
 #include "type.h"
 #include "operation.h"
 
-typedef struct AstNodeType AstNodeType;
+// typedef struct AstNodeTypeDefinition AstNodeTypeDefinition;
+typedef struct AstNode AstNode;
 
-typedef enum AstNodeKind {
+typedef enum AstNodeKind
+{
     ASTNODEKIND_STRINGLITERAL,
     ASTNODEKIND_CHARACTERLITERAL,
     ASTNODEKIND_INTEGERLITERAL,
@@ -16,14 +18,15 @@ typedef enum AstNodeKind {
     ASTNODEKIND_BOOLEANLITERAL,
     ASTNODEKIND_IDENTIFIER,
     ASTNODEKIND_COMPOUND,
-
-    // rvalue nodes
     ASTNODEKIND_BINARY,
     ASTNODEKIND_UNARY,
     ASTNODEKIND_SUBSCRIPT,
     ASTNODEKIND_FUNCTIONCALL,
     ASTNODEKIND_VARIABLEDECLARATION,
     ASTNODEKIND_TYPEDECLARATION,
+    ASTNODEKIND_STRUCTDEFINITION,
+    ASTNODEKIND_ROUTINEDECLARATION,
+    ASTNODEKIND_ROUTINEDEFINITION,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -62,41 +65,41 @@ typedef struct AstNodeIdentifier
 typedef struct AstNodeBinary
 {
     BinaryOperation operation;
-    struct AstNode* left;
-    struct AstNode* right;
+    AstNode* left;
+    AstNode* right;
 } AstNodeBinary;
 
 typedef struct AstNodeUnary
 {
     UnaryOperation operation;
-    struct AstNode* operand;
+    AstNode* operand;
 } AstNodeUnary;
 
 typedef struct AstNodeSubscript
 {
-    struct AstNode* target;
-    struct AstNode* index;
+    AstNode* target;
+    AstNode* index;
 } AstNodeSubscript;
 
 typedef struct AstNodeCompound
 {
-    struct AstNode** nodes; // lvec
+    AstNode** nodes; // lvec
 } AstNodeCompound;
 
 typedef struct AstNodeFunctionCall
 {
-    struct AstNode* function;
-    struct AstNode** args; // lvec
+    AstNode* function;
+    AstNode** args; // lvec
 } AstNodeFunctionCall;
 
-typedef enum AstNodeTypeKind
-{
-    ASTNOTETYPEKIND_NONE,
-    ASTNODETYPEKIND_IDENTIFIER,
-    ASTNODETYPEKIND_STRUCT,
-    ASTNODETYPEKIND_ENUM,
-    ASTNODETYPEKIND_UNION,
-} AstNodeTypeKind;
+/* typedef enum AstNodeTypeKind */
+/* { */
+/*     ASTNOTETYPEKIND_NONE, */
+/*     ASTNODETYPEKIND_IDENTIFIER, */
+/*     ASTNODETYPEKIND_STRUCT, */
+/*     ASTNODETYPEKIND_ENUM, */
+/*     ASTNODETYPEKIND_UNION, */
+/* } AstNodeTypeKind; */
 
 typedef struct AstNodeTypeIdentifier
 {
@@ -106,36 +109,41 @@ typedef struct AstNodeTypeIdentifier
 typedef struct AstNodeTypeStruct
 {
     Token* member_identifiers; // lvec
-    AstNodeType* member_types; // lvec
-} AstNodeTypeStruct;
-
-typedef struct AstNodeType
-{
-    AstNodeTypeKind kind;
-    union
-    {
-        AstNodeTypeIdentifier identifier;
-        AstNodeTypeStruct struct_definition;
-    };
-} AstNodeType;
+    AstNode** member_types; // lvec
+} AstNodeStructDefinition;
 
 typedef struct AstNodeVariableDeclaration
 {
     Token identifier_token;
-    AstNodeType type_node;
-    struct AstNode* value;
+    AstNode* type_definition;
+    AstNode* value;
 } AstNodeVariableDeclaration;
 
 typedef struct AstNodeTypeDeclaration
 {
     Token identifier_token;
-    AstNodeType type_node;
+    AstNode* type_definition;
 } AstNodeTypeDeclaration;
 
-typedef struct AstNode {
+typedef struct AstNodeRoutineDefinition
+{
+    bool is_func;
+    AstNode* return_type_definition;
+    Token* param_identifier_tokens; // lvec
+    AstNode** param_type_definitions; // lvec
+    AstNode* body;
+} AstNodeRoutineDefinition;
+
+typedef struct AstNodeRoutineDeclaration
+{
+    Token identifier_token;
+    AstNode* routine_definition;
+} AstNodeRoutineDeclaration;
+
+typedef struct AstNode
+{
     AstNodeKind kind;
     Type type;
-    bool is_return;
 
     union
     {
@@ -152,6 +160,9 @@ typedef struct AstNode {
         AstNodeFunctionCall function_call;
         AstNodeVariableDeclaration variable_declaration;
         AstNodeTypeDeclaration type_declaration;
+        AstNodeStructDefinition struct_definition;
+        AstNodeRoutineDeclaration routine_declaration;
+        AstNodeRoutineDefinition routine_definition;
     };
 } AstNode;
 

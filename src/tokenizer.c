@@ -94,26 +94,26 @@ static TokenKind special_symbol_to_token_kind( const char* special_symbol )
 // TODO: hashmap
 static TokenKind word_symbol_to_token_kind( const char* word_symbol )
 {
-    if( strcmp( word_symbol, "let" ) == 0 )    return TOKENKIND_LET;
-    if( strcmp( word_symbol, "func" ) == 0 )   return TOKENKIND_FUNC;
-    if( strcmp( word_symbol, "return" ) == 0 ) return TOKENKIND_RETURN;
-    if( strcmp( word_symbol, "true" ) == 0 )   return TOKENKIND_BOOLEAN;
-    if( strcmp( word_symbol, "false" ) == 0 )  return TOKENKIND_BOOLEAN;
-    if( strcmp( word_symbol, "extern" ) == 0 ) return TOKENKIND_EXTERN;
-    if( strcmp( word_symbol, "if" ) == 0 )     return TOKENKIND_IF;
-    if( strcmp( word_symbol, "else" ) == 0 )   return TOKENKIND_ELSE;
-    if( strcmp( word_symbol, "while" ) == 0 )  return TOKENKIND_WHILE;
-    if( strcmp( word_symbol, "for" ) == 0 )    return TOKENKIND_FOR;
-    if( strcmp( word_symbol, "in" ) == 0 )     return TOKENKIND_IN;
-    if( strcmp( word_symbol, "type" ) == 0 )   return TOKENKIND_TYPE;
-    if( strcmp( word_symbol, "struct" ) == 0 ) return TOKENKIND_STRUCT;
-    if( strcmp( word_symbol, "union" ) == 0 )  return TOKENKIND_UNION;
-    if( strcmp( word_symbol, "and" ) == 0 )    return TOKENKIND_AND;
-    if( strcmp( word_symbol, "or" ) == 0 )     return TOKENKIND_OR;
+    if( strcmp( word_symbol, "let" ) == 0 )     return TOKENKIND_LET;
+    if( strcmp( word_symbol, "func" ) == 0 )    return TOKENKIND_FUNC;
+    if( strcmp( word_symbol, "proc" ) == 0 )    return TOKENKIND_PROC;
+    if( strcmp( word_symbol, "return" ) == 0 )  return TOKENKIND_RETURN;
+    if( strcmp( word_symbol, "true" ) == 0 )    return TOKENKIND_BOOLEAN;
+    if( strcmp( word_symbol, "false" ) == 0 )   return TOKENKIND_BOOLEAN;
+    if( strcmp( word_symbol, "extern" ) == 0 )  return TOKENKIND_EXTERN;
+    if( strcmp( word_symbol, "if" ) == 0 )      return TOKENKIND_IF;
+    if( strcmp( word_symbol, "else" ) == 0 )    return TOKENKIND_ELSE;
+    if( strcmp( word_symbol, "while" ) == 0 )   return TOKENKIND_WHILE;
+    if( strcmp( word_symbol, "for" ) == 0 )     return TOKENKIND_FOR;
+    if( strcmp( word_symbol, "in" ) == 0 )      return TOKENKIND_IN;
+    if( strcmp( word_symbol, "type" ) == 0 )    return TOKENKIND_TYPE;
+    if( strcmp( word_symbol, "struct" ) == 0 )  return TOKENKIND_STRUCT;
+    if( strcmp( word_symbol, "union" ) == 0 )   return TOKENKIND_UNION;
+    if( strcmp( word_symbol, "and" ) == 0 )     return TOKENKIND_AND;
+    if( strcmp( word_symbol, "or" ) == 0 )      return TOKENKIND_OR;
+    if( strcmp( word_symbol, "routine" ) == 0 ) return TOKENKIND_ROUTINE;
 
     return TOKENKIND_IDENTIFIER;
-
-    // UNREACHABLE();
 }
 
 static bool advance( Tokenizer* tokenizer )
