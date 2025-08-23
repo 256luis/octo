@@ -220,9 +220,60 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
     return node;
 }
 
+static AstNodeEnumDefinition parse_enum_definition( AstContext* ctx )
+{
+    AstNodeEnumDefinition enum_definition = {
+        .variant_names = lvec_new( Token ),
+    };
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_LEFTBRACE ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
+        {
+            goto return_error;
+        }
+
+        lvec_append_aggregate( enum_definition.variant_names, ctx->current_token );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
+        {
+            goto return_error;
+        }
+
+        if( ctx->current_token.kind == TOKENKIND_COMMA )
+        {
+            advance( ctx );
+        }
+    }
+
+    return enum_definition;
+
+ return_error:
+    char* error_note =
+        "enum definitions take the form\n"
+        "enum {\n"
+        "    <identifier>,\n"
+        "    ...\n"
+        "}";
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = error_note,
+    };
+    report_error( error );
+    return enum_definition;
+}
+
 static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
 {
-
     AstNodeStructDefinition struct_definition = {
         .member_identifiers = lvec_new( Token ),
         .member_types = lvec_new( AstNode* ),
@@ -599,6 +650,13 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_STRUCTDEFINITION;
             node->struct_definition = parse_struct_definition( ctx );
+            break;
+        }
+
+        case TOKENKIND_ENUM:
+        {
+            node->kind = ASTNODEKIND_ENUMDEFINITION;
+            node->enum_definition = parse_enum_definition( ctx );
             break;
         }
 

@@ -258,7 +258,6 @@ void ast_node_print( AstNode node )
             printf( "type:" );
             depth++;
 
-
             ast_node_print( *node.type_declaration.type_definition );
             depth--;
 
@@ -286,6 +285,26 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_ENUMDEFINITION:
+        {
+
+            printf( "ENUM: " );
+            depth++;
+            newline();
+
+            size_t variant_count = lvec_get_length( node.enum_definition.variant_names );
+            for( size_t i = 0; i < variant_count; i++ )
+            {
+                printf( "%s", node.enum_definition.variant_names[ i ].as_string );
+                newline();
+            }
+
+            depth--;
+            break;
+        }
+
+
 
         case ASTNODEKIND_ROUTINEDECLARATION:
         {

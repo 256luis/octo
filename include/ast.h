@@ -6,7 +6,6 @@
 #include "type.h"
 #include "operation.h"
 
-// typedef struct AstNodeTypeDefinition AstNodeTypeDefinition;
 typedef struct AstNode AstNode;
 
 typedef enum AstNodeKind
@@ -25,6 +24,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_VARIABLEDECLARATION,
     ASTNODEKIND_TYPEDECLARATION,
     ASTNODEKIND_STRUCTDEFINITION,
+    ASTNODEKIND_ENUMDEFINITION,
     ASTNODEKIND_ROUTINEDECLARATION,
     ASTNODEKIND_ROUTINEDEFINITION,
 } AstNodeKind;
@@ -92,25 +92,16 @@ typedef struct AstNodeFunctionCall
     AstNode** args; // lvec
 } AstNodeFunctionCall;
 
-/* typedef enum AstNodeTypeKind */
-/* { */
-/*     ASTNOTETYPEKIND_NONE, */
-/*     ASTNODETYPEKIND_IDENTIFIER, */
-/*     ASTNODETYPEKIND_STRUCT, */
-/*     ASTNODETYPEKIND_ENUM, */
-/*     ASTNODETYPEKIND_UNION, */
-/* } AstNodeTypeKind; */
-
-typedef struct AstNodeTypeIdentifier
-{
-    Token token;
-} AstNodeTypeIdentifier;
-
-typedef struct AstNodeTypeStruct
+typedef struct AstNodeStructDefinition
 {
     Token* member_identifiers; // lvec
     AstNode** member_types; // lvec
 } AstNodeStructDefinition;
+
+typedef struct AstNodeEnumDefinition
+{
+    Token* variant_names; // lvec
+} AstNodeEnumDefinition;
 
 typedef struct AstNodeVariableDeclaration
 {
@@ -161,6 +152,7 @@ typedef struct AstNode
         AstNodeVariableDeclaration variable_declaration;
         AstNodeTypeDeclaration type_declaration;
         AstNodeStructDefinition struct_definition;
+        AstNodeEnumDefinition enum_definition;
         AstNodeRoutineDeclaration routine_declaration;
         AstNodeRoutineDefinition routine_definition;
     };
