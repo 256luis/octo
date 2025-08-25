@@ -101,36 +101,33 @@ let deref = *my_ptr;
 ```
 
 
-### Functions
-Function declarations are in the form:
-```rust
-func <identifier>(<arg-identifier>: <arg-type>) -> <return-type>
-{
-    <body>
-}
+### Routines
+In Octo, routines are what other languages would call functions. There are two types of
+routines: `func`tions and `proc`edures.
 
-func add(a: i32, b: i32) -> i32
+Functions are pure functions. They don't mutate or read global state and they return the same value for the
+same arguments every time. Attempting to write a `func`tion that isn't actually pure would
+throw a compiler error.
+
+```rust
+routine add = func(x: i32, y: i32) -> i32
 {
     return a + b;
 }
-```
-Functions that don't return anything have to be explicitly declared as returning `void`.
-```rust
-func say_hello() -> void
+
+let num = 0;
+
+routine increment_num = proc()
 {
-    // ...
+    num += 1;
 }
 ```
-Functions that need to be linked later (like when interoperating with C libraries) can be declared `extern` and do not need function bodies.
+
+Routines that need to be linked later (like when interoperating with C libraries) can be declared `extern` and do not need function bodies.
 ```rust
-extern func puts(message: &char) -> i32;
+extern routine puts = proc(message: &char) -> i32;
 ```
-Functions can be called the usual way, like in other languages.
-```rust
-puts("this is the message");
-say_hello();
-let result = add(10, 20);
-```
+
 ### Control flow
 Octo currently supports `if`-statements and `while`-loops which are used the same way as in other languages.
 ```rust
