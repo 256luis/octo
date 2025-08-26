@@ -566,26 +566,30 @@ static AstNodeRoutineDeclaration parse_routine_declaration( AstContext* ctx )
     return routine_declaration;
 }
 
-static AstNodeIfStatement parse_if_statement( AstContext* ctx )
+static AstNodeConditional parse_conditional( AstContext* ctx )
 {
-    AstNodeIfStatement if_statement = { 0 };
+    AstNodeConditional conditional = { 0 };
+
+    if( ctx->current_token.kind == TOKENKIND_WHILE )
+    {
+        conditional.is_while = true;
+    } // no else because it is false by default
 
     advance( ctx );
-
-    if_statement.condition = parse_expression( ctx );
+    conditional.condition = parse_expression( ctx );
     if( ctx->error_found )
     {
-        return if_statement;
+        return conditional;
     }
 
     advance( ctx );
-    if_statement.body = parse_expression( ctx );
+    conditional.body = parse_expression( ctx );
     if( ctx->error_found )
     {
-        return if_statement;
+        return conditional;
     }
 
-    return if_statement;
+    return conditional;
 }
 
 static AstNode* parse_term( AstContext* ctx )
@@ -697,10 +701,11 @@ static AstNode* parse_term( AstContext* ctx )
             break;
         }
 
+        case TOKENKIND_WHILE:
         case TOKENKIND_IF:
         {
-            node->kind = ASTNODEKIND_IFSTATEMENT;
-            node->if_statement = parse_if_statement( ctx );
+            node->kind = ASTNODEKIND_CONDITIONAL;
+            node->conditional = parse_conditional( ctx );
             break;
         }
 

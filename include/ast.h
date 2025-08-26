@@ -27,7 +27,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_ENUMDEFINITION,
     ASTNODEKIND_ROUTINEDECLARATION,
     ASTNODEKIND_ROUTINEDEFINITION,
-    ASTNODEKIND_IFSTATEMENT,
+    ASTNODEKIND_CONDITIONAL,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -132,11 +132,12 @@ typedef struct AstNodeRoutineDeclaration
     AstNode* routine_definition;
 } AstNodeRoutineDeclaration;
 
-typedef struct AstNodeIfStatement
+typedef struct AstNodeConditional
 {
     AstNode* condition;
     AstNode* body;
-} AstNodeIfStatement;
+    bool is_while; // if while statement, true. else false
+} AstNodeConditional;
 
 typedef struct AstNode
 {
@@ -162,7 +163,7 @@ typedef struct AstNode
         AstNodeEnumDefinition enum_definition;
         AstNodeRoutineDeclaration routine_declaration;
         AstNodeRoutineDefinition routine_definition;
-        AstNodeIfStatement if_statement;
+        AstNodeConditional conditional;
     };
 } AstNode;
 

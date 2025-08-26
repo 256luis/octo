@@ -373,23 +373,23 @@ void ast_node_print( AstNode node )
             break;
         }
 
-        case ASTNODEKIND_IFSTATEMENT:
+        case ASTNODEKIND_CONDITIONAL:
         {
-            printf( "IF STATEMENT" );
+            printf( "CONDITIONAL" );
             depth++;
             newline();
 
             printf( "condition:" );
             depth++;
 
-            ast_node_print( *node.if_statement.condition );
+            ast_node_print( *node.conditional.condition );
             depth--;
             newline();
 
             printf( "body:" );
             depth++;
 
-            ast_node_print( *node.if_statement.body );
+            ast_node_print( *node.conditional.body );
             depth--;
             newline();
 
