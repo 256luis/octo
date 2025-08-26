@@ -372,6 +372,29 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
-    }
 
+        case ASTNODEKIND_IFSTATEMENT:
+        {
+            printf( "IF STATEMENT" );
+            depth++;
+            newline();
+
+            printf( "condition:" );
+            depth++;
+
+            ast_node_print( *node.if_statement.condition );
+            depth--;
+            newline();
+
+            printf( "body:" );
+            depth++;
+
+            ast_node_print( *node.if_statement.body );
+            depth--;
+            newline();
+
+            depth--;
+            break;
+        }
+    }
 }

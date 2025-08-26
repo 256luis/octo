@@ -566,6 +566,28 @@ static AstNodeRoutineDeclaration parse_routine_declaration( AstContext* ctx )
     return routine_declaration;
 }
 
+static AstNodeIfStatement parse_if_statement( AstContext* ctx )
+{
+    AstNodeIfStatement if_statement = { 0 };
+
+    advance( ctx );
+
+    if_statement.condition = parse_expression( ctx );
+    if( ctx->error_found )
+    {
+        return if_statement;
+    }
+
+    advance( ctx );
+    if_statement.body = parse_expression( ctx );
+    if( ctx->error_found )
+    {
+        return if_statement;
+    }
+
+    return if_statement;
+}
+
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -672,6 +694,13 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_ROUTINEDEFINITION;
             node->routine_definition = parse_routine_definition( ctx );
+            break;
+        }
+
+        case TOKENKIND_IF:
+        {
+            node->kind = ASTNODEKIND_IFSTATEMENT;
+            node->if_statement = parse_if_statement( ctx );
             break;
         }
 
