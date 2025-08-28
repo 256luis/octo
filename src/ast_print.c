@@ -133,7 +133,7 @@ void ast_node_print( AstNode node )
 
             printf( "UNARY:" );
             depth++;
-
+            newline();
 
             printf( "operation: %s", unary_operation_string[ node.unary.operation ] );
             newline();
