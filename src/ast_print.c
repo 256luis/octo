@@ -149,14 +149,12 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_SUBSCRIPT:
         {
-
             printf( "SUBSCRIPT:" );
             depth++;
             newline();
 
             printf( "target:" );
             depth++;
-
 
             ast_node_print( *node.subscript.target );
 
@@ -198,9 +196,7 @@ void ast_node_print( AstNode node )
                 for( size_t i = 0; i < arg_count; i++ )
                 {
                     AstNode* arg = node.function_call.args[i];
-                    // printf( "- ");
                     ast_node_print( *arg );
-
                 }
 
                 depth--;
@@ -392,6 +388,49 @@ void ast_node_print( AstNode node )
             ast_node_print( *node.conditional.body );
             depth--;
             newline();
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_ARRAYLITERAL:
+        {
+            printf( "ARRAY LITERAL:" );
+            depth++;
+            newline();
+
+            printf("type:");
+            depth++;
+
+            ast_node_print( *node.array_literal.type_definition );
+            depth--;
+
+            if( node.array_literal.length != NULL )
+            {
+                newline();
+
+                printf( "length:" );
+                depth++;
+
+                ast_node_print( *node.array_literal.length );
+                depth--;
+            }
+
+            size_t initialized_element_count = lvec_get_length( node.array_literal.initialized_elements );
+            if( initialized_element_count > 0 )
+            {
+                newline();
+                printf( "initialized elements:" );
+                depth++;
+
+                for( size_t i = 0; i < initialized_element_count; i++ )
+                {
+                    AstNode* arg = node.array_literal.initialized_elements[i];
+                    ast_node_print( *arg );
+                }
+
+                depth--;
+            }
 
             depth--;
             break;

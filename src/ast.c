@@ -44,6 +44,7 @@ static void advance( AstContext* ctx )
 static AstNode* parse_expression( AstContext* ctx );
 static AstNode* parse_term( AstContext* ctx );
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous );
+static AstNode* parse_type_definition( AstContext* ctx );
 
 static AstNodeCompound parse_compound( AstContext* ctx )
 {
@@ -362,7 +363,7 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     {
         advance( ctx );
 
-        variable_declaration.type_definition = parse_expression( ctx );
+        variable_declaration.type_definition = parse_type_definition( ctx );
         if( ctx->error_found )
         {
             return variable_declaration;
@@ -397,6 +398,49 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     return variable_declaration;
 }
 
+static AstNode* parse_type_definition( AstContext* ctx )
+{
+    AstNode* node = octo_malloc( sizeof( AstNode ) );
+
+    switch( ctx->current_token.kind )
+    {
+        case TOKENKIND_IDENTIFIER:
+        {
+            node->kind = ASTNODEKIND_IDENTIFIER;
+            node->identifier.token = ctx->current_token;
+            break;
+        }
+
+        case TOKENKIND_STRUCT:
+        {
+            node->kind = ASTNODEKIND_STRUCTDEFINITION;
+            node->struct_definition = parse_struct_definition( ctx );
+            break;
+        }
+
+        case TOKENKIND_ENUM:
+        {
+            node->kind = ASTNODEKIND_ENUMDEFINITION;
+            node->enum_definition = parse_enum_definition( ctx );
+            break;
+        }
+
+        default:
+        {
+            Error error = {
+                .kind = ERRORKIND_INCORRECTSYNTAX,
+                .offending_token = ctx->current_token,
+                .note = "expected type"
+            };
+            report_error( error );
+            ctx->error_found = true;
+            return node;
+        }
+    }
+
+    return node;
+}
+
 static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
 {
     AstNodeTypeDeclaration type_declaration = { 0 };
@@ -416,7 +460,7 @@ static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
     }
 
     advance( ctx );
-    type_declaration.type_definition = parse_expression( ctx );
+    type_declaration.type_definition = parse_type_definition( ctx );
 
     return type_declaration;
 
@@ -480,7 +524,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
         }
 
         advance( ctx );
-        AstNode* param_type_definition = parse_expression( ctx );
+        AstNode* param_type_definition = parse_type_definition( ctx );
         if( ctx->error_found )
         {
             return routine_definition;
@@ -507,7 +551,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     }
 
     advance( ctx );
-    routine_definition.return_type_definition = parse_expression( ctx );
+    routine_definition.return_type_definition = parse_type_definition( ctx );
     if( ctx->error_found )
     {
         return routine_definition;
@@ -590,6 +634,85 @@ static AstNodeConditional parse_conditional( AstContext* ctx )
     }
 
     return conditional;
+}
+
+static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
+{
+    AstNodeArrayLiteral array_literal = {
+        .initialized_elements = lvec_new( AstNode* ),
+    };
+
+    advance( ctx );
+    if( ctx->current_token.kind != TOKENKIND_RIGHTBRACKET )
+    {
+
+        array_literal.length = parse_expression( ctx );
+        if( ctx->error_found )
+        {
+            return array_literal;
+        }
+
+        advance( ctx );
+    }
+
+    if( !EXPECT( ctx, TOKENKIND_RIGHTBRACKET ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    array_literal.type_definition = parse_type_definition( ctx );
+    if( ctx->error_found )
+    {
+        return array_literal;
+    }
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_PERIOD ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_LEFTBRACE ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        printf( "here\n" );
+        AstNode* initialized_element = parse_expression( ctx );
+        if( ctx->error_found )
+        {
+            goto return_error;
+        }
+
+        lvec_append( array_literal.initialized_elements, initialized_element );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
+        {
+            goto return_error;
+        }
+
+        if( ctx->current_token.kind == TOKENKIND_COMMA )
+        {
+            advance( ctx );
+        }
+    }
+
+    return array_literal;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "array literals take the form `[<expression>]T.{<expression[, <expression>]}`"
+    };
+    report_error( error );
+    return array_literal;
 }
 
 static AstNode* parse_term( AstContext* ctx )
@@ -706,6 +829,13 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_CONDITIONAL;
             node->conditional = parse_conditional( ctx );
+            break;
+        }
+
+        case TOKENKIND_LEFTBRACKET:
+        {
+            node->kind = ASTNODEKIND_ARRAYLITERAL;
+            node->array_literal = parse_array_literal( ctx );
             break;
         }
 

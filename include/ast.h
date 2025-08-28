@@ -28,6 +28,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_ROUTINEDECLARATION,
     ASTNODEKIND_ROUTINEDEFINITION,
     ASTNODEKIND_CONDITIONAL,
+    ASTNODEKIND_ARRAYLITERAL,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -139,6 +140,13 @@ typedef struct AstNodeConditional
     bool is_while; // if while statement, true. else false
 } AstNodeConditional;
 
+typedef struct AstNodeArrayLiteral
+{
+    AstNode* type_definition;
+    AstNode* length;                 // can be null
+    AstNode** initialized_elements;  // lvec
+} AstNodeArrayLiteral;
+
 typedef struct AstNode
 {
     AstNodeKind kind;
@@ -164,6 +172,7 @@ typedef struct AstNode
         AstNodeRoutineDeclaration routine_declaration;
         AstNodeRoutineDefinition routine_definition;
         AstNodeConditional conditional;
+        AstNodeArrayLiteral array_literal;
     };
 } AstNode;
 
