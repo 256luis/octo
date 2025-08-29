@@ -30,6 +30,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_CONDITIONAL,
     ASTNODEKIND_ARRAYLITERAL,
     ASTNODEKIND_STRUCTLITERAL,
+    ASTNODEKIND_MEMBERACCESS,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -155,6 +156,12 @@ typedef struct AstNodeStructLiteral
     AstNode** initialized_member_values; // lvec
 } AstNodeStructLiteral;
 
+typedef struct AstNodeMemberAccess
+{
+    AstNode* target;
+    AstNode* member;
+} AstNodeMemberAccess;
+
 typedef struct AstNode
 {
     AstNodeKind kind;
@@ -182,6 +189,7 @@ typedef struct AstNode
         AstNodeConditional conditional;
         AstNodeArrayLiteral array_literal;
         AstNodeStructLiteral struct_literal;
+        AstNodeMemberAccess member_access;
     };
 } AstNode;
 

@@ -202,6 +202,12 @@ static AstNodeStructLiteral parse_struct_literal( AstContext* ctx, AstNode* type
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
     {
+        if( !EXPECT( ctx, TOKENKIND_PERIOD ) )
+        {
+            goto return_error;
+        }
+
+        advance( ctx );
         if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
         {
             goto return_error;
@@ -242,10 +248,21 @@ static AstNodeStructLiteral parse_struct_literal( AstContext* ctx, AstNode* type
     Error error = {
         .kind = ERRORKIND_INCORRECTSYNTAX,
         .offending_token = ctx->current_token,
-        .note = "struct literals take the form `<identifier>.{ <identifier>: <type>, ... }`"
+        .note = "struct literals take the form `<identifier>.{ .<identifier>: <type>, ... }`"
     };
     report_error( error );
     return struct_literal;
+}
+
+static AstNodeMemberAccess parse_member_access( AstContext* ctx, AstNode* target )
+{
+    AstNodeMemberAccess member_access = {
+        .target = target,
+    };
+
+    advance( ctx );
+    member_access.member = parse_term( ctx );
+    return member_access;
 }
 
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
@@ -271,8 +288,34 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
 
         case TOKENKIND_PERIOD:
         {
-            node->kind = ASTNODEKIND_STRUCTLITERAL;
-            node->struct_literal = parse_struct_literal( ctx, previous );
+            switch( ctx->next_token.kind )
+            {
+                case TOKENKIND_LEFTBRACE:
+                {
+                    node->kind = ASTNODEKIND_STRUCTLITERAL;
+                    node->struct_literal = parse_struct_literal( ctx, previous );
+                    break;
+                }
+
+                case TOKENKIND_IDENTIFIER:
+                {
+                    node->kind = ASTNODEKIND_MEMBERACCESS;
+                    node->member_access = parse_member_access( ctx, previous );
+                    break;
+                }
+
+                default:
+                {
+                    Error error = {
+                        .kind = ERRORKIND_UNEXPECTEDSYMBOL,
+                        .offending_token = ctx->next_token,
+                    };
+                    report_error( error );
+                    ctx->error_found = true;
+                    return NULL;
+                }
+            }
+
             break;
         }
 
@@ -909,15 +952,37 @@ static AstNode* parse_term( AstContext* ctx )
             break;
         }
 
+        case TOKENKIND_PERIOD:
+        {
+            switch( ctx->next_token.kind )
+            {
+                case TOKENKIND_LEFTBRACE:
+                {
+                    node->kind = ASTNODEKIND_STRUCTLITERAL;
+                    node->struct_literal = parse_struct_literal( ctx, NULL );
+                    break;
+                }
+
+                case TOKENKIND_IDENTIFIER:
+                {
+                    node->kind = ASTNODEKIND_MEMBERACCESS;
+                    node->member_access = parse_member_access( ctx, NULL );
+                    break;
+                }
+
+                default:
+                {
+                    advance( ctx );
+                    goto return_error;
+                }
+            }
+
+            break;
+        }
+
         default:
         {
-            Error error = {
-                .kind = ERRORKIND_UNEXPECTEDSYMBOL,
-                .offending_token = ctx->current_token,
-            };
-            report_error( error );
-            ctx->error_found = true;
-            break;
+            goto return_error;
         }
     }
 
@@ -940,6 +1005,15 @@ static AstNode* parse_term( AstContext* ctx )
     }
 
     return node;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_UNEXPECTEDSYMBOL,
+        .offending_token = ctx->current_token,
+    };
+    report_error( error );
+    ctx->error_found = true;
+    return NULL;
 }
 
 static AstNode* parse_expression( AstContext* ctx )

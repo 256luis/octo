@@ -477,5 +477,30 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_MEMBERACCESS:
+        {
+            printf( "MEMBER ACCESS:" );
+            depth++;
+            newline();
+
+            if( node.member_access.target != NULL )
+            {
+                printf( "target:" );
+                depth++;
+                ast_node_print( *node.member_access.target );
+                depth--;
+                newline();
+            }
+
+            printf( "member:" );
+            depth++;
+            ast_node_print( *node.member_access.member );
+            depth--;
+            newline();
+
+            depth--;
+            break;
+        }
     }
 }
