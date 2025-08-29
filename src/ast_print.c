@@ -531,5 +531,26 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_ASSIGNMENT:
+        {
+            printf( "ASSIGNMENT:" );
+            depth++;
+            newline();
+
+            printf( "target:" );
+            depth++;
+            ast_node_print( *node.assignment.target );
+            depth--;
+            newline();
+
+            printf( "value:" );
+            depth++;
+            ast_node_print( *node.assignment.value );
+            depth--;
+            newline();
+
+            break;
+        }
     }
 }

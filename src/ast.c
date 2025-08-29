@@ -41,6 +41,7 @@ static void advance( AstContext* ctx )
     ctx->next_token = ctx->tokens[ ctx->current_token_index + 1 ];
 }
 
+static AstNode* parse_expression_rvalue( AstContext* ctx );
 static AstNode* parse_expression( AstContext* ctx );
 static AstNode* parse_term( AstContext* ctx );
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous );
@@ -94,7 +95,7 @@ static AstNodeBinary parse_binary( AstContext* ctx, AstNode* left )
     }
 
     advance( ctx );
-    binary.right = parse_expression( ctx );
+    binary.right = parse_expression_rvalue( ctx );
 
     return binary;
 }
@@ -106,7 +107,7 @@ static AstNodeSubscript parse_subscript( AstContext* ctx, AstNode* target )
     };
 
     advance( ctx );
-    subscript.index = parse_expression( ctx );
+    subscript.index = parse_expression_rvalue( ctx );
     if ( ctx->error_found )
     {
         return subscript;
@@ -155,7 +156,7 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTPAREN )
     {
-        AstNode* arg = parse_expression( ctx );
+        AstNode* arg = parse_expression_rvalue( ctx );
         if( ctx->error_found )
         {
             return function_call;
@@ -222,7 +223,7 @@ static AstNodeStructLiteral parse_struct_literal( AstContext* ctx, AstNode* type
         }
 
         advance( ctx );
-        AstNode* member_value = parse_expression( ctx );
+        AstNode* member_value = parse_expression_rvalue( ctx );
         if( ctx->error_found )
         {
             return struct_literal;
@@ -491,7 +492,7 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     if( ctx->current_token.kind == TOKENKIND_EQUAL )
     {
         advance( ctx );
-        variable_declaration.value = parse_expression( ctx );
+        variable_declaration.value = parse_expression_rvalue( ctx );
     }
 
     return variable_declaration;
@@ -519,7 +520,7 @@ static AstNodeArrayDefinition parse_array_definition( AstContext* ctx )
     if( ctx->current_token.kind != TOKENKIND_RIGHTBRACKET )
     {
 
-        array_definition.length = parse_expression( ctx );
+        array_definition.length = parse_expression_rvalue( ctx );
         if( ctx->error_found )
         {
             return array_definition;
@@ -719,7 +720,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     }
 
     advance( ctx );
-    routine_definition.body = parse_expression( ctx );
+    routine_definition.body = parse_expression_rvalue( ctx );
     if( ctx->error_found )
     {
         return routine_definition;
@@ -757,7 +758,7 @@ static AstNodeRoutineDeclaration parse_routine_declaration( AstContext* ctx )
     }
 
     advance( ctx );
-    routine_declaration.routine_definition = parse_expression( ctx );
+    routine_declaration.routine_definition = parse_expression_rvalue( ctx );
 
     return routine_declaration;
 
@@ -781,14 +782,14 @@ static AstNodeConditional parse_conditional( AstContext* ctx )
     } // no else because it is false by default
 
     advance( ctx );
-    conditional.condition = parse_expression( ctx );
+    conditional.condition = parse_expression_rvalue( ctx );
     if( ctx->error_found )
     {
         return conditional;
     }
 
     advance( ctx );
-    conditional.main_body = parse_expression( ctx );
+    conditional.main_body = parse_expression_rvalue( ctx );
     if( ctx->error_found )
     {
         return conditional;
@@ -801,7 +802,7 @@ static AstNodeConditional parse_conditional( AstContext* ctx )
 
     advance( ctx );
     advance( ctx ); // skip the else
-    conditional.else_body = parse_expression( ctx );
+    conditional.else_body = parse_expression_rvalue( ctx );
     if( ctx->error_found )
     {
         return conditional;
@@ -820,7 +821,7 @@ static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
     if( ctx->current_token.kind != TOKENKIND_RIGHTBRACKET )
     {
 
-        array_literal.length = parse_expression( ctx );
+        array_literal.length = parse_expression_rvalue( ctx );
         if( ctx->error_found )
         {
             return array_literal;
@@ -856,7 +857,7 @@ static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
     {
-        AstNode* initialized_element = parse_expression( ctx );
+        AstNode* initialized_element = parse_expression_rvalue( ctx );
         if( ctx->error_found )
         {
             goto return_error;
@@ -1076,7 +1077,23 @@ static AstNode* parse_term( AstContext* ctx )
     return NULL;
 }
 
-static AstNode* parse_expression( AstContext* ctx )
+static AstNodeAssignment parse_assignment( AstContext* ctx, AstNode* target )
+{
+    AstNodeAssignment assignment = {
+        .target = target,
+    };
+
+    advance( ctx );
+
+    // no need to call EXPECT here
+    // we already know that the current token is TOKENKIND_EQUAL because it has already been
+    // checked by parse_expression which is what called this function
+
+    assignment.value = parse_expression_rvalue( ctx );
+    return assignment;
+}
+
+static AstNode* parse_expression_rvalue( AstContext* ctx )
 {
     AstNode* node = parse_term( ctx );
     if( ctx->error_found )
@@ -1093,11 +1110,50 @@ static AstNode* parse_expression( AstContext* ctx )
         node = octo_malloc( sizeof( AstNode ) );
         node->kind = ASTNODEKIND_BINARY;
         node->binary = parse_binary( ctx, left );
+    }
 
-        if( ctx->error_found )
-        {
-            return NULL;
-        }
+    if( ctx->error_found )
+    {
+        return NULL;
+    }
+
+    return node;
+}
+
+// TODO: think about if we really need a duplicate of parse_expression_rvalue just for assignment
+//       or if we should offload checking of assignments to semantic analysis
+static AstNode* parse_expression( AstContext* ctx )
+{
+    AstNode* node = parse_term( ctx );
+    if( ctx->error_found )
+    {
+        return NULL;
+    }
+
+    // assignment
+    if( ctx->next_token.kind == TOKENKIND_EQUAL )
+    {
+        advance( ctx );
+        AstNode* target = node;
+
+        node = octo_malloc( sizeof( AstNode ) );
+        node->kind = ASTNODEKIND_ASSIGNMENT;
+        node->assignment = parse_assignment( ctx, target );
+    }
+    // binary operator parsing
+    else if( TOKENKIND_IS_IN_GROUP( ctx->next_token.kind, TOKENKIND_BINARY_OPERATORS ) )
+    {
+        advance( ctx );
+        AstNode* left = node;
+
+        node = octo_malloc( sizeof( AstNode ) );
+        node->kind = ASTNODEKIND_BINARY;
+        node->binary = parse_binary( ctx, left );
+    }
+
+    if( ctx->error_found )
+    {
+        return NULL;
     }
 
     return node;
