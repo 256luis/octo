@@ -497,7 +497,30 @@ void ast_node_print( AstNode node )
             depth++;
             ast_node_print( *node.member_access.member );
             depth--;
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_ARRAYDEFINITION:
+        {
+            printf( "ARRAY DEFINITION:" );
+            depth++;
             newline();
+
+            if( node.array_definition.length != NULL )
+            {
+                printf( "length:" );
+                depth++;
+                ast_node_print( *node.array_definition.length );
+                depth--;
+                newline();
+            }
+
+            printf( "type:" );
+            depth++;
+            ast_node_print( *node.array_definition.type_definition );
+            depth--;
 
             depth--;
             break;

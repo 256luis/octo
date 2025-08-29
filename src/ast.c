@@ -511,6 +511,47 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     return variable_declaration;
 }
 
+static AstNodeArrayDefinition parse_array_definition( AstContext* ctx )
+{
+    AstNodeArrayDefinition array_definition = { 0 };
+
+    advance( ctx );
+    if( ctx->current_token.kind != TOKENKIND_RIGHTBRACKET )
+    {
+
+        array_definition.length = parse_expression( ctx );
+        if( ctx->error_found )
+        {
+            return array_definition;
+        }
+
+        advance( ctx );
+    }
+
+    if( !EXPECT( ctx, TOKENKIND_RIGHTBRACKET ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    array_definition.type_definition = parse_type_definition( ctx );
+    if( ctx->error_found )
+    {
+        return array_definition;
+    }
+
+    return array_definition;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "array definitions take the form `[<expression>]T`"
+    };
+    report_error( error );
+    return array_definition;
+}
+
 static AstNode* parse_type_definition( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -535,6 +576,13 @@ static AstNode* parse_type_definition( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_ENUMDEFINITION;
             node->enum_definition = parse_enum_definition( ctx );
+            break;
+        }
+
+        case TOKENKIND_LEFTBRACKET:
+        {
+            node->kind = ASTNODEKIND_ARRAYDEFINITION;
+            node->array_definition = parse_array_definition( ctx );
             break;
         }
 
@@ -795,7 +843,6 @@ static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
     {
-        printf( "here\n" );
         AstNode* initialized_element = parse_expression( ctx );
         if( ctx->error_found )
         {
