@@ -377,17 +377,23 @@ void ast_node_print( AstNode node )
 
             printf( "condition:" );
             depth++;
-
             ast_node_print( *node.conditional.condition );
             depth--;
             newline();
 
-            printf( "body:" );
+            printf( "main body:" );
             depth++;
-
-            ast_node_print( *node.conditional.body );
+            ast_node_print( *node.conditional.main_body );
             depth--;
-            newline();
+
+            if( node.conditional.else_body != NULL )
+            {
+                newline();
+                printf( "else body:" );
+                depth++;
+                ast_node_print( *node.conditional.else_body );
+                depth--;
+            }
 
             depth--;
             break;

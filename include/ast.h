@@ -139,7 +139,8 @@ typedef struct AstNodeRoutineDeclaration
 typedef struct AstNodeConditional
 {
     AstNode* condition;
-    AstNode* body;
+    AstNode* main_body;
+    AstNode* else_body; // can be null
     bool is_while; // if while statement, true. else false
 } AstNodeConditional;
 

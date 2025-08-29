@@ -788,7 +788,20 @@ static AstNodeConditional parse_conditional( AstContext* ctx )
     }
 
     advance( ctx );
-    conditional.body = parse_expression( ctx );
+    conditional.main_body = parse_expression( ctx );
+    if( ctx->error_found )
+    {
+        return conditional;
+    }
+
+    if( ctx->next_token.kind != TOKENKIND_ELSE )
+    {
+        return conditional;
+    }
+
+    advance( ctx );
+    advance( ctx ); // skip the else
+    conditional.else_body = parse_expression( ctx );
     if( ctx->error_found )
     {
         return conditional;
