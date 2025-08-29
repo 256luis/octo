@@ -435,5 +435,47 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_STRUCTLITERAL:
+        {
+            printf( "STRUCT LITERAL:" );
+            depth++;
+            if( node.struct_literal.type_definition != NULL )
+            {
+                newline();
+
+                printf( "type:" );
+                depth++;
+                ast_node_print( *node.struct_literal.type_definition );
+
+                depth--;
+            }
+
+            size_t initialized_member_count = lvec_get_length( node.struct_literal.initialized_member_values );
+            if( initialized_member_count > 0 )
+            {
+                newline();
+                printf( "initialized members:" );
+                depth++;
+
+                for( size_t i = 0; i < initialized_member_count; i++ )
+                {
+                    newline();
+
+                    Token member_identifier_token = node.struct_literal.initialized_member_tokens[ i ];
+                    AstNode* member_value = node.struct_literal.initialized_member_values[ i ];
+                    printf( "%s:", member_identifier_token.as_string );
+                    depth++;
+
+                    ast_node_print( *member_value );
+                    depth--;
+                }
+
+                depth--;
+            }
+
+            depth--;
+            break;
+        }
     }
 }

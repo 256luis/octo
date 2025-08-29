@@ -185,6 +185,69 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
     return function_call;
 }
 
+static AstNodeStructLiteral parse_struct_literal( AstContext* ctx, AstNode* type_definition )
+{
+    AstNodeStructLiteral struct_literal = {
+        .initialized_member_tokens = lvec_new( Token ),
+        .initialized_member_values = lvec_new( AstNode* ),
+        .type_definition = type_definition,
+    };
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_LEFTBRACE ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
+    {
+        if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
+        {
+            goto return_error;
+        }
+
+        lvec_append_aggregate( struct_literal.initialized_member_tokens, ctx->current_token );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_EQUAL ) )
+        {
+            goto return_error;
+        }
+
+        advance( ctx );
+        AstNode* member_value = parse_expression( ctx );
+        if( ctx->error_found )
+        {
+            return struct_literal;
+        }
+
+        lvec_append_aggregate( struct_literal.initialized_member_values, member_value );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
+        {
+            goto return_error;
+        }
+
+        if( ctx->current_token.kind == TOKENKIND_COMMA )
+        {
+            advance( ctx );
+        }
+    }
+
+    return struct_literal;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "struct literals take the form `<identifier>.{ <identifier>: <type>, ... }`"
+    };
+    report_error( error );
+    return struct_literal;
+}
+
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -203,6 +266,13 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
         {
             node->kind = ASTNODEKIND_FUNCTIONCALL;
             node->function_call = parse_function_call( ctx, previous );
+            break;
+        }
+
+        case TOKENKIND_PERIOD:
+        {
+            node->kind = ASTNODEKIND_STRUCTLITERAL;
+            node->struct_literal = parse_struct_literal( ctx, previous );
             break;
         }
 
@@ -303,7 +373,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
         }
 
         advance( ctx );
-        AstNode* member_type = parse_expression( ctx );
+        AstNode* member_type = parse_type_definition( ctx );
         if( ctx->error_found )
         {
             return struct_definition;

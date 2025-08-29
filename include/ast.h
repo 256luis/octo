@@ -29,6 +29,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_ROUTINEDEFINITION,
     ASTNODEKIND_CONDITIONAL,
     ASTNODEKIND_ARRAYLITERAL,
+    ASTNODEKIND_STRUCTLITERAL,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -147,6 +148,13 @@ typedef struct AstNodeArrayLiteral
     AstNode** initialized_elements;  // lvec
 } AstNodeArrayLiteral;
 
+typedef struct AstNodeStructLiteral
+{
+    AstNode* type_definition;           // can be null
+    Token* initialized_member_tokens;   // lvec
+    AstNode** initialized_member_values; // lvec
+} AstNodeStructLiteral;
+
 typedef struct AstNode
 {
     AstNodeKind kind;
@@ -173,6 +181,7 @@ typedef struct AstNode
         AstNodeRoutineDefinition routine_definition;
         AstNodeConditional conditional;
         AstNodeArrayLiteral array_literal;
+        AstNodeStructLiteral struct_literal;
     };
 } AstNode;
 
