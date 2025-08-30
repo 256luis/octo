@@ -181,6 +181,7 @@ typedef struct AstNode
 {
     AstNodeKind kind;
     Type type;
+    Token starting_token;
 
     union
     {

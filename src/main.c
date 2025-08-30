@@ -6,6 +6,7 @@
 #include "error.h"
 #include "tokenizer.h"
 #include "ast.h"
+#include "semantic.h"
 
 SourceCode g_source_code;
 
@@ -54,6 +55,11 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
+    if( !check_ast( ast ) )
+    {
+        // printf( "here\n" );
+        return 1;
+    }
+
     ast_node_print( *ast );
-    printf("\n");
 }

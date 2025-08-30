@@ -892,6 +892,7 @@ static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
+    node->starting_token = ctx->current_token;
 
     switch( ctx->current_token.kind )
     {

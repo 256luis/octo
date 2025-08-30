@@ -40,6 +40,9 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/src/tokenizer.c
                ${CMAKE_CURRENT_LIST_DIR}/src/ast.c
                ${CMAKE_CURRENT_LIST_DIR}/src/ast_print.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/semantic.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/type.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/symbol.c
                ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.c)
 
 target_include_directories(${PROJECT_NAME} PUBLIC

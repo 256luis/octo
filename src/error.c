@@ -152,6 +152,19 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_TYPEMISMATCH:
+        {
+            // TODO: this
+            printf( "expected type ASDJSALD found AKJDSHSAKD\n" );
+            break;
+        }
+
+        case ERRORKIND_UNDECLAREDSYMBOL:
+        {
+            printf( "use of undeclared symbol `%s`\n", error.offending_token.as_string );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();
