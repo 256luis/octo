@@ -52,6 +52,7 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
                 return false;
             }
 
+            *found_type = TYPE_BOOLEAN;
             break;
         }
 
@@ -72,7 +73,6 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
         }
     }
 
-    *found_type = TYPE_BOOLEAN;
     return true;
 }
 
@@ -203,7 +203,6 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
         {
             return false;
         }
-        // printf("here\n");
         declared_type = type_unwrap( variable_declaration.type_definition->type );
     }
 

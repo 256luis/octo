@@ -33,7 +33,38 @@ bool type_is_numeric( Type type )
 
 bool type_equals( Type t1, Type t2 )
 {
-    return t1.kind == t2.kind;
+    if( t1.kind != t2.kind )
+    {
+        return false;
+    }
+
+    switch( t1.kind )
+    {
+        case TYPEKIND_PRIMITIVE_STRING:
+        case TYPEKIND_PRIMITIVE_CHARACTER:
+        case TYPEKIND_PRIMITIVE_BOOLEAN:
+        case TYPEKIND_PRIMITIVE_INT:
+        case TYPEKIND_PRIMITIVE_UINT:
+        case TYPEKIND_PRIMITIVE_FLOAT:
+        {
+            return true;
+        }
+
+        case TYPEKIND_ARRAY:
+        {
+            return type_equals( *t1.array.base, *t2.array.base );
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            return type_equals( *t1.array.base, *t2.array.base );
+        }
+
+        default:
+        {
+            UNIMPLEMENTED();
+        }
+    }
 }
 
 void type_print( Type type )
