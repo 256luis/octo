@@ -548,8 +548,23 @@ void ast_node_print( AstNode node )
             depth++;
             ast_node_print( *node.assignment.value );
             depth--;
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_POINTERDEFINITION:
+        {
+            printf( "POINTER DEFINITION:" );
+            depth++;
             newline();
 
+            printf( "type:" );
+            depth++;
+            ast_node_print( *node.pointer_definition.type_definition );
+            depth--;
+
+            depth--;
             break;
         }
     }

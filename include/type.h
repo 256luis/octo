@@ -1,6 +1,8 @@
 #ifndef TYPE_H
 #define TYPE_H
 
+#include <stdint.h>
+
 #define TYPE_UNSPECIFIED ( Type ){ .kind = TYPEKIND_UNSPECIFIED }
 #define TYPE_NONE        ( Type ){ .kind = TYPEKIND_NONE }
 #define TYPE_STRING      ( Type ){ .kind = TYPEKIND_PRIMITIVE_STRING }
@@ -9,6 +11,8 @@
 #define TYPE_INT         ( Type ){ .kind = TYPEKIND_PRIMITIVE_INT }
 #define TYPE_UINT        ( Type ){ .kind = TYPEKIND_PRIMITIVE_UINT }
 #define TYPE_FLOAT       ( Type ){ .kind = TYPEKIND_PRIMITIVE_FLOAT }
+
+typedef struct Type Type;
 
 typedef enum TypeKind
 {
@@ -20,14 +24,24 @@ typedef enum TypeKind
     TYPEKIND_PRIMITIVE_INT,
     TYPEKIND_PRIMITIVE_UINT,
     TYPEKIND_PRIMITIVE_FLOAT,
-
+    TYPEKIND_ARRAY,
     TYPEKIND_STRUCT,
     TYPEKIND_ENUM,
 } TypeKind;
 
+typedef struct TypeArray
+{
+    Type* base;
+    int size;
+} TypeArray;
+
 typedef struct Type
 {
     TypeKind kind;
+    union
+    {
+        TypeArray array;
+    };
 } Type;
 
 bool type_is_integer( Type type );

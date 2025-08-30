@@ -553,6 +553,15 @@ static AstNodeArrayDefinition parse_array_definition( AstContext* ctx )
     return array_definition;
 }
 
+static AstNodePointerDefinition parse_pointer_definition( AstContext* ctx )
+{
+    AstNodePointerDefinition pointer_definition = { 0 };
+
+    advance( ctx );
+    pointer_definition.type_definition = parse_type_definition( ctx );
+    return pointer_definition;
+}
+
 static AstNode* parse_type_definition( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -584,6 +593,13 @@ static AstNode* parse_type_definition( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_ARRAYDEFINITION;
             node->array_definition = parse_array_definition( ctx );
+            break;
+        }
+
+        case TOKENKIND_AMPERSAND:
+        {
+            node->kind = ASTNODEKIND_POINTERDEFINITION;
+            node->pointer_definition = parse_pointer_definition( ctx );
             break;
         }
 
