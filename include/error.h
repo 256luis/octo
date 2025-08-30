@@ -29,6 +29,7 @@ typedef enum ErrorKind
     // semantic errors
     ERRORKIND_TYPEMISMATCH,
     ERRORKIND_UNDECLAREDSYMBOL,
+    ERRORKIND_SYMBOLREDECLARATION,
 } ErrorKind;
 
 typedef struct Error

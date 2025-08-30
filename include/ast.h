@@ -112,7 +112,7 @@ typedef struct AstNodeEnumDefinition
 typedef struct AstNodeVariableDeclaration
 {
     Token identifier_token;
-    AstNode* type_definition;
+    AstNode* type_definition; // can be null
     AstNode* value;
 } AstNodeVariableDeclaration;
 

@@ -4,8 +4,8 @@
 #include "error.h"
 #include "globals.h"
 #include "debug.h"
-#include "lvec.h"
 #include "tokenizer.h"
+#include "type.h"
 
 static char* file_to_string( const char* filename, int* length )
 {
@@ -154,14 +154,23 @@ void report_error( Error error )
 
         case ERRORKIND_TYPEMISMATCH:
         {
-            // TODO: this
-            printf( "expected type ASDJSALD found AKJDSHSAKD\n" );
+            printf( "expected type `" );
+            type_print( error.type_mismatch.expected );
+            printf( "`, found type `" );
+            type_print( error.type_mismatch.found );
+            printf( "`\n" );
             break;
         }
 
         case ERRORKIND_UNDECLAREDSYMBOL:
         {
             printf( "use of undeclared symbol `%s`\n", error.offending_token.as_string );
+            break;
+        }
+
+        case ERRORKIND_SYMBOLREDECLARATION:
+        {
+            printf( "redeclaration of symbol `%s`\n", error.offending_token.as_string );
             break;
         }
 

@@ -1,10 +1,11 @@
+#include <stdio.h>
+#include <string.h>
 #include "debug.h"
 #include "lvec.h"
 #include "type.h"
 #include "ast.h"
 #include "error.h"
 #include "symbol.h"
-#include <stdio.h>
 
 static bool check_expression( AstNode* node, SymbolTable* st );
 
@@ -64,39 +65,132 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
     return true;
 }
 
+static Type type_node_to_type( AstNode* type_definition )
+{
+    switch( type_definition->kind )
+    {
+        case ASTNODEKIND_IDENTIFIER:
+        {
+            char* identifier = type_definition->identifier.token.as_string;
+
+            if( strcmp( identifier, "string" ) == 0 ) return TYPE_STRING;
+            if( strcmp( identifier, "char" ) == 0 )   return TYPE_CHARACTER;
+            if( strcmp( identifier, "bool" ) == 0 )   return TYPE_BOOLEAN;
+            if( strcmp( identifier, "int" ) == 0 )     return TYPE_INT;
+            if( strcmp( identifier, "uint" ) == 0 )    return TYPE_UINT;
+            if( strcmp( identifier, "float" ) == 0 )    return TYPE_FLOAT;
+
+            // TODO: user defined types
+            UNIMPLEMENTED();
+
+            break;
+        }
+
+        case ASTNODEKIND_STRUCTDEFINITION:
+        {
+            UNIMPLEMENTED();
+        }
+
+        case ASTNODEKIND_ENUMDEFINITION:
+        {
+            UNIMPLEMENTED();
+        }
+
+        default:
+        {
+            UNREACHABLE();
+        }
+    }
+
+    UNREACHABLE();
+}
+
+static bool check_variable_declaration( AstNodeVariableDeclaration variable_declaration, SymbolTable* st )
+{
+    // variable declared must not already be in the symbol table
+    Token identifier_token = variable_declaration.identifier_token;
+    if( st_get( *st, identifier_token.as_string ) != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    // get type if provided explicitly
+    Type declared_type = TYPE_UNSPECIFIED;
+    if( variable_declaration.type_definition != NULL )
+    {
+        declared_type = type_node_to_type( variable_declaration.type_definition );
+    }
+
+    // check if value is valid
+    if( !check_expression( variable_declaration.value, st ) )
+    {
+        return false;
+    }
+
+    Type found_type = variable_declaration.value->type;
+    if( declared_type.kind != TYPEKIND_UNSPECIFIED )
+    {
+        // check if declared type is same as found type
+        if( !type_equals( declared_type, found_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = variable_declaration.value->starting_token,
+                .type_mismatch = {
+                    .expected = declared_type,
+                    .found = found_type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
+
+    // add to symbol table
+    Symbol symbol = {
+        .key = identifier_token,
+        .type = found_type
+    };
+    st_insert( st, symbol );
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st )
 {
     switch( node->kind )
     {
         case ASTNODEKIND_STRINGLITERAL:
         {
-            node->type = ( Type ){ .kind = TYPEKIND_PRIMITIVE_STRING };
+            node->type = TYPE_STRING;
             break;
         }
 
         case ASTNODEKIND_CHARACTERLITERAL:
         {
-            node->type = ( Type ){ .kind = TYPEKIND_PRIMITIVE_CHARACTER };
+            node->type = TYPE_CHARACTER;
             break;
         }
 
         case ASTNODEKIND_BOOLEANLITERAL:
         {
-            node->type = ( Type ){ .kind = TYPEKIND_PRIMITIVE_BOOLEAN };
+            node->type = TYPE_BOOLEAN;
             break;
         }
 
         case ASTNODEKIND_INTEGERLITERAL:
         {
-            // TODO: figure out what to do with literal integer types
-            node->type = ( Type ){ .kind = TYPEKIND_PRIMITIVE_I32 };
+            node->type = TYPE_INT;
             break;
         }
 
         case ASTNODEKIND_FLOATLITERAL:
         {
-            // TODO: figure out what to do with literal floating point types
-            node->type = ( Type ){ .kind = TYPEKIND_PRIMITIVE_F32 };
+            node->type = TYPE_UINT;
             break;
         }
 
@@ -132,6 +226,11 @@ static bool check_expression( AstNode* node, SymbolTable* st )
         case ASTNODEKIND_UNARY:
         {
             return check_unary( node->unary, st, &node->type );
+        }
+
+        case ASTNODEKIND_VARIABLEDECLARATION:
+        {
+            return check_variable_declaration( node->variable_declaration, st );
         }
     }
 
