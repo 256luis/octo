@@ -169,7 +169,7 @@ typedef struct AstNodeMemberAccess
 typedef struct AstNodeArrayDefinition
 {
     AstNode* length; // can be null
-    AstNode* type_definition;
+    AstNode* base_type_definition;
 } AstNodeArrayDefinition;
 
 typedef struct AstNodeAssignment
@@ -180,7 +180,7 @@ typedef struct AstNodeAssignment
 
 typedef struct AstNodePointerDefinition
 {
-    AstNode* type_definition;
+    AstNode* base_type_definition;
 } AstNodePointerDefinition;
 
 typedef struct AstNode

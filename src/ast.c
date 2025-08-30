@@ -535,7 +535,7 @@ static AstNodeArrayDefinition parse_array_definition( AstContext* ctx )
     }
 
     advance( ctx );
-    array_definition.type_definition = parse_type_definition( ctx );
+    array_definition.base_type_definition = parse_type_definition( ctx );
     if( ctx->error_found )
     {
         return array_definition;
@@ -558,13 +558,14 @@ static AstNodePointerDefinition parse_pointer_definition( AstContext* ctx )
     AstNodePointerDefinition pointer_definition = { 0 };
 
     advance( ctx );
-    pointer_definition.type_definition = parse_type_definition( ctx );
+    pointer_definition.base_type_definition = parse_type_definition( ctx );
     return pointer_definition;
 }
 
 static AstNode* parse_type_definition( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
+    node->starting_token = ctx->current_token;
 
     switch( ctx->current_token.kind )
     {

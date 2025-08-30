@@ -6,8 +6,10 @@
 #include "ast.h"
 #include "error.h"
 #include "symbol.h"
+#include "globals.h"
 
 static bool check_expression( AstNode* node, SymbolTable* st );
+static bool check_type_definition( AstNode* type_definition, SymbolTable* st );
 
 static bool check_compound( AstNodeCompound compound, SymbolTable* st  )
 {
@@ -27,15 +29,15 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st  )
 
 static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
 {
+    if( !check_expression( unary.operand, st ) )
+    {
+        return false;
+    }
+
     switch( unary.operation )
     {
         case UNARYOPERATION_NOT:
         {
-            if( !check_expression( unary.operand, st ) )
-            {
-                return false;
-            }
-
             if( unary.operand->type.kind != TYPEKIND_PRIMITIVE_BOOLEAN )
             {
                 Error error = {
@@ -54,10 +56,19 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
         }
 
         case UNARYOPERATION_NEGATION:
-        case UNARYOPERATION_ADDRESSOF:
         case UNARYOPERATION_DEREFERENCE:
         {
             UNIMPLEMENTED();
+            break;
+        }
+
+        case UNARYOPERATION_ADDRESSOF:
+        {
+            *found_type = ( Type ){
+                .kind = TYPEKIND_POINTER,
+                .pointer.base = &unary.operand->type
+            };
+            break;
         }
     }
 
@@ -65,25 +76,80 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
     return true;
 }
 
-static Type type_node_to_type( AstNode* type_definition )
+static bool check_type_identifier( AstNodeIdentifier identifier, SymbolTable* st, Type* resulting_type )
+{
+    char* identifier_string = identifier.token.as_string;
+
+    if     ( strcmp( identifier_string, "string" ) == 0 ) *resulting_type = type_wrap( TYPE_STRING );
+    else if( strcmp( identifier_string, "char" ) == 0 )   *resulting_type = type_wrap( TYPE_CHARACTER );
+    else if( strcmp( identifier_string, "bool" ) == 0 )   *resulting_type = type_wrap( TYPE_BOOLEAN );
+    else if( strcmp( identifier_string, "int" ) == 0 )    *resulting_type = type_wrap( TYPE_INT );
+    else if( strcmp( identifier_string, "uint" ) == 0 )   *resulting_type = type_wrap( TYPE_UINT );
+    else if( strcmp( identifier_string, "float" ) == 0 )  *resulting_type = type_wrap( TYPE_FLOAT );
+    else
+    {
+        Symbol* symbol = st_get( *st, identifier_string );
+        if( symbol == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                .offending_token = identifier.token,
+            };
+            report_error( error );
+            return false;
+        }
+
+        if( symbol->type.kind != TYPEKIND_TYPE )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = identifier.token,
+                .type_mismatch = {
+                    .expected = type_wrap( TYPE_UNSPECIFIED ),
+                    .found = symbol->type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+
+        *resulting_type = symbol->type;
+    }
+
+    return true;
+}
+
+static bool check_pointer_definition( AstNodePointerDefinition pointer_definition, SymbolTable* st, Type* resulting_type )
+{
+    if( !check_type_definition( pointer_definition.base_type_definition, st ) )
+    {
+        return false;
+    }
+
+    Type* base = octo_malloc( sizeof( Type ) );
+    *base = type_unwrap( pointer_definition.base_type_definition->type );
+
+    Type* definition = octo_malloc( sizeof( Type ) );
+    *definition = ( Type ){
+        .kind = TYPEKIND_POINTER,
+        .pointer.base = base,
+    };
+
+    *resulting_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.definition = definition,
+    };
+
+    return true;
+}
+
+static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 {
     switch( type_definition->kind )
     {
         case ASTNODEKIND_IDENTIFIER:
         {
-            char* identifier = type_definition->identifier.token.as_string;
-
-            if( strcmp( identifier, "string" ) == 0 ) return TYPE_STRING;
-            if( strcmp( identifier, "char" ) == 0 )   return TYPE_CHARACTER;
-            if( strcmp( identifier, "bool" ) == 0 )   return TYPE_BOOLEAN;
-            if( strcmp( identifier, "int" ) == 0 )     return TYPE_INT;
-            if( strcmp( identifier, "uint" ) == 0 )    return TYPE_UINT;
-            if( strcmp( identifier, "float" ) == 0 )    return TYPE_FLOAT;
-
-            // TODO: user defined types
-            UNIMPLEMENTED();
-
-            break;
+            return check_type_identifier( type_definition->identifier, st, &type_definition->type );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:
@@ -96,13 +162,23 @@ static Type type_node_to_type( AstNode* type_definition )
             UNIMPLEMENTED();
         }
 
+        case ASTNODEKIND_ARRAYDEFINITION:
+        {
+            UNIMPLEMENTED();
+        }
+
+        case ASTNODEKIND_POINTERDEFINITION:
+        {
+            return check_pointer_definition( type_definition->pointer_definition, st, &type_definition->type);
+        }
+
         default:
         {
             UNREACHABLE();
         }
     }
 
-    UNREACHABLE();
+    return true;
 }
 
 static bool check_variable_declaration( AstNodeVariableDeclaration variable_declaration, SymbolTable* st )
@@ -123,7 +199,12 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     Type declared_type = TYPE_UNSPECIFIED;
     if( variable_declaration.type_definition != NULL )
     {
-        declared_type = type_node_to_type( variable_declaration.type_definition );
+        if( !check_type_definition( variable_declaration.type_definition, st ) )
+        {
+            return false;
+        }
+        // printf("here\n");
+        declared_type = type_unwrap( variable_declaration.type_definition->type );
     }
 
     // check if value is valid

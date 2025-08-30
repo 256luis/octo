@@ -1,6 +1,17 @@
+#include <assert.h>
 #include <stdio.h>
 #include "type.h"
 #include "debug.h"
+#include "globals.h"
+
+const Type TYPE_UNSPECIFIED = { .kind = TYPEKIND_UNSPECIFIED };
+const Type TYPE_NONE        = { .kind = TYPEKIND_NONE };
+const Type TYPE_STRING      = { .kind = TYPEKIND_PRIMITIVE_STRING };
+const Type TYPE_CHARACTER   = { .kind = TYPEKIND_PRIMITIVE_CHARACTER };
+const Type TYPE_BOOLEAN     = { .kind = TYPEKIND_PRIMITIVE_BOOLEAN };
+const Type TYPE_INT         = { .kind = TYPEKIND_PRIMITIVE_INT };
+const Type TYPE_UINT        = { .kind = TYPEKIND_PRIMITIVE_UINT };
+const Type TYPE_FLOAT       = { .kind = TYPEKIND_PRIMITIVE_FLOAT };
 
 bool type_is_numeric( Type type )
 {
@@ -37,9 +48,40 @@ void type_print( Type type )
         case TYPEKIND_PRIMITIVE_INT:       printf("int"); break;
         case TYPEKIND_PRIMITIVE_UINT:      printf("uint"); break;
         case TYPEKIND_PRIMITIVE_FLOAT:     printf("float"); break;
+        case TYPEKIND_TYPE:                printf("type"); break;
+
+        case TYPEKIND_POINTER:
+        {
+            printf( "&" );
+            type_print( *type.pointer.base );
+            break;
+        }
+
+        case TYPEKIND_ARRAY:
+        {
+            printf( "[%d]", type.array.length );
+            type_print( *type.array.base );
+            break;
+        }
 
         case TYPEKIND_STRUCT:
         case TYPEKIND_ENUM:
             UNIMPLEMENTED();
     }
+}
+
+Type type_wrap( Type type )
+{
+    Type* base = octo_malloc( sizeof( Type ) );
+    *base = type;
+    return ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.definition = base
+    };
+}
+
+Type type_unwrap( Type type )
+{
+    assert( type.kind == TYPEKIND_TYPE );
+    return *type.type.definition;
 }

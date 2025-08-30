@@ -3,15 +3,6 @@
 
 #include <stdint.h>
 
-#define TYPE_UNSPECIFIED ( Type ){ .kind = TYPEKIND_UNSPECIFIED }
-#define TYPE_NONE        ( Type ){ .kind = TYPEKIND_NONE }
-#define TYPE_STRING      ( Type ){ .kind = TYPEKIND_PRIMITIVE_STRING }
-#define TYPE_CHARACTER   ( Type ){ .kind = TYPEKIND_PRIMITIVE_CHARACTER }
-#define TYPE_BOOLEAN     ( Type ){ .kind = TYPEKIND_PRIMITIVE_BOOLEAN }
-#define TYPE_INT         ( Type ){ .kind = TYPEKIND_PRIMITIVE_INT }
-#define TYPE_UINT        ( Type ){ .kind = TYPEKIND_PRIMITIVE_UINT }
-#define TYPE_FLOAT       ( Type ){ .kind = TYPEKIND_PRIMITIVE_FLOAT }
-
 typedef struct Type Type;
 
 typedef enum TypeKind
@@ -25,6 +16,8 @@ typedef enum TypeKind
     TYPEKIND_PRIMITIVE_UINT,
     TYPEKIND_PRIMITIVE_FLOAT,
     TYPEKIND_ARRAY,
+    TYPEKIND_POINTER,
+    TYPEKIND_TYPE,
     TYPEKIND_STRUCT,
     TYPEKIND_ENUM,
 } TypeKind;
@@ -32,8 +25,18 @@ typedef enum TypeKind
 typedef struct TypeArray
 {
     Type* base;
-    int size;
+    int length;
 } TypeArray;
+
+typedef struct TypePointer
+{
+    Type* base;
+} TypePointer;
+
+typedef struct TypeType
+{
+    Type* definition;
+} TypeType;
 
 typedef struct Type
 {
@@ -41,6 +44,8 @@ typedef struct Type
     union
     {
         TypeArray array;
+        TypePointer pointer;
+        TypeType type;
     };
 } Type;
 
@@ -49,5 +54,16 @@ bool type_is_float( Type type );
 bool type_is_numeric( Type type );
 bool type_equals( Type t1, Type t2 );
 void type_print( Type type );
+Type type_wrap( Type type );
+Type type_unwrap( Type type );
+
+extern const Type TYPE_UNSPECIFIED;
+extern const Type TYPE_NONE;
+extern const Type TYPE_STRING;
+extern const Type TYPE_CHARACTER;
+extern const Type TYPE_BOOLEAN;
+extern const Type TYPE_INT;
+extern const Type TYPE_UINT;
+extern const Type TYPE_FLOAT;
 
 #endif

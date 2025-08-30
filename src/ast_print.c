@@ -525,7 +525,7 @@ void ast_node_print( AstNode node )
 
             printf( "type:" );
             depth++;
-            ast_node_print( *node.array_definition.type_definition );
+            ast_node_print( *node.array_definition.base_type_definition );
             depth--;
 
             depth--;
@@ -561,7 +561,7 @@ void ast_node_print( AstNode node )
 
             printf( "type:" );
             depth++;
-            ast_node_print( *node.pointer_definition.type_definition );
+            ast_node_print( *node.pointer_definition.base_type_definition );
             depth--;
 
             depth--;
