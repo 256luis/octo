@@ -13,6 +13,23 @@ const Type TYPE_INT         = { .kind = TYPEKIND_PRIMITIVE_INT };
 const Type TYPE_UINT        = { .kind = TYPEKIND_PRIMITIVE_UINT };
 const Type TYPE_FLOAT       = { .kind = TYPEKIND_PRIMITIVE_FLOAT };
 
+bool type_is_integer( Type type )
+{
+    switch( type.kind )
+    {
+        case TYPEKIND_PRIMITIVE_INT:
+        case TYPEKIND_PRIMITIVE_UINT:
+        {
+            return true;
+        }
+
+        default:
+        {
+            return false;
+        }
+    }
+}
+
 bool type_is_numeric( Type type )
 {
     switch( type.kind )
@@ -90,7 +107,7 @@ void type_print( Type type )
 
         case TYPEKIND_ARRAY:
         {
-            printf( "[%d]", type.array.length );
+            printf( "[]" );
             type_print( *type.array.base );
             break;
         }

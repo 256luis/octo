@@ -143,6 +143,57 @@ static bool check_pointer_definition( AstNodePointerDefinition pointer_definitio
     return true;
 }
 
+static bool check_array_definition( AstNodeArrayDefinition array_definition, SymbolTable* st, Type* resulting_type )
+{
+    if( !check_type_definition( array_definition.base_type_definition, st ) )
+    {
+        return false;
+    }
+
+    if( array_definition.length != NULL )
+    {
+        if( !check_expression( array_definition.length, st ) )
+        {
+            return false;
+        }
+
+        if( !type_is_integer( array_definition.length->type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = array_definition.length->starting_token,
+                .type_mismatch = {
+                    .expected = TYPE_INT,
+                    .found = array_definition.length->type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+
+        // TODO: think about if we want to evaluate the length AST now ???
+    }
+
+    Type* base = octo_malloc( sizeof( Type ) );
+    *base = type_unwrap( array_definition.base_type_definition->type );
+
+    Type* definition = octo_malloc( sizeof( Type ) );
+    *definition = ( Type ){
+        .kind = TYPEKIND_ARRAY,
+        .array = {
+            .base = base,
+            .length = array_definition.length
+        },
+    };
+
+    *resulting_type = ( Type ){
+        .kind = TYPEKIND_TYPE,
+        .type.definition = definition,
+    };
+
+    return true;
+}
+
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 {
     switch( type_definition->kind )
@@ -164,12 +215,12 @@ static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 
         case ASTNODEKIND_ARRAYDEFINITION:
         {
-            UNIMPLEMENTED();
+            return check_array_definition( type_definition->array_definition, st, &type_definition->type );
         }
 
         case ASTNODEKIND_POINTERDEFINITION:
         {
-            return check_pointer_definition( type_definition->pointer_definition, st, &type_definition->type);
+            return check_pointer_definition( type_definition->pointer_definition, st, &type_definition->type );
         }
 
         default:
@@ -207,9 +258,12 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     }
 
     // check if value is valid
-    if( !check_expression( variable_declaration.value, st ) )
+    if( variable_declaration.value != NULL )
     {
-        return false;
+        if( !check_expression( variable_declaration.value, st ) )
+        {
+            return false;
+        }
     }
 
     Type found_type = variable_declaration.value->type;

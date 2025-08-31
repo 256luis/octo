@@ -114,7 +114,7 @@ typedef struct AstNodeVariableDeclaration
 {
     Token identifier_token;
     AstNode* type_definition; // can be null
-    AstNode* value;
+    AstNode* value;           // can be null
 } AstNodeVariableDeclaration;
 
 typedef struct AstNodeTypeDeclaration

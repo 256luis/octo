@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef struct Type Type;
+typedef struct AstNode AstNode;
 
 typedef enum TypeKind
 {
@@ -25,7 +26,7 @@ typedef enum TypeKind
 typedef struct TypeArray
 {
     Type* base;
-    int length;
+    AstNode* length;
 } TypeArray;
 
 typedef struct TypePointer
