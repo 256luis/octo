@@ -174,6 +174,12 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_EXPECTEDNUMERIC:
+        {
+            printf( "expected numeric type\n" );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();

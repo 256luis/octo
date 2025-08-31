@@ -57,6 +57,20 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
         }
 
         case UNARYOPERATION_NEGATION:
+        {
+            if( !type_is_numeric( unary.operand->type ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_EXPECTEDNUMERIC,
+                    .offending_token = unary.operand->starting_token,
+                };
+                report_error( error );
+                return false;
+            }
+
+            *found_type = unary.operand->type;
+            break;
+        }
         case UNARYOPERATION_DEREFERENCE:
         {
             UNIMPLEMENTED();
