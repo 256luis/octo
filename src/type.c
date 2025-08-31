@@ -57,6 +57,9 @@ bool type_equals( Type t1, Type t2 )
 
     switch( t1.kind )
     {
+
+        case TYPEKIND_UNSPECIFIED:
+        case TYPEKIND_NONE:
         case TYPEKIND_PRIMITIVE_STRING:
         case TYPEKIND_PRIMITIVE_CHARACTER:
         case TYPEKIND_PRIMITIVE_BOOLEAN:
@@ -132,4 +135,10 @@ Type type_unwrap_type( Type type )
 {
     assert( type.kind == TYPEKIND_TYPE );
     return *type.type.definition;
+}
+
+Type type_unwrap_array( Type type )
+{
+    assert( type.kind == TYPEKIND_ARRAY );
+    return *type.array.base;
 }

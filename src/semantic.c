@@ -296,12 +296,17 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
 
 static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable* st, Type* found_type )
 {
-    if( !check_type_definition( array_literal.base_type_definition, st ) )
+    Type declared_type = TYPE_UNSPECIFIED;
+    if( array_literal.base_type_definition != NULL )
     {
-        return false;
-    }
+        if( !check_type_definition( array_literal.base_type_definition, st ) )
+        {
+            return false;
+        }
 
-    Type declared_type = type_unwrap_type( array_literal.base_type_definition->type );
+        declared_type = type_unwrap_type( array_literal.base_type_definition->type );
+        declared_type = type_unwrap_array( declared_type );
+    }
 
     size_t length = lvec_get_length( array_literal.initialized_elements );
     for( size_t i = 0; i < length; i++ )
@@ -312,7 +317,11 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
             return false;
         }
 
-        if( !type_equals( expression->type, declared_type ) )
+        if( type_equals( declared_type, TYPE_UNSPECIFIED ) )
+        {
+            declared_type = expression->type;
+        }
+        else if( !type_equals( expression->type, declared_type ) )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
@@ -363,6 +372,7 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
     }
 
     Type* base = octo_malloc( sizeof( Type ) );
+    // *base = type_unwrap_array( declared_type ),
     *base = declared_type,
 
     *found_type = ( Type ){

@@ -255,6 +255,54 @@ static AstNodeStructLiteral parse_struct_literal( AstContext* ctx, AstNode* type
     return struct_literal;
 }
 
+static AstNodeArrayLiteral parse_array_literal( AstContext* ctx, AstNode* type_definition )
+{
+    AstNodeArrayLiteral array_literal = {
+        .initialized_elements = lvec_new( AstNode* ),
+        .base_type_definition = type_definition,
+    };
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_LEFTBRACKET ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    while( ctx->current_token.kind != TOKENKIND_RIGHTBRACKET )
+    {
+        AstNode* initialized_element = parse_expression_rvalue( ctx );
+        if( ctx->error_found )
+        {
+            goto return_error;
+        }
+
+        lvec_append( array_literal.initialized_elements, initialized_element );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACKET ) )
+        {
+            goto return_error;
+        }
+
+        if( ctx->current_token.kind == TOKENKIND_COMMA )
+        {
+            advance( ctx );
+        }
+    }
+
+    return array_literal;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "array literals take the form `[<expression>]T.{<expression[, <expression>]}`"
+    };
+    report_error( error );
+    return array_literal;
+}
+
 static AstNodeMemberAccess parse_member_access( AstContext* ctx, AstNode* target )
 {
     AstNodeMemberAccess member_access = {
@@ -302,6 +350,13 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
                 {
                     node->kind = ASTNODEKIND_MEMBERACCESS;
                     node->member_access = parse_member_access( ctx, previous );
+                    break;
+                }
+
+                case TOKENKIND_LEFTBRACKET:
+                {
+                    node->kind = ASTNODEKIND_ARRAYLITERAL;
+                    node->array_literal = parse_array_literal( ctx, previous );
                     break;
                 }
 
@@ -828,84 +883,6 @@ static AstNodeConditional parse_conditional( AstContext* ctx )
     return conditional;
 }
 
-static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
-{
-    AstNodeArrayLiteral array_literal = {
-        .initialized_elements = lvec_new( AstNode* ),
-    };
-
-    advance( ctx );
-    if( ctx->current_token.kind != TOKENKIND_RIGHTBRACKET )
-    {
-
-        array_literal.length = parse_expression_rvalue( ctx );
-        if( ctx->error_found )
-        {
-            return array_literal;
-        }
-
-        advance( ctx );
-    }
-
-    if( !EXPECT( ctx, TOKENKIND_RIGHTBRACKET ) )
-    {
-        goto return_error;
-    }
-
-    advance( ctx );
-    array_literal.base_type_definition = parse_type_definition( ctx );
-    if( ctx->error_found )
-    {
-        return array_literal;
-    }
-
-    advance( ctx );
-    if( !EXPECT( ctx, TOKENKIND_PERIOD ) )
-    {
-        goto return_error;
-    }
-
-    advance( ctx );
-    if( !EXPECT( ctx, TOKENKIND_LEFTBRACE ) )
-    {
-        goto return_error;
-    }
-
-    advance( ctx );
-    while( ctx->current_token.kind != TOKENKIND_RIGHTBRACE )
-    {
-        AstNode* initialized_element = parse_expression_rvalue( ctx );
-        if( ctx->error_found )
-        {
-            goto return_error;
-        }
-
-        lvec_append( array_literal.initialized_elements, initialized_element );
-
-        advance( ctx );
-        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )
-        {
-            goto return_error;
-        }
-
-        if( ctx->current_token.kind == TOKENKIND_COMMA )
-        {
-            advance( ctx );
-        }
-    }
-
-    return array_literal;
-
- return_error:
-    Error error = {
-        .kind = ERRORKIND_INCORRECTSYNTAX,
-        .offending_token = ctx->current_token,
-        .note = "array literals take the form `[<expression>]T.{<expression[, <expression>]}`"
-    };
-    report_error( error );
-    return array_literal;
-}
-
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -1026,8 +1003,8 @@ static AstNode* parse_term( AstContext* ctx )
 
         case TOKENKIND_LEFTBRACKET:
         {
-            node->kind = ASTNODEKIND_ARRAYLITERAL;
-            node->array_literal = parse_array_literal( ctx );
+            node->kind = ASTNODEKIND_ARRAYDEFINITION;
+            node->array_definition = parse_array_definition( ctx );
             break;
         }
 
@@ -1046,6 +1023,13 @@ static AstNode* parse_term( AstContext* ctx )
                 {
                     node->kind = ASTNODEKIND_MEMBERACCESS;
                     node->member_access = parse_member_access( ctx, NULL );
+                    break;
+                }
+
+                case TOKENKIND_LEFTBRACKET:
+                {
+                    node->kind = ASTNODEKIND_ARRAYLITERAL;
+                    node->array_literal = parse_array_literal( ctx, NULL );
                     break;
                 }
 
