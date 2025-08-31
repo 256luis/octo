@@ -336,6 +336,17 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
         return false;
     }
 
+    if( variable_declaration.value->type.kind == TYPEKIND_UNSPECIFIED &&
+        declared_type.kind == TYPEKIND_UNSPECIFIED )
+    {
+        Error error = {
+            .kind = ERRORKIND_CANNOTINFERTYPE,
+            .offending_token = variable_declaration.value->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
     // add to symbol table
     Symbol symbol = {
         .key = identifier_token,
@@ -391,8 +402,7 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
     }
 
     size_t length = lvec_get_length( array_literal.initialized_elements );
-    Type inferred_type;
-    if( length > 0 )
+    if( base_type.kind == TYPEKIND_UNSPECIFIED && length > 0 )
     {
         AstNode* first = array_literal.initialized_elements[ 0 ];
         if( !check_rvalue( first, st, base_type ) )
@@ -400,7 +410,7 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
             return false;
         }
 
-        inferred_type = first->type;
+        base_type = first->type;
     }
 
     for( size_t i = 0; i < length; i++ )
@@ -410,32 +420,20 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
         {
             return false;
         }
-
-        if( base_type.kind == TYPEKIND_UNSPECIFIED )
-        {
-            if( !type_equals( inferred_type, expression->type ) )
-            {
-                Error error = {
-                    .kind = ERRORKIND_TYPEMISMATCH,
-                    .offending_token = expression->starting_token,
-                    .type_mismatch = {
-                        .expected = inferred_type,
-                        .found = expression->type
-                    },
-                };
-                report_error( error );
-                return false;
-            }
-        }
     }
 
-    if( declared_type.kind != TYPEKIND_UNSPECIFIED )
+
+    if( base_type.kind == TYPEKIND_UNSPECIFIED )
+    {
+        *found_type = TYPE_UNSPECIFIED;
+    }
+    else if( declared_type.kind != TYPEKIND_UNSPECIFIED )
     {
         *found_type = declared_type;
     }
     else
     {
-        *found_type = type_wrap_array( inferred_type );
+        *found_type = type_wrap_array( base_type );
     }
     return true;
 }
