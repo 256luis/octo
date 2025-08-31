@@ -127,7 +127,7 @@ static bool check_pointer_definition( AstNodePointerDefinition pointer_definitio
     }
 
     Type* base = octo_malloc( sizeof( Type ) );
-    *base = type_unwrap( pointer_definition.base_type_definition->type );
+    *base = type_unwrap_type( pointer_definition.base_type_definition->type );
 
     Type* definition = octo_malloc( sizeof( Type ) );
     *definition = ( Type ){
@@ -175,7 +175,7 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
     }
 
     Type* base = octo_malloc( sizeof( Type ) );
-    *base = type_unwrap( array_definition.base_type_definition->type );
+    *base = type_unwrap_type( array_definition.base_type_definition->type );
 
     Type* definition = octo_malloc( sizeof( Type ) );
     *definition = ( Type ){
@@ -254,7 +254,7 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
         {
             return false;
         }
-        declared_type = type_unwrap( variable_declaration.type_definition->type );
+        declared_type = type_unwrap_type( variable_declaration.type_definition->type );
     }
 
     // check if value is valid
@@ -294,6 +294,71 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     return true;
 }
 
+static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable* st, Type* found_type )
+{
+    if( !check_type_definition( array_literal.type_definition, st ) )
+    {
+        return false;
+    }
+
+    Type declared_type = type_unwrap_type( array_literal.type_definition->type );
+
+    if( array_literal.length != NULL )
+    {
+        if( !check_expression( array_literal.length, st ) )
+        {
+            return false;
+        }
+
+        if( !type_is_integer( array_literal.length->type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = array_literal.length->starting_token,
+                .type_mismatch = {
+                    .expected = TYPE_INT,
+                    .found = array_literal.length->type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
+
+    size_t length = lvec_get_length( array_literal.initialized_elements );
+    for( size_t i = 0; i < length; i++ )
+    {
+        AstNode* expression = array_literal.initialized_elements[ i ];
+        check_expression( expression, st );
+        if( !type_equals( expression->type, declared_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = expression->starting_token,
+                .type_mismatch = {
+                    .expected = declared_type,
+                    .found = expression->type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
+
+    Type* base = octo_malloc( sizeof( Type ) );
+    *base = declared_type,
+
+    *found_type = ( Type ){
+        .kind = TYPEKIND_ARRAY,
+        .array = {
+            .base = base,
+            .length = array_literal.length
+        }
+    };
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st )
 {
     switch( node->kind )
@@ -324,7 +389,7 @@ static bool check_expression( AstNode* node, SymbolTable* st )
 
         case ASTNODEKIND_FLOATLITERAL:
         {
-            node->type = TYPE_UINT;
+            node->type = TYPE_FLOAT;
             break;
         }
 
@@ -365,6 +430,11 @@ static bool check_expression( AstNode* node, SymbolTable* st )
         case ASTNODEKIND_VARIABLEDECLARATION:
         {
             return check_variable_declaration( node->variable_declaration, st );
+        }
+
+        case ASTNODEKIND_ARRAYLITERAL:
+        {
+            return check_array_literal( node->array_literal, st, &node->type );
         }
     }
 

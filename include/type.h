@@ -56,7 +56,7 @@ bool type_is_numeric( Type type );
 bool type_equals( Type t1, Type t2 );
 void type_print( Type type );
 Type type_wrap( Type type );
-Type type_unwrap( Type type );
+Type type_unwrap_type( Type type );
 
 extern const Type TYPE_UNSPECIFIED;
 extern const Type TYPE_NONE;

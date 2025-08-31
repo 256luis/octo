@@ -128,7 +128,7 @@ Type type_wrap( Type type )
     };
 }
 
-Type type_unwrap( Type type )
+Type type_unwrap_type( Type type )
 {
     assert( type.kind == TYPEKIND_TYPE );
     return *type.type.definition;
