@@ -148,7 +148,7 @@ typedef struct AstNodeConditional
 
 typedef struct AstNodeArrayLiteral
 {
-    AstNode* type_definition;
+    AstNode* base_type_definition;
     AstNode* length;                 // can be null
     AstNode** initialized_elements;  // lvec
 } AstNodeArrayLiteral;

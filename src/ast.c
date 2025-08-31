@@ -853,7 +853,7 @@ static AstNodeArrayLiteral parse_array_literal( AstContext* ctx )
     }
 
     advance( ctx );
-    array_literal.type_definition = parse_type_definition( ctx );
+    array_literal.base_type_definition = parse_type_definition( ctx );
     if( ctx->error_found )
     {
         return array_literal;

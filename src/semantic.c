@@ -296,12 +296,36 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
 
 static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable* st, Type* found_type )
 {
-    if( !check_type_definition( array_literal.type_definition, st ) )
+    if( !check_type_definition( array_literal.base_type_definition, st ) )
     {
         return false;
     }
 
-    Type declared_type = type_unwrap_type( array_literal.type_definition->type );
+    Type declared_type = type_unwrap_type( array_literal.base_type_definition->type );
+
+    size_t length = lvec_get_length( array_literal.initialized_elements );
+    for( size_t i = 0; i < length; i++ )
+    {
+        AstNode* expression = array_literal.initialized_elements[ i ];
+        if( !check_expression( expression, st ) )
+        {
+            return false;
+        }
+
+        if( !type_equals( expression->type, declared_type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = expression->starting_token,
+                .type_mismatch = {
+                    .expected = declared_type,
+                    .found = expression->type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
 
     if( array_literal.length != NULL )
     {
@@ -323,26 +347,19 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
             report_error( error );
             return false;
         }
-    }
 
-    size_t length = lvec_get_length( array_literal.initialized_elements );
-    for( size_t i = 0; i < length; i++ )
+        // TODO: check if the number of initialized elements is less than or equal to
+        //       the declared array length
+    }
+    else
     {
-        AstNode* expression = array_literal.initialized_elements[ i ];
-        check_expression( expression, st );
-        if( !type_equals( expression->type, declared_type ) )
-        {
-            Error error = {
-                .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = expression->starting_token,
-                .type_mismatch = {
-                    .expected = declared_type,
-                    .found = expression->type,
-                },
-            };
-            report_error( error );
-            return false;
-        }
+        // if array.length is NULL, infer the array length
+        array_literal.length = octo_malloc( sizeof( AstNode ) );
+        *array_literal.length = ( AstNode ){
+            .integer_literal = {
+                .integer = length
+            },
+        };
     }
 
     Type* base = octo_malloc( sizeof( Type ) );

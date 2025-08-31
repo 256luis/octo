@@ -408,7 +408,7 @@ void ast_node_print( AstNode node )
             printf("type:");
             depth++;
 
-            ast_node_print( *node.array_literal.type_definition );
+            ast_node_print( *node.array_literal.base_type_definition );
             depth--;
 
             if( node.array_literal.length != NULL )
