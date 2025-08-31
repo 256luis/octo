@@ -180,6 +180,12 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_ILLEGALNONETYPE:
+        {
+            printf( "value of type <none> not allowed here\n" );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();

@@ -274,15 +274,26 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     }
 
     // check if value is valid
+    Type found_type;
     if( variable_declaration.value != NULL )
     {
         if( !check_expression( variable_declaration.value, st ) )
         {
             return false;
         }
+
+        found_type = variable_declaration.value->type;
+        if( found_type.kind == TYPEKIND_NONE )
+        {
+            Error error = {
+                .kind = ERRORKIND_ILLEGALNONETYPE,
+                .offending_token = variable_declaration.value->starting_token,
+            };
+            report_error( error );
+            return false;
+        }
     }
 
-    Type found_type = variable_declaration.value->type;
     if( declared_type.kind != TYPEKIND_UNSPECIFIED )
     {
         // check if declared type is same as found type
@@ -404,6 +415,7 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
 
 static bool check_expression( AstNode* node, SymbolTable* st )
 {
+    node->type = TYPE_NONE;
     switch( node->kind )
     {
         case ASTNODEKIND_STRINGLITERAL:
