@@ -1043,6 +1043,12 @@ static AstNode* parse_term( AstContext* ctx )
             break;
         }
 
+        case TOKENKIND_DOUBLEQUESTIONMARK:
+        {
+            node->kind = ASTNODEKIND_UNINITIALIZED;
+            break;
+        }
+
         default:
         {
             goto return_error;

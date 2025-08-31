@@ -121,13 +121,23 @@ void type_print( Type type )
     }
 }
 
-Type type_wrap( Type type )
+Type type_wrap_type( Type type )
 {
     Type* base = octo_malloc( sizeof( Type ) );
     *base = type;
     return ( Type ){
         .kind = TYPEKIND_TYPE,
         .type.definition = base
+    };
+}
+
+Type type_wrap_array( Type type )
+{
+    Type* base = octo_malloc( sizeof( Type ) );
+    *base = type;
+    return ( Type ){
+        .kind = TYPEKIND_ARRAY,
+        .array.base = base
     };
 }
 

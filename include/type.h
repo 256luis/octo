@@ -55,7 +55,8 @@ bool type_is_float( Type type );
 bool type_is_numeric( Type type );
 bool type_equals( Type t1, Type t2 );
 void type_print( Type type );
-Type type_wrap( Type type );
+Type type_wrap_type( Type type );
+Type type_wrap_array( Type type );
 Type type_unwrap_type( Type type );
 Type type_unwrap_array( Type type );
 

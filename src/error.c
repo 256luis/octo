@@ -186,6 +186,12 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_CANNOTINFERTYPE:
+        {
+            printf( "cannot infer type\n" );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();

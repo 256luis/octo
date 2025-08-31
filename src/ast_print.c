@@ -569,5 +569,11 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_UNINITIALIZED:
+        {
+            printf( "UNINITIALIZED" );
+            break;
+        }
     }
 }

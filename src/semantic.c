@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include "debug.h"
@@ -8,8 +9,9 @@
 #include "symbol.h"
 #include "globals.h"
 
-static bool check_expression( AstNode* node, SymbolTable* st );
+static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint );
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st );
+static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint );
 
 static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* found_type  )
 {
@@ -18,7 +20,7 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* fou
     for( size_t i = 0; i < length; i++ )
     {
         // TODO: think about if we should quit when we encounter the first error or not
-        if ( !check_expression( compound.nodes[ i ], st ) )
+        if ( !check_expression( compound.nodes[ i ], st, TYPE_UNSPECIFIED ) )
         {
             result = false;
         }
@@ -31,7 +33,7 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* fou
 
 static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
 {
-    if( !check_expression( unary.operand, st ) )
+    if( !check_expression( unary.operand, st, TYPE_UNSPECIFIED ) )
     {
         return false;
     }
@@ -96,12 +98,12 @@ static bool check_type_identifier( AstNodeIdentifier identifier, SymbolTable* st
 {
     char* identifier_string = identifier.token.as_string;
 
-    if     ( strcmp( identifier_string, "string" ) == 0 ) *resulting_type = type_wrap( TYPE_STRING );
-    else if( strcmp( identifier_string, "char" ) == 0 )   *resulting_type = type_wrap( TYPE_CHARACTER );
-    else if( strcmp( identifier_string, "bool" ) == 0 )   *resulting_type = type_wrap( TYPE_BOOLEAN );
-    else if( strcmp( identifier_string, "int" ) == 0 )    *resulting_type = type_wrap( TYPE_INT );
-    else if( strcmp( identifier_string, "uint" ) == 0 )   *resulting_type = type_wrap( TYPE_UINT );
-    else if( strcmp( identifier_string, "float" ) == 0 )  *resulting_type = type_wrap( TYPE_FLOAT );
+    if     ( strcmp( identifier_string, "string" ) == 0 ) *resulting_type = type_wrap_type( TYPE_STRING );
+    else if( strcmp( identifier_string, "char" ) == 0 )   *resulting_type = type_wrap_type( TYPE_CHARACTER );
+    else if( strcmp( identifier_string, "bool" ) == 0 )   *resulting_type = type_wrap_type( TYPE_BOOLEAN );
+    else if( strcmp( identifier_string, "int" ) == 0 )    *resulting_type = type_wrap_type( TYPE_INT );
+    else if( strcmp( identifier_string, "uint" ) == 0 )   *resulting_type = type_wrap_type( TYPE_UINT );
+    else if( strcmp( identifier_string, "float" ) == 0 )  *resulting_type = type_wrap_type( TYPE_FLOAT );
     else
     {
         Symbol* symbol = st_get( *st, identifier_string );
@@ -121,7 +123,7 @@ static bool check_type_identifier( AstNodeIdentifier identifier, SymbolTable* st
                 .kind = ERRORKIND_TYPEMISMATCH,
                 .offending_token = identifier.token,
                 .type_mismatch = {
-                    .expected = type_wrap( TYPE_UNSPECIFIED ),
+                    .expected = type_wrap_type( TYPE_UNSPECIFIED ),
                     .found = symbol->type,
                 },
             };
@@ -168,7 +170,7 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
 
     if( array_definition.length != NULL )
     {
-        if( !check_expression( array_definition.length, st ) )
+        if( !check_expression( array_definition.length, st, TYPE_UNSPECIFIED ) )
         {
             return false;
         }
@@ -248,6 +250,60 @@ static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
     return true;
 }
 
+static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint )
+{
+    if( !check_expression( rvalue, st, type_hint ) )
+    {
+        return false;
+    }
+
+    if( rvalue->type.kind == TYPEKIND_NONE )
+    {
+        Error error = {
+            .kind = ERRORKIND_ILLEGALNONETYPE,
+            .offending_token = rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    // if both unspecified, error
+    if( rvalue->type.kind == TYPEKIND_UNSPECIFIED && type_hint.kind == TYPEKIND_UNSPECIFIED )
+    {
+        Error error = {
+            .kind = ERRORKIND_CANNOTINFERTYPE,
+            .offending_token = rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+    // if only found type is unspecified
+    else if( rvalue->type.kind == TYPEKIND_UNSPECIFIED )
+    {
+        rvalue->type = type_hint;
+    }
+    // if they are both specified
+    else if( rvalue->type.kind != TYPEKIND_UNSPECIFIED && type_hint.kind != TYPEKIND_UNSPECIFIED )
+    {
+        // check if declared type is same as found type
+        if( !type_equals( type_hint, rvalue->type ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = rvalue->starting_token,
+                .type_mismatch = {
+                    .expected = type_hint,
+                    .found = rvalue->type,
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static bool check_variable_declaration( AstNodeVariableDeclaration variable_declaration, SymbolTable* st )
 {
     // variable declared must not already be in the symbol table
@@ -274,54 +330,22 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     }
 
     // check if value is valid
-    Type found_type;
-    if( variable_declaration.value != NULL )
+    assert( variable_declaration.value != NULL );
+    if( !check_rvalue( variable_declaration.value, st, declared_type ) )
     {
-        if( !check_expression( variable_declaration.value, st ) )
-        {
-            return false;
-        }
-
-        found_type = variable_declaration.value->type;
-        if( found_type.kind == TYPEKIND_NONE )
-        {
-            Error error = {
-                .kind = ERRORKIND_ILLEGALNONETYPE,
-                .offending_token = variable_declaration.value->starting_token,
-            };
-            report_error( error );
-            return false;
-        }
-    }
-
-    if( declared_type.kind != TYPEKIND_UNSPECIFIED )
-    {
-        // check if declared type is same as found type
-        if( !type_equals( declared_type, found_type ) )
-        {
-            Error error = {
-                .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = variable_declaration.value->starting_token,
-                .type_mismatch = {
-                    .expected = declared_type,
-                    .found = found_type,
-                },
-            };
-            report_error( error );
-            return false;
-        }
+        return false;
     }
 
     // add to symbol table
     Symbol symbol = {
         .key = identifier_token,
-        .type = found_type
+        .type = variable_declaration.value->type
     };
     st_insert( st, symbol );
     return true;
 }
 
-static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable* st, Type* found_type )
+static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable* st, Type* found_type, Type type_hint )
 {
     Type declared_type = TYPE_UNSPECIFIED;
     if( array_literal.base_type_definition != NULL )
@@ -331,89 +355,92 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
             return false;
         }
 
-        declared_type = type_unwrap_type( array_literal.base_type_definition->type );
-        declared_type = type_unwrap_array( declared_type );
-    }
+        declared_type = array_literal.base_type_definition->type;
+        declared_type = type_unwrap_type( declared_type );
 
-    size_t length = lvec_get_length( array_literal.initialized_elements );
-    for( size_t i = 0; i < length; i++ )
-    {
-        AstNode* expression = array_literal.initialized_elements[ i ];
-        if( !check_expression( expression, st ) )
-        {
-            return false;
-        }
-
-        if( type_equals( declared_type, TYPE_UNSPECIFIED ) )
-        {
-            declared_type = expression->type;
-        }
-        else if( !type_equals( expression->type, declared_type ) )
+        if( type_hint.kind != TYPEKIND_UNSPECIFIED &&
+            !type_equals( declared_type, type_hint ) )
         {
             Error error = {
                 .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = expression->starting_token,
+                .offending_token = array_literal.base_type_definition->starting_token,
                 .type_mismatch = {
-                    .expected = declared_type,
-                    .found = expression->type,
+                    .expected = type_hint,
+                    .found = declared_type
                 },
             };
             report_error( error );
             return false;
         }
-    }
-
-    if( array_literal.length != NULL )
-    {
-        if( !check_expression( array_literal.length, st ) )
-        {
-            return false;
-        }
-
-        if( !type_is_integer( array_literal.length->type ) )
-        {
-            Error error = {
-                .kind = ERRORKIND_TYPEMISMATCH,
-                .offending_token = array_literal.length->starting_token,
-                .type_mismatch = {
-                    .expected = TYPE_INT,
-                    .found = array_literal.length->type,
-                },
-            };
-            report_error( error );
-            return false;
-        }
-
-        // TODO: check if the number of initialized elements is less than or equal to
-        //       the declared array length
     }
     else
     {
-        // if array.length is NULL, infer the array length
-        array_literal.length = octo_malloc( sizeof( AstNode ) );
-        *array_literal.length = ( AstNode ){
-            .integer_literal = {
-                .integer = length
-            },
-        };
+        declared_type = type_hint;
     }
 
-    Type* base = octo_malloc( sizeof( Type ) );
-    // *base = type_unwrap_array( declared_type ),
-    *base = declared_type,
+    if( array_literal.length != NULL &&
+        !check_rvalue( array_literal.length, st, TYPE_INT ) )
+    {
+        return false;
+    }
 
-    *found_type = ( Type ){
-        .kind = TYPEKIND_ARRAY,
-        .array = {
-            .base = base,
-            .length = array_literal.length
+    Type base_type = TYPE_UNSPECIFIED;
+    if( declared_type.kind != TYPEKIND_UNSPECIFIED )
+    {
+        base_type = type_unwrap_array( declared_type );
+    }
+
+    size_t length = lvec_get_length( array_literal.initialized_elements );
+    Type inferred_type;
+    if( length > 0 )
+    {
+        AstNode* first = array_literal.initialized_elements[ 0 ];
+        if( !check_rvalue( first, st, base_type ) )
+        {
+            return false;
         }
-    };
 
+        inferred_type = first->type;
+    }
+
+    for( size_t i = 0; i < length; i++ )
+    {
+        AstNode* expression = array_literal.initialized_elements[ i ];
+        if( !check_rvalue( expression, st, base_type ) )
+        {
+            return false;
+        }
+
+        if( base_type.kind == TYPEKIND_UNSPECIFIED )
+        {
+            if( !type_equals( inferred_type, expression->type ) )
+            {
+                Error error = {
+                    .kind = ERRORKIND_TYPEMISMATCH,
+                    .offending_token = expression->starting_token,
+                    .type_mismatch = {
+                        .expected = inferred_type,
+                        .found = expression->type
+                    },
+                };
+                report_error( error );
+                return false;
+            }
+        }
+    }
+
+    if( declared_type.kind != TYPEKIND_UNSPECIFIED )
+    {
+        *found_type = declared_type;
+    }
+    else
+    {
+        *found_type = type_wrap_array( inferred_type );
+    }
     return true;
 }
 
-static bool check_expression( AstNode* node, SymbolTable* st )
+static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
     switch( node->kind )
@@ -489,7 +516,13 @@ static bool check_expression( AstNode* node, SymbolTable* st )
 
         case ASTNODEKIND_ARRAYLITERAL:
         {
-            return check_array_literal( node->array_literal, st, &node->type );
+            return check_array_literal( node->array_literal, st, &node->type, type_hint );
+        }
+
+        case ASTNODEKIND_UNINITIALIZED:
+        {
+            node->type = TYPE_UNSPECIFIED;
+            break;
         }
     }
 
@@ -501,6 +534,6 @@ bool check_ast( AstNode* ast )
     SymbolTable st;
     st_initialize( &st );
 
-    bool is_valid = check_expression( ast, &st );
+    bool is_valid = check_expression( ast, &st, TYPE_UNSPECIFIED );
     return is_valid;
 }

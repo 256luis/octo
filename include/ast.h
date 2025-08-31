@@ -34,6 +34,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_ARRAYDEFINITION,
     ASTNODEKIND_ASSIGNMENT,
     ASTNODEKIND_POINTERDEFINITION,
+    ASTNODEKIND_UNINITIALIZED,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -148,7 +149,7 @@ typedef struct AstNodeConditional
 
 typedef struct AstNodeArrayLiteral
 {
-    AstNode* base_type_definition;
+    AstNode* base_type_definition;   // can be null
     AstNode* length;                 // can be null
     AstNode** initialized_elements;  // lvec
 } AstNodeArrayLiteral;
