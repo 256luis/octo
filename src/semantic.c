@@ -11,7 +11,7 @@
 static bool check_expression( AstNode* node, SymbolTable* st );
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st );
 
-static bool check_compound( AstNodeCompound compound, SymbolTable* st  )
+static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* found_type  )
 {
     size_t length = lvec_get_length( compound.nodes );
     bool result = true;
@@ -22,6 +22,8 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st  )
         {
             result = false;
         }
+
+        *found_type = compound.nodes[ i ]->type;
     }
 
     return result;
@@ -454,7 +456,7 @@ static bool check_expression( AstNode* node, SymbolTable* st )
 
         case ASTNODEKIND_COMPOUND:
         {
-            return check_compound( node->compound, st );
+            return check_compound( node->compound, st, &node->type );
         }
 
         case ASTNODEKIND_BINARY:
