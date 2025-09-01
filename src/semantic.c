@@ -32,6 +32,8 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* fou
 {
     size_t length = lvec_get_length( compound.nodes );
     bool result = true;
+
+    st_push_scope( st );
     for( size_t i = 0; i < length; i++ )
     {
         // TODO: think about if we should quit when we encounter the first error or not
@@ -42,6 +44,7 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* fou
 
         *found_type = compound.nodes[ i ]->type;
     }
+    st_pop_scope( st );
 
     return result;
 }

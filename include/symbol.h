@@ -22,5 +22,6 @@ void st_push_scope( SymbolTable* st );
 void st_pop_scope( SymbolTable* st );
 void st_insert( SymbolTable* st, Symbol symbol );
 Symbol* st_get( SymbolTable st, char* key );
+void st_print( SymbolTable st );
 
 #endif

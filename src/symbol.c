@@ -1,6 +1,8 @@
+#include <stdio.h>
 #include <stddef.h>
 #include <string.h>
 #include "lvec.h"
+#include "type.h"
 #include "symbol.h"
 
 void st_initialize( SymbolTable* st )
@@ -17,8 +19,10 @@ void st_push_scope( SymbolTable* st )
 
 void st_pop_scope( SymbolTable* st )
 {
-    size_t length = lvec_get_length( st->symbols );
-    for( size_t i = 0; i < length; i++ )
+    int length = lvec_get_length( st->symbols );
+    if( length == 0 ) return;
+
+    for( int i = length-1; i >= 0; i-- )
     {
         int symbol_depth = st->symbol_depths[ i ];
         if( symbol_depth == st->current_depth )
@@ -49,4 +53,15 @@ Symbol* st_get( SymbolTable st, char* key )
     }
 
     return NULL;
+}
+
+void st_print( SymbolTable st )
+{
+    size_t length = lvec_get_length( st.symbols );
+    for( size_t i = 0; i < length; i++ )
+    {
+        printf( "%s ", st.symbols[ i ].key.as_string );
+        type_print( st.symbols[ i ].type );
+        printf( " %d\n", st.symbol_depths[ i ] );
+    }
 }
