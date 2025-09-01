@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include "type.h"
 #include "debug.h"
 #include "globals.h"
+#include "symbol.h"
 #include "lvec.h"
 
 const Type TYPE_UNSPECIFIED = { .kind = TYPEKIND_UNSPECIFIED };
@@ -56,9 +58,21 @@ bool type_equals( Type t1, Type t2 )
         return false;
     }
 
+    if( t1.identifier_token != NULL && t2.identifier_token != NULL )
+    {
+        return strcmp( t1.identifier_token->as_string, t2.identifier_token->as_string ) == 0;
+    }
+    else if( t1.identifier_token == NULL && t2.identifier_token == NULL )
+    {
+        // do nothing
+    }
+    else
+    {
+        return false;
+    }
+
     switch( t1.kind )
     {
-
         case TYPEKIND_UNSPECIFIED:
         case TYPEKIND_NONE:
         case TYPEKIND_PRIMITIVE_STRING:
@@ -79,6 +93,31 @@ bool type_equals( Type t1, Type t2 )
         case TYPEKIND_POINTER:
         {
             return type_equals( *t1.array.base, *t2.array.base );
+        }
+
+        case TYPEKIND_STRUCT:
+        {
+            Symbol* t1_members = t1.structure.members->symbols;
+            Symbol* t2_members = t2.structure.members->symbols;
+
+            size_t t1_member_count = lvec_get_length( t1_members );
+            size_t t2_member_count = lvec_get_length( t2_members );
+            if( t1_member_count != t2_member_count )
+            {
+                return false;
+            }
+
+            for( size_t i = 0; i < t1_member_count; i++ )
+            {
+                Type t1_member_type = t1_members[ i ].type;
+                Type t2_member_type = t2_members[ i ].type;
+                if( !type_equals( t1_member_type, t2_member_type ) )
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         default:
@@ -123,6 +162,22 @@ void type_print( Type type )
         }
 
         case TYPEKIND_STRUCT:
+        {
+            Symbol* members = type.structure.members->symbols;
+            size_t member_count = lvec_get_length( members );
+
+            printf( "struct { " );
+            for( size_t i = 0; i < member_count; i++ )
+            {
+                printf( "%s: ", members[ i ].key.as_string );
+                type_print( members[ i ].type );
+                printf( ", " );
+            }
+            printf( "}" );
+
+            break;
+        }
+
         case TYPEKIND_ENUM:
             UNIMPLEMENTED();
     }

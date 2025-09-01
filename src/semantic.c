@@ -245,7 +245,7 @@ static bool check_struct_definition( AstNodeStructDefinition struct_definition, 
 
         Symbol member_symbol = {
             .key = struct_definition.member_identifiers[ i ],
-            .type = struct_definition.member_type_definitions[ i ]->type
+            .type = type_unwrap_type( struct_definition.member_type_definitions[ i ]->type )
         };
         st_insert( struct_st, member_symbol );
     }
@@ -510,6 +510,73 @@ static bool check_type_declaration( AstNodeTypeDeclaration type_declaration, Sym
     return true;
 }
 
+static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTable* st, Type* found_type, Type type_hint )
+{
+    Type type = TYPE_UNSPECIFIED;
+    if( struct_literal.type_definition != NULL )
+    {
+        if( !check_type_definition( struct_literal.type_definition, st ) )
+        {
+            return false;
+        }
+
+        type = type_unwrap_type( struct_literal.type_definition->type );
+
+        if( type_hint.kind != TYPEKIND_UNSPECIFIED &&
+            !type_equals( type, type_hint ) )
+        {
+            Error error = {
+                .kind = ERRORKIND_TYPEMISMATCH,
+                .offending_token = struct_literal.type_definition->starting_token,
+                .type_mismatch = {
+                    .expected = type_hint,
+                    .found = type
+                },
+            };
+            report_error( error );
+            return false;
+        }
+    }
+    else
+    {
+        type = type_hint;
+    }
+
+    if( type.kind == TYPEKIND_UNSPECIFIED && type_hint.kind == TYPEKIND_UNSPECIFIED )
+    {
+        *found_type = TYPE_UNSPECIFIED;
+        return true;
+    }
+
+    SymbolTable* struct_st = type.structure.members;
+
+    // check initialized values
+    size_t initialized_count = lvec_get_length( struct_literal.initialized_member_values );
+    for( size_t i = 0; i < initialized_count; i++ )
+    {
+        Token identifier_token = struct_literal.initialized_member_tokens[ i ];
+        Symbol* member_symbol = st_get( *struct_st, identifier_token.as_string );
+        if( member_symbol == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_UNDECLAREDSYMBOL,
+                .offending_token = identifier_token,
+            };
+            report_error( error );
+            return false;
+        }
+
+        AstNode* initialized_member_value = struct_literal.initialized_member_values[ i ];
+        if( !check_rvalue( initialized_member_value, st, member_symbol->type ) )
+        {
+            return false;
+        }
+    }
+
+    *found_type = type;
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -598,6 +665,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_TYPEDECLARATION:
         {
             return check_type_declaration( node->type_declaration, st );
+        }
+
+        case ASTNODEKIND_STRUCTLITERAL:
+        {
+            return check_struct_literal( node->struct_literal, st, &node->type, type_hint );
         }
     }
 
