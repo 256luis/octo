@@ -13,6 +13,21 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint );
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st );
 static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint );
 
+static bool ensure_identifier_not_exist( Token identifier_token, SymbolTable* st )
+{
+    if( st_get( *st, identifier_token.as_string ) != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_SYMBOLREDECLARATION,
+            .offending_token = identifier_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    return true;
+}
+
 static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* found_type  )
 {
     size_t length = lvec_get_length( compound.nodes );
@@ -308,13 +323,8 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
 {
     // variable declared must not already be in the symbol table
     Token identifier_token = variable_declaration.identifier_token;
-    if( st_get( *st, identifier_token.as_string ) != NULL )
+    if( !ensure_identifier_not_exist( identifier_token, st ) )
     {
-        Error error = {
-            .kind = ERRORKIND_SYMBOLREDECLARATION,
-            .offending_token = identifier_token,
-        };
-        report_error( error );
         return false;
     }
 
@@ -438,6 +448,29 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
     return true;
 }
 
+static bool check_type_declaration( AstNodeTypeDeclaration type_declaration, SymbolTable* st )
+{
+    Token identifier_token = type_declaration.identifier_token;
+    if( !ensure_identifier_not_exist( identifier_token, st ) )
+    {
+        return false;
+    }
+
+    if( !check_type_definition( type_declaration.type_definition, st ) )
+    {
+        return false;
+    }
+
+    Symbol symbol = {
+        .key = identifier_token,
+        .type = type_declaration.type_definition->type,
+    };
+
+    st_insert( st, symbol );
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -521,6 +554,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         {
             node->type = TYPE_UNSPECIFIED;
             break;
+        }
+
+        case ASTNODEKIND_TYPEDECLARATION:
+        {
+            return check_type_declaration( node->type_declaration, st );
         }
     }
 
