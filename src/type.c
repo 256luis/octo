@@ -3,6 +3,7 @@
 #include "type.h"
 #include "debug.h"
 #include "globals.h"
+#include "lvec.h"
 
 const Type TYPE_UNSPECIFIED = { .kind = TYPEKIND_UNSPECIFIED };
 const Type TYPE_NONE        = { .kind = TYPEKIND_NONE };
@@ -89,6 +90,12 @@ bool type_equals( Type t1, Type t2 )
 
 void type_print( Type type )
 {
+    if( type.identifier_token != NULL )
+    {
+        printf("%s", type.identifier_token->as_string);
+        return;
+    }
+
     switch( type.kind )
     {
         case TYPEKIND_UNSPECIFIED:         printf("UNSPECIFIED"); break;

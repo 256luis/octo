@@ -2,6 +2,9 @@
 #define TYPE_H
 
 #include <stdint.h>
+#include "tokenizer.h"
+
+typedef struct SymbolTable SymbolTable;
 
 typedef struct Type Type;
 typedef struct AstNode AstNode;
@@ -39,14 +42,23 @@ typedef struct TypeType
     Type* definition;
 } TypeType;
 
+typedef struct TypeStruct
+{
+    SymbolTable* members;
+    size_t member_count;
+} TypeStruct;
+
 typedef struct Type
 {
     TypeKind kind;
+    Token* identifier_token; // for user defined types, can be null
+
     union
     {
         TypeArray array;
         TypePointer pointer;
         TypeType type;
+        TypeStruct structure;
     };
 } Type;
 

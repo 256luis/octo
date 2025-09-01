@@ -230,6 +230,38 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
     return true;
 }
 
+static bool check_struct_definition( AstNodeStructDefinition struct_definition, SymbolTable* st, Type* resulting_type )
+{
+    SymbolTable* struct_st = octo_malloc( sizeof( SymbolTable ) );
+    st_initialize( struct_st );
+
+    size_t member_count = lvec_get_length( struct_definition.member_type_definitions );
+    for( size_t i = 0; i < member_count; i++ )
+    {
+        if( !check_type_definition( struct_definition.member_type_definitions[ i ], st ) )
+        {
+            return false;
+        }
+
+        Symbol member_symbol = {
+            .key = struct_definition.member_identifiers[ i ],
+            .type = struct_definition.member_type_definitions[ i ]->type
+        };
+        st_insert( struct_st, member_symbol );
+    }
+
+    Type definition = {
+        .kind = TYPEKIND_STRUCT,
+        .structure = {
+            .members = struct_st,
+            .member_count = member_count,
+        },
+    };
+
+    *resulting_type = type_wrap_type( definition );
+    return true;
+}
+
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 {
     switch( type_definition->kind )
@@ -241,7 +273,7 @@ static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 
         case ASTNODEKIND_STRUCTDEFINITION:
         {
-            UNIMPLEMENTED();
+            return check_struct_definition( type_definition->struct_definition, st, &type_definition->type );
         }
 
         case ASTNODEKIND_ENUMDEFINITION:
@@ -463,6 +495,10 @@ static bool check_type_declaration( AstNodeTypeDeclaration type_declaration, Sym
     {
         return false;
     }
+
+    // this chain of members is CURSED!!!!
+    type_declaration.type_definition->type.type.definition->identifier_token = octo_malloc( sizeof( Token ) );
+    *type_declaration.type_definition->type.type.definition->identifier_token = identifier_token;
 
     Symbol symbol = {
         .key = identifier_token,

@@ -446,7 +446,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
 {
     AstNodeStructDefinition struct_definition = {
         .member_identifiers = lvec_new( Token ),
-        .member_types = lvec_new( AstNode* ),
+        .member_type_definitions = lvec_new( AstNode* ),
     };
 
     advance( ctx );
@@ -478,7 +478,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
             return struct_definition;
         }
 
-        lvec_append_aggregate( struct_definition.member_types, member_type );
+        lvec_append_aggregate( struct_definition.member_type_definitions, member_type );
 
         advance( ctx );
         if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTBRACE ) )

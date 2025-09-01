@@ -103,7 +103,7 @@ typedef struct AstNodeFunctionCall
 typedef struct AstNodeStructDefinition
 {
     Token* member_identifiers; // lvec
-    AstNode** member_types; // lvec
+    AstNode** member_type_definitions; // lvec
 } AstNodeStructDefinition;
 
 typedef struct AstNodeEnumDefinition

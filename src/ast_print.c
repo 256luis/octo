@@ -273,7 +273,7 @@ void ast_node_print( AstNode node )
             {
                 printf( "%s: ", node.struct_definition.member_identifiers[ i ].as_string );
                 depth++;
-                ast_node_print( *node.struct_definition.member_types[ i ] );
+                ast_node_print( *node.struct_definition.member_type_definitions[ i ] );
                 depth--;
                 newline();
             }
