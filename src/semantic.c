@@ -13,7 +13,7 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint );
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st );
 static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint );
 
-static bool ensure_identifier_not_exist( Token identifier_token, SymbolTable* st )
+static bool ensure_identifier_free( Token identifier_token, SymbolTable* st )
 {
     if( st_get( *st, identifier_token.as_string ) != NULL )
     {
@@ -317,6 +317,16 @@ static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint )
         return false;
     }
 
+    if( rvalue->type.kind == TYPEKIND_TYPE )
+    {
+        Error error = {
+            .kind = ERRORKIND_ILLEGALTYPETYPE,
+            .offending_token = rvalue->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
     // if both unspecified, error
     if( rvalue->type.kind == TYPEKIND_UNSPECIFIED && type_hint.kind == TYPEKIND_UNSPECIFIED )
     {
@@ -358,7 +368,7 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
 {
     // variable declared must not already be in the symbol table
     Token identifier_token = variable_declaration.identifier_token;
-    if( !ensure_identifier_not_exist( identifier_token, st ) )
+    if( !ensure_identifier_free( identifier_token, st ) )
     {
         return false;
     }
@@ -486,7 +496,7 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
 static bool check_type_declaration( AstNodeTypeDeclaration type_declaration, SymbolTable* st )
 {
     Token identifier_token = type_declaration.identifier_token;
-    if( !ensure_identifier_not_exist( identifier_token, st ) )
+    if( !ensure_identifier_free( identifier_token, st ) )
     {
         return false;
     }
@@ -670,6 +680,19 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_STRUCTLITERAL:
         {
             return check_struct_literal( node->struct_literal, st, &node->type, type_hint );
+        }
+
+        case ASTNODEKIND_ROUTINEDECLARATION:
+        {
+            UNIMPLEMENTED();
+        }
+
+        case ASTNODEKIND_STRUCTDEFINITION:
+        case ASTNODEKIND_ENUMDEFINITION:
+        case ASTNODEKIND_ARRAYDEFINITION:
+        case ASTNODEKIND_POINTERDEFINITION:
+        {
+            return check_type_definition( node, st );
         }
     }
 

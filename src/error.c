@@ -192,6 +192,12 @@ void report_error( Error error )
             break;
         }
 
+        case ERRORKIND_ILLEGALTYPETYPE:
+        {
+            printf( "type definition not allowed here\n" );
+            break;
+        }
+
         default:
         {
             UNIMPLEMENTED();
