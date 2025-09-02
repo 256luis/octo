@@ -858,6 +858,22 @@ static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable*
     return true;
 }
 
+static bool check_assignment( AstNodeAssignment assignment, SymbolTable* st )
+{
+    if( !check_expression( assignment.target, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+
+    Type target_type = assignment.target->type;
+    if( !check_rvalue( assignment.value, st, target_type ) )
+    {
+        return false;
+    }
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -976,6 +992,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_MEMBERACCESS:
         {
             return check_member_access( node->member_access, st, &node->type, type_hint );
+        }
+
+        case ASTNODEKIND_ASSIGNMENT:
+        {
+            return check_assignment( node->assignment, st );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:
