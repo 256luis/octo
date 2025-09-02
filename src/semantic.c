@@ -40,6 +40,7 @@ static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* fou
         if ( !check_expression( compound.nodes[ i ], st, TYPE_UNSPECIFIED ) )
         {
             result = false;
+            continue;
         }
 
         *found_type = compound.nodes[ i ]->type;
@@ -698,6 +699,7 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token rout
     }
 
     st_pop_scope( st );
+
     return true;
 }
 
