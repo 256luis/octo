@@ -521,7 +521,7 @@ static bool check_type_declaration( AstNodeTypeDeclaration type_declaration, Sym
     return true;
 }
 
-static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTable* st, Type* found_type, Type type_hint )
+static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTable* st, Type* found_type, Type type_hint, Token starting_token )
 {
     Type type = TYPE_UNSPECIFIED;
     if( struct_literal.type_definition != NULL )
@@ -557,6 +557,25 @@ static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTab
     {
         *found_type = TYPE_UNSPECIFIED;
         return true;
+    }
+
+    if( type.kind != TYPEKIND_STRUCT )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTASTRUCT,
+        };
+
+        if( struct_literal.type_definition != NULL )
+        {
+            error.offending_token = struct_literal.type_definition->starting_token;
+        }
+        else
+        {
+            error.offending_token = starting_token;
+        }
+
+        report_error( error );
+        return false;
     }
 
     SymbolTable* struct_st = type.structure.members;
@@ -966,7 +985,7 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
         case ASTNODEKIND_STRUCTLITERAL:
         {
-            return check_struct_literal( node->struct_literal, st, &node->type, type_hint );
+            return check_struct_literal( node->struct_literal, st, &node->type, type_hint, node->starting_token );
         }
 
         case ASTNODEKIND_ROUTINEDECLARATION:
