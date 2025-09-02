@@ -504,10 +504,7 @@ void ast_node_print( AstNode node )
                 newline();
             }
 
-            printf( "member:" );
-            depth++;
-            ast_node_print( *node.member_access.member );
-            depth--;
+            printf( "member: %s", node.member_access.member_token.as_string );
 
             depth--;
             break;

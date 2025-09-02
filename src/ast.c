@@ -310,7 +310,7 @@ static AstNodeMemberAccess parse_member_access( AstContext* ctx, AstNode* target
     };
 
     advance( ctx );
-    member_access.member = parse_term( ctx );
+    member_access.member_token = ctx->current_token;
     return member_access;
 }
 
@@ -1016,13 +1016,6 @@ static AstNode* parse_term( AstContext* ctx )
                 {
                     node->kind = ASTNODEKIND_STRUCTLITERAL;
                     node->struct_literal = parse_struct_literal( ctx, NULL );
-                    break;
-                }
-
-                case TOKENKIND_IDENTIFIER:
-                {
-                    node->kind = ASTNODEKIND_MEMBERACCESS;
-                    node->member_access = parse_member_access( ctx, NULL );
                     break;
                 }
 

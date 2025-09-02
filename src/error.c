@@ -235,6 +235,12 @@ void report_error( Error error )
             printf( "the else block must return the same type as the main block in if-statements\n" );
             break;
         }
+
+        case ERRORKIND_NOTASTRUCT:
+        {
+            printf( "not a struct\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

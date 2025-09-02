@@ -823,6 +823,41 @@ static bool check_conditional( AstNodeConditional conditional, SymbolTable* st, 
     return true;
 }
 
+static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable* st, Type* found_type, Type type_hint )
+{
+    if( !check_expression( member_access.target, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+
+    Type target_type = member_access.target->type;
+    if( target_type.kind != TYPEKIND_STRUCT )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTASTRUCT,
+            .offending_token = member_access.target->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    SymbolTable* target_st = target_type.structure.members;
+    Symbol* member_symbol = st_get( *target_st, member_access.member_token.as_string );
+    if( member_symbol == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNDECLAREDSYMBOL,
+            .offending_token = member_access.member_token,
+            .note = "no such member in type",
+        };
+        report_error( error );
+        return false;
+    }
+
+    *found_type = member_symbol->type;
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -936,6 +971,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_CONDITIONAL:
         {
             return check_conditional( node->conditional, st, &node->type );
+        }
+
+        case ASTNODEKIND_MEMBERACCESS:
+        {
+            return check_member_access( node->member_access, st, &node->type, type_hint );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:
