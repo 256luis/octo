@@ -20,7 +20,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_BINARY,
     ASTNODEKIND_UNARY,
     ASTNODEKIND_SUBSCRIPT,
-    ASTNODEKIND_FUNCTIONCALL,
+    ASTNODEKIND_ROUTINECALL,
     ASTNODEKIND_VARIABLEDECLARATION,
     ASTNODEKIND_TYPEDECLARATION,
     ASTNODEKIND_STRUCTDEFINITION,
@@ -94,11 +94,11 @@ typedef struct AstNodeCompound
     AstNode** nodes; // lvec
 } AstNodeCompound;
 
-typedef struct AstNodeFunctionCall
+typedef struct AstNodeRoutineCall
 {
-    AstNode* function;
+    AstNode* routine;
     AstNode** args; // lvec
-} AstNodeFunctionCall;
+} AstNodeRoutineCall;
 
 typedef struct AstNodeStructDefinition
 {
@@ -202,7 +202,7 @@ typedef struct AstNode
         AstNodeBinary binary;
         AstNodeUnary unary;
         AstNodeSubscript subscript;
-        AstNodeFunctionCall function_call;
+        AstNodeRoutineCall routine_call;
         AstNodeVariableDeclaration variable_declaration;
         AstNodeTypeDeclaration type_declaration;
         AstNodeStructDefinition struct_definition;

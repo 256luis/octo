@@ -215,6 +215,14 @@ void report_error( Error error )
             printf( "procedures cannot return a value\n" );
             break;
         }
+
+        case ERRORKIND_INCORRECTARGCOUNT:
+        {
+            printf( "expected %d arguments, found %d\n",
+                    error.incorrect_arg_count.expected,
+                    error.incorrect_arg_count.found );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

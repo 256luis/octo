@@ -37,6 +37,7 @@ typedef enum ErrorKind
     ERRORKIND_NOTAROUTINE,
     ERRORKIND_MISSINGTYPE,
     ERRORKIND_PROCEDUREWITHRETURN,
+    ERRORKIND_INCORRECTARGCOUNT,
 } ErrorKind;
 
 typedef struct Error
@@ -52,6 +53,12 @@ typedef struct Error
             Type expected;
             Type found;
         } type_mismatch;
+
+        struct
+        {
+            int expected;
+            int found;
+        } incorrect_arg_count;
     };
 } Error;
 

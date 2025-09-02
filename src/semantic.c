@@ -717,6 +717,57 @@ static bool check_routine_declaration( AstNodeRoutineDeclaration routine_declara
     return true;
 }
 
+static bool check_routine_call( AstNodeRoutineCall routine_call, SymbolTable* st, Type* found_type )
+{
+    if( !check_expression( routine_call.routine, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+
+    // ensure that the routine being called is actually a routine
+    if( routine_call.routine->type.kind != TYPEKIND_ROUTINE )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTAROUTINE,
+            .offending_token = routine_call.routine->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    TypeRoutine routine_type = routine_call.routine->type.routine;
+    *found_type = *routine_type.return_type;
+
+    // check if the args match
+    size_t arg_count = lvec_get_length( routine_call.args );
+    size_t routine_param_count = lvec_get_length(routine_type.param_types);
+    if( arg_count != routine_param_count )
+    {
+        Error error = {
+            .kind = ERRORKIND_INCORRECTARGCOUNT,
+            .offending_token = routine_call.routine->starting_token,
+            .incorrect_arg_count = {
+                .expected = routine_param_count,
+                .found = arg_count,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    for( size_t i = 0; i < arg_count; i++ )
+    {
+        Type expected_type = routine_type.param_types[ i ];
+        AstNode* arg = routine_call.args[ i ];
+        if( !check_rvalue( arg, st, expected_type ) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -815,6 +866,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_ROUTINEDECLARATION:
         {
             return check_routine_declaration( node->routine_declaration, st );
+        }
+
+        case ASTNODEKIND_ROUTINECALL:
+        {
+            return check_routine_call( node->routine_call, st, &node->type );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:

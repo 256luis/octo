@@ -172,21 +172,21 @@ void ast_node_print( AstNode node )
             break;
         }
 
-        case ASTNODEKIND_FUNCTIONCALL:
+        case ASTNODEKIND_ROUTINECALL:
         {
 
-            printf( "FUNCTION CALL:" );
+            printf( "ROUTINE CALL:" );
             depth++;
             newline();
 
-            printf( "function:" );
+            printf( "routine:" );
             depth++;
 
 
-            ast_node_print( *node.function_call.function );
+            ast_node_print( *node.routine_call.routine );
             depth--;
 
-            size_t arg_count = lvec_get_length( node.function_call.args );
+            size_t arg_count = lvec_get_length( node.routine_call.args );
             if( arg_count > 0 )
             {
                 newline();
@@ -195,7 +195,7 @@ void ast_node_print( AstNode node )
 
                 for( size_t i = 0; i < arg_count; i++ )
                 {
-                    AstNode* arg = node.function_call.args[i];
+                    AstNode* arg = node.routine_call.args[i];
                     ast_node_print( *arg );
                 }
 

@@ -145,13 +145,13 @@ static AstNodeUnary parse_unary( AstContext* ctx )
     return unary;
 }
 
-static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* function )
+static AstNodeRoutineCall parse_routine_call( AstContext* ctx, AstNode* routine )
 {
-    AstNodeFunctionCall function_call = {
-        .function = function,
+    AstNodeRoutineCall routine_call = {
+        .routine = routine,
     };
 
-    function_call.args = lvec_new( AstNode* );
+    routine_call.args = lvec_new( AstNode* );
 
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTPAREN )
@@ -159,10 +159,10 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
         AstNode* arg = parse_expression_rvalue( ctx );
         if( ctx->error_found )
         {
-            return function_call;
+            return routine_call;
         }
 
-        lvec_append( function_call.args, arg );
+        lvec_append( routine_call.args, arg );
         advance( ctx );
 
         if ( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN ) )
@@ -171,10 +171,10 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
                 .kind = ERRORKIND_INCORRECTSYNTAX,
                 .offending_token = ctx->current_token,
                 // TODO: check if this notation is correct
-                .note = "function calls take the form `<identifier>(<expression>[, <expression>])`"
+                .note = "routine calls take the form `<identifier>(<expression>[, <expression>])`"
             };
             report_error( error );
-            return function_call;
+            return routine_call;
         }
 
         if( ctx->current_token.kind == TOKENKIND_COMMA )
@@ -183,7 +183,7 @@ static AstNodeFunctionCall parse_function_call( AstContext* ctx, AstNode* functi
         }
     }
 
-    return function_call;
+    return routine_call;
 }
 
 static AstNodeStructLiteral parse_struct_literal( AstContext* ctx, AstNode* type_definition )
@@ -317,6 +317,7 @@ static AstNodeMemberAccess parse_member_access( AstContext* ctx, AstNode* target
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
+    node->starting_token = previous->starting_token;
 
     switch( ctx->current_token.kind )
     {
@@ -330,8 +331,8 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
 
         case TOKENKIND_LEFTPAREN:
         {
-            node->kind = ASTNODEKIND_FUNCTIONCALL;
-            node->function_call = parse_function_call( ctx, previous );
+            node->kind = ASTNODEKIND_ROUTINECALL;
+            node->routine_call = parse_routine_call( ctx, previous );
             break;
         }
 
