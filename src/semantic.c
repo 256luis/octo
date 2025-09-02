@@ -28,7 +28,7 @@ static bool ensure_identifier_free( Token identifier_token, SymbolTable* st )
     return true;
 }
 
-static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* found_type  )
+static bool check_compound( AstNodeCompound compound, SymbolTable* st, Type* found_type )
 {
     size_t length = lvec_get_length( compound.nodes );
     bool result = true;
@@ -308,16 +308,6 @@ static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint )
         return false;
     }
 
-    if( rvalue->type.kind == TYPEKIND_NONE && type_hint.kind != TYPEKIND_NONE )
-    {
-        Error error = {
-            .kind = ERRORKIND_ILLEGALNONETYPE,
-            .offending_token = rvalue->starting_token,
-        };
-        report_error( error );
-        return false;
-    }
-
     if( rvalue->type.kind == TYPEKIND_TYPE )
     {
         Error error = {
@@ -389,6 +379,16 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     assert( variable_declaration.value != NULL );
     if( !check_rvalue( variable_declaration.value, st, declared_type ) )
     {
+        return false;
+    }
+
+    if( variable_declaration.value->type.kind == TYPEKIND_NONE )
+    {
+        Error error = {
+            .kind = ERRORKIND_ILLEGALNONETYPE,
+            .offending_token = variable_declaration.value->starting_token,
+        };
+        report_error( error );
         return false;
     }
 
@@ -774,6 +774,55 @@ static bool check_routine_call( AstNodeRoutineCall routine_call, SymbolTable* st
     return true;
 }
 
+static bool check_conditional( AstNodeConditional conditional, SymbolTable* st, Type* found_type )
+{
+    if( !check_rvalue( conditional.condition, st, TYPE_BOOLEAN ) )
+    {
+        return false;
+    }
+
+    Type main_body_type = TYPE_NONE;
+    Type else_body_type = TYPE_NONE;
+
+    if( !check_expression( conditional.main_body, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+    main_body_type = conditional.main_body->type;
+
+    if( conditional.else_body != NULL )
+    {
+        if( conditional.is_while )
+        {
+            Error error = {
+                .kind = ERRORKIND_WHILEWITHELSE,
+                .offending_token = conditional.else_body->starting_token,
+            };
+            report_error( error );
+            return false;
+        }
+
+        if( !check_expression( conditional.else_body, st, TYPE_UNSPECIFIED ) )
+        {
+            return false;
+        }
+        else_body_type = conditional.else_body->type;
+    }
+
+    if( !type_equals( main_body_type, else_body_type ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_UNMATCHINGIFTYPES,
+            .offending_token = conditional.main_body->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    *found_type = main_body_type;
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -882,6 +931,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_ROUTINECALL:
         {
             return check_routine_call( node->routine_call, st, &node->type );
+        }
+
+        case ASTNODEKIND_CONDITIONAL:
+        {
+            return check_conditional( node->conditional, st, &node->type );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:

@@ -223,6 +223,18 @@ void report_error( Error error )
                     error.incorrect_arg_count.found );
             break;
         }
+
+        case ERRORKIND_WHILEWITHELSE:
+        {
+            printf( "while-loops cannot have an else block\n" );
+            break;
+        }
+
+        case ERRORKIND_UNMATCHINGIFTYPES:
+        {
+            printf( "the else block must return the same type as the main block in if-statements\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )
