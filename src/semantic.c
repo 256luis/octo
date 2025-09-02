@@ -588,7 +588,7 @@ static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTab
     return true;
 }
 
-static bool check_routine_definition( AstNode* node, SymbolTable* st, Token routine_identifier_token )
+static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* routine_identifier_token )
 {
     if( node->kind != ASTNODEKIND_ROUTINEDEFINITION )
     {
@@ -670,12 +670,16 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token rout
             .param_types = param_types,
         }
     };
+    node->type = routine_type;
 
-    Symbol routine_symbol = {
-        .key = routine_identifier_token,
-        .type = routine_type,
-    };
-    st_insert( st, routine_symbol );
+    if( routine_identifier_token != NULL )
+    {
+        Symbol routine_symbol = {
+            .key = *routine_identifier_token,
+            .type = routine_type,
+        };
+        st_insert( st, routine_symbol );
+    }
 
     st_push_scope( st );
 
@@ -711,7 +715,7 @@ static bool check_routine_declaration( AstNodeRoutineDeclaration routine_declara
         return false;
     }
 
-    if( !check_routine_definition( routine_declaration.routine_definition, st, identifier_token ) )
+    if( !check_routine_definition( routine_declaration.routine_definition, st, &identifier_token ) )
     {
         return false;
     }
@@ -868,6 +872,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_ROUTINEDECLARATION:
         {
             return check_routine_declaration( node->routine_declaration, st );
+        }
+
+        case ASTNODEKIND_ROUTINEDEFINITION:
+        {
+            return check_routine_definition( node, st, NULL );
         }
 
         case ASTNODEKIND_ROUTINECALL:
