@@ -331,11 +331,14 @@ void ast_node_print( AstNode node )
                     node.routine_definition.is_func ? "func" : "proc" );
             newline();
 
-            printf( "return type:" );
-            depth++;
-            ast_node_print( *node.routine_definition.return_type_definition );
-            depth--;
-            newline();
+            if( node.routine_definition.return_type_definition != NULL )
+            {
+                printf( "return type:" );
+                depth++;
+                ast_node_print( *node.routine_definition.return_type_definition );
+                depth--;
+                newline();
+            }
 
             size_t param_count = lvec_get_length( node.routine_definition.param_type_definitions );
             if( param_count > 0 )

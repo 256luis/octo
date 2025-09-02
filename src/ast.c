@@ -779,19 +779,18 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     }
 
     advance( ctx );
-    if( !EXPECT( ctx, TOKENKIND_ARROW ) )
+    if( ctx->current_token.kind == TOKENKIND_ARROW )
     {
-        goto return_error;
+        advance( ctx );
+        routine_definition.return_type_definition = parse_type_definition( ctx );
+        if( ctx->error_found )
+        {
+            return routine_definition;
+        }
+
+        advance( ctx );
     }
 
-    advance( ctx );
-    routine_definition.return_type_definition = parse_type_definition( ctx );
-    if( ctx->error_found )
-    {
-        return routine_definition;
-    }
-
-    advance( ctx );
     routine_definition.body = parse_expression_rvalue( ctx );
     if( ctx->error_found )
     {

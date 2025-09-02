@@ -24,6 +24,7 @@ typedef enum TypeKind
     TYPEKIND_TYPE,
     TYPEKIND_STRUCT,
     TYPEKIND_ENUM,
+    TYPEKIND_ROUTINE,
 } TypeKind;
 
 typedef struct TypeArray
@@ -48,6 +49,13 @@ typedef struct TypeStruct
     size_t member_count;
 } TypeStruct;
 
+typedef struct TypeRoutine
+{
+    bool is_func;
+    Type* return_type;  // null if is_func == true
+    Type* param_types;  // lvec
+} TypeRoutine;
+
 typedef struct Type
 {
     TypeKind kind;
@@ -59,6 +67,7 @@ typedef struct Type
         TypePointer pointer;
         TypeType type;
         TypeStruct structure;
+        TypeRoutine routine;
     };
 } Type;
 

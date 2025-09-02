@@ -198,9 +198,21 @@ void report_error( Error error )
             break;
         }
 
-        default:
+        case ERRORKIND_NOTAROUTINE:
         {
-            UNIMPLEMENTED();
+            printf( "expected routine definition\n" );
+            break;
+        }
+
+        case ERRORKIND_MISSINGTYPE:
+        {
+            printf( "expected type here\n" );
+            break;
+        }
+
+        case ERRORKIND_PROCEDUREWITHRETURN:
+        {
+            printf( "procedures cannot return a value\n" );
             break;
         }
     }

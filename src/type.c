@@ -92,7 +92,7 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_POINTER:
         {
-            return type_equals( *t1.array.base, *t2.array.base );
+            return type_equals( *t1.pointer.base, *t2.pointer.base );
         }
 
         case TYPEKIND_STRUCT:
@@ -174,6 +174,28 @@ void type_print( Type type )
                 printf( ", " );
             }
             printf( "}" );
+
+            break;
+        }
+
+        case TYPEKIND_ROUTINE:
+        {
+            printf( "%s(", type.routine.is_func ? "func" : "proc" );
+
+            size_t param_length = lvec_get_length( type.routine.param_types );
+            for( size_t i = 0; i < param_length; i++ )
+            {
+                Type param_type = type.routine.param_types[ i ];
+                type_print( param_type );
+                printf( ", " );
+            }
+
+            printf( ")" );
+            if( type.routine.is_func )
+            {
+                printf( " -> " );
+                type_print( *type.routine.return_type );
+            }
 
             break;
         }

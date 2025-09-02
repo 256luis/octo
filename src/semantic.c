@@ -307,7 +307,7 @@ static bool check_rvalue( AstNode* rvalue, SymbolTable* st, Type type_hint )
         return false;
     }
 
-    if( rvalue->type.kind == TYPEKIND_NONE )
+    if( rvalue->type.kind == TYPEKIND_NONE && type_hint.kind != TYPEKIND_NONE )
     {
         Error error = {
             .kind = ERRORKIND_ILLEGALNONETYPE,
@@ -587,6 +587,136 @@ static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTab
     return true;
 }
 
+static bool check_routine_definition( AstNode* node, SymbolTable* st, Token routine_identifier_token )
+{
+    if( node->kind != ASTNODEKIND_ROUTINEDEFINITION )
+    {
+        Error error = {
+            .kind = ERRORKIND_NOTAROUTINE,
+            .offending_token = node->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    AstNodeRoutineDefinition routine_definition = node->routine_definition;
+    bool is_func = routine_definition.is_func;
+
+    // TODO: perform purity analysis for function types
+
+    // check the return type
+    Type* return_type = octo_malloc( sizeof( Type ) );
+    *return_type = TYPE_NONE;
+    if( is_func )
+    {
+        // functions must return a value
+        if( routine_definition.return_type_definition == NULL )
+        {
+            Error error = {
+                .kind = ERRORKIND_MISSINGTYPE,
+                .offending_token = routine_definition.body->starting_token,
+                .note = "functions must return a value"
+            };
+            report_error( error );
+            return false;
+        }
+
+        if( !check_type_definition( routine_definition.return_type_definition, st ) )
+        {
+            return false;
+        }
+
+        *return_type = type_unwrap_type( routine_definition.return_type_definition->type );
+    }
+    // procedures must not return a value
+    else if( routine_definition.return_type_definition != NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_PROCEDUREWITHRETURN,
+            .offending_token = routine_definition.body->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    // check params
+    size_t param_count = lvec_get_length( routine_definition.param_type_definitions );
+    Type* param_types = lvec_new( Type );
+    for( size_t i = 0; i < param_count; i++ )
+    {
+        Token param_identifier = routine_definition.param_identifier_tokens[ i ];
+        AstNode* param_type_definition = routine_definition.param_type_definitions[ i ];
+
+        if( !ensure_identifier_free( param_identifier, st ) )
+        {
+            return false;
+        }
+
+        if( !check_type_definition( param_type_definition, st ) )
+        {
+            return false;
+        }
+
+        Type param_type = type_unwrap_type( param_type_definition->type );
+        lvec_append_aggregate( param_types, param_type );
+    }
+
+    Type routine_type = {
+        .kind = TYPEKIND_ROUTINE,
+        .routine = {
+            .is_func = is_func,
+            .return_type = return_type,
+            .param_types = param_types,
+        }
+    };
+
+    Symbol routine_symbol = {
+        .key = routine_identifier_token,
+        .type = routine_type,
+    };
+    st_insert( st, routine_symbol );
+
+    st_push_scope( st );
+
+    // insert params to symbol table
+    for( size_t i = 0; i < param_count; i++ )
+    {
+        Token param_identifier = routine_definition.param_identifier_tokens[ i ];
+        Type param_type = param_types[ i ];
+
+        Symbol param_symbol = {
+            .key = param_identifier,
+            .type = param_type,
+        };
+        st_insert( st, param_symbol );
+    }
+
+    if( !check_rvalue( routine_definition.body, st, *return_type ) )
+    {
+        st_pop_scope( st );
+        return false;
+    }
+
+    st_pop_scope( st );
+    return true;
+}
+
+static bool check_routine_declaration( AstNodeRoutineDeclaration routine_declaration, SymbolTable* st )
+{
+    Token identifier_token = routine_declaration.identifier_token;
+    if( !ensure_identifier_free( identifier_token, st ) )
+    {
+        return false;
+    }
+
+    if( !check_routine_definition( routine_declaration.routine_definition, st, identifier_token ) )
+    {
+        return false;
+    }
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -684,7 +814,7 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
         case ASTNODEKIND_ROUTINEDECLARATION:
         {
-            UNIMPLEMENTED();
+            return check_routine_declaration( node->routine_declaration, st );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:
