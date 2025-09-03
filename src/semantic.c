@@ -5,6 +5,7 @@
 #include <string.h>
 #include "debug.h"
 #include "lvec.h"
+#include "operation.h"
 #include "type.h"
 #include "ast.h"
 #include "error.h"
@@ -135,7 +136,6 @@ static bool check_type_identifier( AstNodeIdentifier identifier, SymbolTable* st
     else if( strcmp( identifier_string, "char" ) == 0 )   *resulting_type = type_wrap_type( TYPE_CHARACTER );
     else if( strcmp( identifier_string, "bool" ) == 0 )   *resulting_type = type_wrap_type( TYPE_BOOLEAN );
     else if( strcmp( identifier_string, "int" ) == 0 )    *resulting_type = type_wrap_type( TYPE_INT );
-    else if( strcmp( identifier_string, "uint" ) == 0 )   *resulting_type = type_wrap_type( TYPE_UINT );
     else if( strcmp( identifier_string, "float" ) == 0 )  *resulting_type = type_wrap_type( TYPE_FLOAT );
     else
     {
@@ -916,8 +916,6 @@ static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable*
          target_type = type_hint;
     }
 
-    type_print(target_type);
-
     if( target_type.kind != TYPEKIND_ENUM && target_type.kind != TYPEKIND_STRUCT )
     {
         Error error = {
@@ -988,6 +986,100 @@ static bool check_subscript( AstNodeSubscript subscript, SymbolTable* st, Type* 
     return true;
 }
 
+static bool check_binary( AstNodeBinary binary, SymbolTable* st, Type* found_type )
+{
+    bool left_is_valid = check_rvalue( binary.left, st, TYPE_UNSPECIFIED );
+    bool right_is_valid = check_rvalue( binary.right, st, TYPE_UNSPECIFIED );
+    if( !right_is_valid || !left_is_valid )
+    {
+        return false;
+    }
+
+    switch( binary.operation )
+    {
+        case BINARYOPERATION_ADDITION:
+        case BINARYOPERATION_SUBTRACTION:
+        case BINARYOPERATION_MULTIPLICATION:
+        case BINARYOPERATION_DIVISION:
+        {
+            bool left_is_numeric = type_is_numeric( binary.left->type );
+            bool right_is_numeric = type_is_numeric( binary.right->type );
+
+            if( !left_is_numeric || !right_is_numeric ||
+                !type_equals( binary.left->type, binary.right->type ) )
+            {
+                goto return_error;
+            }
+
+            *found_type = binary.left->type;
+            break;
+        }
+
+        case BINARYOPERATION_MODULO:
+        {
+            bool left_is_integer = type_is_integer( binary.left->type );
+            bool right_is_integer = type_is_integer( binary.right->type );
+
+            if( !left_is_integer || !right_is_integer )
+            {
+                goto return_error;
+            }
+
+            *found_type = TYPE_INT;
+            break;
+        }
+
+        case BINARYOPERATION_EQUALTO:
+        case BINARYOPERATION_NOTEQUALTO:
+        case BINARYOPERATION_LESSTHAN:
+        case BINARYOPERATION_LESSTHANOREQUALTO:
+        case BINARYOPERATION_GREATERTHAN:
+        case BINARYOPERATION_GREATERTHANOREQUALTO:
+        {
+            bool left_is_numeric = type_is_numeric( binary.left->type );
+            bool right_is_numeric = type_is_numeric( binary.right->type );
+
+            if( !left_is_numeric || !right_is_numeric ||
+                !type_equals( binary.left->type, binary.right->type ) )
+            {
+                goto return_error;
+            }
+
+            *found_type = TYPE_BOOLEAN;
+            break;
+        }
+
+        case BINARYOPERATION_OR:
+        case BINARYOPERATION_AND:
+        {
+            bool left_is_boolean = type_equals( binary.left->type, TYPE_BOOLEAN );
+            bool right_is_boolean = type_equals( binary.right->type, TYPE_BOOLEAN );
+
+            if( !left_is_boolean || !right_is_boolean )
+            {
+                goto return_error;
+            }
+
+            *found_type = TYPE_BOOLEAN;
+            break;
+        }
+    }
+
+    return true;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_ILLEGALBINARYOPERATION,
+        .offending_token = binary.operation_token,
+        .illegal_binary_operation = {
+            .left_type = binary.left->type,
+            .right_type = binary.right->type,
+        },
+    };
+    report_error( error );
+    return false;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -1048,8 +1140,7 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
         case ASTNODEKIND_BINARY:
         {
-            UNIMPLEMENTED();
-            break;
+            return check_binary( node->binary, st, &node->type );
         }
 
         case ASTNODEKIND_UNARY:

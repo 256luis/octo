@@ -1,6 +1,7 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include "operation.h"
 #include "tokenizer.h"
 #include "type.h"
 
@@ -42,6 +43,7 @@ typedef enum ErrorKind
     ERRORKIND_UNMATCHINGIFTYPES,
     ERRORKIND_NOTANAGGREGATETYPE,
     ERRORKIND_NOTAPOINTER,
+    ERRORKIND_ILLEGALBINARYOPERATION,
 } ErrorKind;
 
 typedef struct Error
@@ -63,6 +65,12 @@ typedef struct Error
             int expected;
             int found;
         } incorrect_arg_count;
+
+        struct
+        {
+            Type left_type;
+            Type right_type;
+        } illegal_binary_operation;
     };
 } Error;
 

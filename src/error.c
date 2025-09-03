@@ -247,6 +247,16 @@ void report_error( Error error )
             printf( "not a pointer type\n" );
             break;
         }
+
+        case ERRORKIND_ILLEGALBINARYOPERATION:
+        {
+            printf( "operation is not allowed for types `" );
+            type_print( error.illegal_binary_operation.left_type );
+            printf( "` and ` ");
+            type_print( error.illegal_binary_operation.right_type );
+            printf( "`\n");
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

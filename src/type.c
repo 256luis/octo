@@ -13,7 +13,6 @@ const Type TYPE_STRING      = { .kind = TYPEKIND_PRIMITIVE_STRING };
 const Type TYPE_CHARACTER   = { .kind = TYPEKIND_PRIMITIVE_CHARACTER };
 const Type TYPE_BOOLEAN     = { .kind = TYPEKIND_PRIMITIVE_BOOLEAN };
 const Type TYPE_INT         = { .kind = TYPEKIND_PRIMITIVE_INT };
-const Type TYPE_UINT        = { .kind = TYPEKIND_PRIMITIVE_UINT };
 const Type TYPE_FLOAT       = { .kind = TYPEKIND_PRIMITIVE_FLOAT };
 
 bool type_is_integer( Type type )
@@ -21,7 +20,6 @@ bool type_is_integer( Type type )
     switch( type.kind )
     {
         case TYPEKIND_PRIMITIVE_INT:
-        case TYPEKIND_PRIMITIVE_UINT:
         {
             return true;
         }
@@ -38,7 +36,6 @@ bool type_is_numeric( Type type )
     switch( type.kind )
     {
         case TYPEKIND_PRIMITIVE_INT:
-        case TYPEKIND_PRIMITIVE_UINT:
         case TYPEKIND_PRIMITIVE_FLOAT:
         {
             return true;
@@ -79,7 +76,6 @@ bool type_equals( Type t1, Type t2 )
         case TYPEKIND_PRIMITIVE_CHARACTER:
         case TYPEKIND_PRIMITIVE_BOOLEAN:
         case TYPEKIND_PRIMITIVE_INT:
-        case TYPEKIND_PRIMITIVE_UINT:
         case TYPEKIND_PRIMITIVE_FLOAT:
         {
             return true;
@@ -148,7 +144,6 @@ void type_print( Type type )
         case TYPEKIND_PRIMITIVE_CHARACTER: printf("char"); break;
         case TYPEKIND_PRIMITIVE_BOOLEAN:   printf("bool"); break;
         case TYPEKIND_PRIMITIVE_INT:       printf("int"); break;
-        case TYPEKIND_PRIMITIVE_UINT:      printf("uint"); break;
         case TYPEKIND_PRIMITIVE_FLOAT:     printf("float"); break;
         case TYPEKIND_TYPE:                printf("type"); break;
 

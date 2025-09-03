@@ -73,6 +73,7 @@ typedef struct AstNodeIdentifier
 typedef struct AstNodeBinary
 {
     BinaryOperation operation;
+    Token operation_token;
     AstNode* left;
     AstNode* right;
 } AstNodeBinary;

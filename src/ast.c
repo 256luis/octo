@@ -74,6 +74,7 @@ static AstNodeBinary parse_binary( AstContext* ctx, AstNode* left )
 {
     AstNodeBinary binary = {
         .left = left,
+        .operation_token = ctx->current_token,
     };
 
     switch( ctx->current_token.kind )
