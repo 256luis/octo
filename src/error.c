@@ -236,15 +236,9 @@ void report_error( Error error )
             break;
         }
 
-        case ERRORKIND_NOTASTRUCT:
+        case ERRORKIND_NOTANAGGREGATETYPE:
         {
-            printf( "not a struct\n" );
-            break;
-        }
-
-        case ERRORKIND_NOTANENUM:
-        {
-            printf( "not a enum\n" );
+            printf( "not an aggregate type\n" );
             break;
         }
     }

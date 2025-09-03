@@ -1022,6 +1022,13 @@ static AstNode* parse_term( AstContext* ctx )
                     break;
                 }
 
+                case TOKENKIND_IDENTIFIER:
+                {
+                    node->kind = ASTNODEKIND_MEMBERACCESS;
+                    node->member_access = parse_member_access( ctx, NULL );
+                    break;
+                }
+
                 case TOKENKIND_LEFTBRACKET:
                 {
                     node->kind = ASTNODEKIND_ARRAYLITERAL;

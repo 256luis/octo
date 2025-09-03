@@ -120,6 +120,11 @@ bool type_equals( Type t1, Type t2 )
             return true;
         }
 
+        case TYPEKIND_ENUM:
+        {
+            return false;
+        }
+
         default:
         {
             UNIMPLEMENTED();

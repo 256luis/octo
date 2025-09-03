@@ -164,7 +164,7 @@ typedef struct AstNodeStructLiteral
 
 typedef struct AstNodeMemberAccess
 {
-    AstNode* target;
+    AstNode* target; // can be null
     Token member_token;
 } AstNodeMemberAccess;
 

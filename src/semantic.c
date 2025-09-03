@@ -1,4 +1,6 @@
+#include <asm-generic/errno.h>
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include "debug.h"
@@ -591,7 +593,7 @@ static bool check_struct_literal( AstNodeStructLiteral struct_literal, SymbolTab
     if( type.kind != TYPEKIND_STRUCT )
     {
         Error error = {
-            .kind = ERRORKIND_NOTASTRUCT,
+            .kind = ERRORKIND_NOTANAGGREGATETYPE,
         };
 
         if( struct_literal.type_definition != NULL )
@@ -871,38 +873,59 @@ static bool check_conditional( AstNodeConditional conditional, SymbolTable* st, 
     return true;
 }
 
-static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable* st, Type* found_type )
+// this entire function is kind of a mess
+static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable* st, Type* found_type, Type type_hint, Token starting_token )
 {
-    if( !check_expression( member_access.target, st, TYPE_UNSPECIFIED ) )
+    Type target_type = TYPE_UNSPECIFIED;
+    if( member_access.target != NULL )
     {
-        return false;
-    }
-
-    Type target_type = member_access.target->type;
-    if( target_type.kind == TYPEKIND_TYPE )
-    {
-        target_type = type_unwrap_type( target_type );
-        if( target_type.kind != TYPEKIND_ENUM )
+        if( !check_expression( member_access.target, st, TYPE_UNSPECIFIED ) )
         {
-            Error error = {
-                .kind = ERRORKIND_NOTANENUM,
-                .offending_token = member_access.target->starting_token,
-            };
-            report_error( error );
             return false;
         }
+
+        target_type = member_access.target->type;
+        if( target_type.kind == TYPEKIND_TYPE )
+        {
+            target_type = type_unwrap_type( target_type );
+            if( target_type.kind != TYPEKIND_ENUM )
+            {
+                Error error = {
+                    .kind = ERRORKIND_NOTANAGGREGATETYPE,
+                    .offending_token = starting_token,
+                };
+                report_error( error );
+                return false;
+            }
+        }
     }
-    else if( target_type.kind != TYPEKIND_STRUCT )
+    else
+    {
+         target_type = type_hint;
+    }
+
+    type_print(target_type);
+
+    if( target_type.kind != TYPEKIND_ENUM && target_type.kind != TYPEKIND_STRUCT )
     {
         Error error = {
-            .kind = ERRORKIND_NOTASTRUCT,
-            .offending_token = member_access.target->starting_token,
+            .kind = ERRORKIND_NOTANAGGREGATETYPE,
+            .offending_token = starting_token,
         };
         report_error( error );
         return false;
     }
 
-    SymbolTable* target_st = target_type.structure.members;
+    SymbolTable* target_st;
+    if( target_type.kind == TYPEKIND_STRUCT )
+    {
+        target_st = target_type.structure.members;
+    }
+    else
+    {
+        target_st = target_type.enumuration.variants;
+    }
+
     Symbol* member_symbol = st_get( *target_st, member_access.member_token.as_string );
     if( member_symbol == NULL )
     {
@@ -1070,7 +1093,7 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
         case ASTNODEKIND_MEMBERACCESS:
         {
-            return check_member_access( node->member_access, st, &node->type );
+            return check_member_access( node->member_access, st, &node->type, type_hint, node->starting_token );
         }
 
         case ASTNODEKIND_ASSIGNMENT:
