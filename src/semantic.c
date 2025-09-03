@@ -842,9 +842,9 @@ static bool check_conditional( AstNodeConditional conditional, SymbolTable* st, 
     return true;
 }
 
-static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable* st, Type* found_type, Type type_hint )
+static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable* st, Type* found_type )
 {
-    if( !check_expression( member_access.target, st, TYPE_UNSPECIFIED ) )
+    if( !check_rvalue( member_access.target, st, TYPE_UNSPECIFIED ) )
     {
         return false;
     }
@@ -890,6 +890,24 @@ static bool check_assignment( AstNodeAssignment assignment, SymbolTable* st )
         return false;
     }
 
+    return true;
+}
+
+static bool check_subscript( AstNodeSubscript subscript, SymbolTable* st, Type* found_type )
+{
+    if( !check_rvalue( subscript.target, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+
+    Type base_type = type_unwrap_array( subscript.target->type );
+
+    if( !check_rvalue( subscript.index, st, TYPE_INT ) )
+    {
+        return false;
+    }
+
+    *found_type = base_type;
     return true;
 }
 
@@ -1010,12 +1028,17 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
         case ASTNODEKIND_MEMBERACCESS:
         {
-            return check_member_access( node->member_access, st, &node->type, type_hint );
+            return check_member_access( node->member_access, st, &node->type );
         }
 
         case ASTNODEKIND_ASSIGNMENT:
         {
             return check_assignment( node->assignment, st );
+        }
+
+        case ASTNODEKIND_SUBSCRIPT:
+        {
+            return check_subscript( node->subscript, st, &node->type );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:
