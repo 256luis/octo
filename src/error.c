@@ -241,6 +241,12 @@ void report_error( Error error )
             printf( "not an aggregate type\n" );
             break;
         }
+
+        case ERRORKIND_NOTAPOINTER:
+        {
+            printf( "not a pointer type\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

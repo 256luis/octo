@@ -253,3 +253,9 @@ Type type_unwrap_array( Type type )
     assert( type.kind == TYPEKIND_ARRAY );
     return *type.array.base;
 }
+
+Type type_unwrap_pointer( Type type )
+{
+    assert( type.kind == TYPEKIND_POINTER );
+    return *type.pointer.base;
+}

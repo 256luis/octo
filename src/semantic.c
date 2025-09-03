@@ -96,9 +96,21 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
             *found_type = unary.operand->type;
             break;
         }
+
         case UNARYOPERATION_DEREFERENCE:
         {
-            UNIMPLEMENTED();
+            if( unary.operand->type.kind != TYPEKIND_POINTER )
+            {
+                Error error = {
+                    .kind = ERRORKIND_NOTAPOINTER,
+                    .offending_token = unary.operand->starting_token,
+                    .note = "only pointer types can be dereferenced",
+                };
+                report_error( error );
+                return false;
+            }
+
+            *found_type = type_unwrap_pointer( unary.operand->type );
             break;
         }
 
