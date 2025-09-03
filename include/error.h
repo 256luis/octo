@@ -41,6 +41,7 @@ typedef enum ErrorKind
     ERRORKIND_WHILEWITHELSE,
     ERRORKIND_UNMATCHINGIFTYPES,
     ERRORKIND_NOTASTRUCT,
+    ERRORKIND_NOTANENUM,
 } ErrorKind;
 
 typedef struct Error

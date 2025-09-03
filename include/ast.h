@@ -108,7 +108,8 @@ typedef struct AstNodeStructDefinition
 
 typedef struct AstNodeEnumDefinition
 {
-    Token* variant_names; // lvec
+    Token* identifier_token; // can be null
+    Token* variant_names;    // lvec
 } AstNodeEnumDefinition;
 
 typedef struct AstNodeVariableDeclaration

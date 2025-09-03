@@ -241,6 +241,12 @@ void report_error( Error error )
             printf( "not a struct\n" );
             break;
         }
+
+        case ERRORKIND_NOTANENUM:
+        {
+            printf( "not a enum\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

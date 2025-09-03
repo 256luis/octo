@@ -56,6 +56,12 @@ typedef struct TypeRoutine
     Type* param_types;  // lvec
 } TypeRoutine;
 
+typedef struct TypeEnum
+{
+    SymbolTable* variants;
+    size_t variant_count;
+} TypeEnum;
+
 typedef struct Type
 {
     TypeKind kind;
@@ -68,6 +74,7 @@ typedef struct Type
         TypeType type;
         TypeStruct structure;
         TypeRoutine routine;
+        TypeEnum enumuration;
     };
 } Type;
 

@@ -201,7 +201,19 @@ void type_print( Type type )
         }
 
         case TYPEKIND_ENUM:
-            UNIMPLEMENTED();
+        {
+            Symbol* variants = type.enumuration.variants->symbols;
+            size_t variant_count = lvec_get_length( variants );
+
+            printf( "enum { " );
+            for( size_t i = 0; i < variant_count; i++ )
+            {
+                printf( "%s, ", variants[ i ].key.as_string );
+            }
+            printf( "}" );
+
+            break;
+        }
     }
 }
 

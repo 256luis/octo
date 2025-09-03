@@ -45,7 +45,7 @@ static AstNode* parse_expression_rvalue( AstContext* ctx );
 static AstNode* parse_expression( AstContext* ctx );
 static AstNode* parse_term( AstContext* ctx );
 static AstNode* parse_postfix( AstContext* ctx, AstNode* previous );
-static AstNode* parse_type_definition( AstContext* ctx );
+static AstNode* parse_type_definition( AstContext* ctx, Token* identifier_token );
 
 static AstNodeCompound parse_compound( AstContext* ctx )
 {
@@ -391,9 +391,10 @@ static AstNode* parse_postfix( AstContext* ctx, AstNode* previous )
     return node;
 }
 
-static AstNodeEnumDefinition parse_enum_definition( AstContext* ctx )
+static AstNodeEnumDefinition parse_enum_definition( AstContext* ctx, Token* identifier_token )
 {
     AstNodeEnumDefinition enum_definition = {
+        .identifier_token = identifier_token,
         .variant_names = lvec_new( Token ),
     };
 
@@ -473,7 +474,7 @@ static AstNodeStructDefinition parse_struct_definition( AstContext* ctx )
         }
 
         advance( ctx );
-        AstNode* member_type = parse_type_definition( ctx );
+        AstNode* member_type = parse_type_definition( ctx, NULL );
         if( ctx->error_found )
         {
             return struct_definition;
@@ -533,7 +534,7 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     {
         advance( ctx );
 
-        variable_declaration.type_definition = parse_type_definition( ctx );
+        variable_declaration.type_definition = parse_type_definition( ctx, NULL );
         if( ctx->error_found )
         {
             return variable_declaration;
@@ -591,7 +592,7 @@ static AstNodeArrayDefinition parse_array_definition( AstContext* ctx )
     }
 
     advance( ctx );
-    array_definition.base_type_definition = parse_type_definition( ctx );
+    array_definition.base_type_definition = parse_type_definition( ctx, NULL );
     if( ctx->error_found )
     {
         return array_definition;
@@ -614,11 +615,11 @@ static AstNodePointerDefinition parse_pointer_definition( AstContext* ctx )
     AstNodePointerDefinition pointer_definition = { 0 };
 
     advance( ctx );
-    pointer_definition.base_type_definition = parse_type_definition( ctx );
+    pointer_definition.base_type_definition = parse_type_definition( ctx, NULL );
     return pointer_definition;
 }
 
-static AstNode* parse_type_definition( AstContext* ctx )
+static AstNode* parse_type_definition( AstContext* ctx, Token* identifier_token )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
     node->starting_token = ctx->current_token;
@@ -642,7 +643,7 @@ static AstNode* parse_type_definition( AstContext* ctx )
         case TOKENKIND_ENUM:
         {
             node->kind = ASTNODEKIND_ENUMDEFINITION;
-            node->enum_definition = parse_enum_definition( ctx );
+            node->enum_definition = parse_enum_definition( ctx, identifier_token );
             break;
         }
 
@@ -687,6 +688,8 @@ static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
     }
 
     type_declaration.identifier_token = ctx->current_token;
+    Token* identifier_token = octo_malloc( sizeof( Token ) );
+    *identifier_token = ctx->current_token;
 
     advance( ctx );
     if( !EXPECT( ctx, TOKENKIND_EQUAL ) )
@@ -695,7 +698,7 @@ static AstNodeTypeDeclaration parse_type_declaration( AstContext* ctx )
     }
 
     advance( ctx );
-    type_declaration.type_definition = parse_type_definition( ctx );
+    type_declaration.type_definition = parse_type_definition( ctx, identifier_token );
 
     return type_declaration;
 
@@ -759,7 +762,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
         }
 
         advance( ctx );
-        AstNode* param_type_definition = parse_type_definition( ctx );
+        AstNode* param_type_definition = parse_type_definition( ctx, NULL );
         if( ctx->error_found )
         {
             return routine_definition;
@@ -783,7 +786,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     if( ctx->current_token.kind == TOKENKIND_ARROW )
     {
         advance( ctx );
-        routine_definition.return_type_definition = parse_type_definition( ctx );
+        routine_definition.return_type_definition = parse_type_definition( ctx, NULL );
         if( ctx->error_found )
         {
             return routine_definition;
@@ -974,7 +977,7 @@ static AstNode* parse_term( AstContext* ctx )
         case TOKENKIND_ENUM:
         {
             node->kind = ASTNODEKIND_ENUMDEFINITION;
-            node->enum_definition = parse_enum_definition( ctx );
+            node->enum_definition = parse_enum_definition( ctx, NULL );
             break;
         }
 

@@ -263,6 +263,35 @@ static bool check_struct_definition( AstNodeStructDefinition struct_definition, 
     return true;
 }
 
+static bool check_enum_definition( AstNodeEnumDefinition enum_definition, Type* resulting_type )
+{
+    SymbolTable* variants = octo_malloc( sizeof( SymbolTable ) );
+    st_initialize( variants );
+
+    size_t variant_count = lvec_get_length( enum_definition.variant_names );
+    Type definition = {
+        .identifier_token = enum_definition.identifier_token,
+        .kind = TYPEKIND_ENUM,
+        .enumuration = {
+            .variants = variants,
+            .variant_count = variant_count,
+        },
+    };
+
+    for( size_t i = 0; i < variant_count; i++ )
+    {
+        Token variant_token = enum_definition.variant_names[ i ];
+        Symbol variant_symbol = {
+            .key = variant_token,
+            .type = definition,
+        };
+        st_insert( variants, variant_symbol );
+    }
+
+    *resulting_type = type_wrap_type( definition );
+    return true;
+}
+
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 {
     switch( type_definition->kind )
@@ -279,7 +308,7 @@ static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 
         case ASTNODEKIND_ENUMDEFINITION:
         {
-            UNIMPLEMENTED();
+            return check_enum_definition( type_definition->enum_definition, &type_definition->type );
         }
 
         case ASTNODEKIND_ARRAYDEFINITION:
@@ -844,13 +873,26 @@ static bool check_conditional( AstNodeConditional conditional, SymbolTable* st, 
 
 static bool check_member_access( AstNodeMemberAccess member_access, SymbolTable* st, Type* found_type )
 {
-    if( !check_rvalue( member_access.target, st, TYPE_UNSPECIFIED ) )
+    if( !check_expression( member_access.target, st, TYPE_UNSPECIFIED ) )
     {
         return false;
     }
 
     Type target_type = member_access.target->type;
-    if( target_type.kind != TYPEKIND_STRUCT )
+    if( target_type.kind == TYPEKIND_TYPE )
+    {
+        target_type = type_unwrap_type( target_type );
+        if( target_type.kind != TYPEKIND_ENUM )
+        {
+            Error error = {
+                .kind = ERRORKIND_NOTANENUM,
+                .offending_token = member_access.target->starting_token,
+            };
+            report_error( error );
+            return false;
+        }
+    }
+    else if( target_type.kind != TYPEKIND_STRUCT )
     {
         Error error = {
             .kind = ERRORKIND_NOTASTRUCT,
