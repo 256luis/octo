@@ -1,4 +1,3 @@
-#include <asm-generic/errno.h>
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -11,6 +10,9 @@
 #include "error.h"
 #include "symbol.h"
 #include "globals.h"
+
+// the sin of a global variable (i will refactor this out later)
+Type* return_type_stack;
 
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint );
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st );
@@ -747,6 +749,7 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
         st_insert( st, param_symbol );
     }
 
+    lvec_append_aggregate( return_type_stack, *return_type );
     if( !check_rvalue( routine_definition.body, st, *return_type ) )
     {
         st_pop_scope( st );
@@ -754,7 +757,7 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
     }
 
     st_pop_scope( st );
-
+    lvec_remove_last( return_type_stack );
     return true;
 }
 
@@ -821,6 +824,8 @@ static bool check_routine_call( AstNodeRoutineCall routine_call, SymbolTable* st
             return false;
         }
     }
+
+
 
     return true;
 }
@@ -1069,6 +1074,36 @@ static bool check_binary( AstNodeBinary binary, SymbolTable* st, Type* found_typ
     return false;
 }
 
+static bool check_return( AstNodeReturn return_statement, SymbolTable* st, Token starting_token )
+{
+    Type return_type = TYPE_NONE;
+    if( return_statement.value != NULL )
+    {
+        if( !check_rvalue( return_statement.value, st, TYPE_UNSPECIFIED ) )
+        {
+            return false;
+        }
+        return_type = return_statement.value->type;
+    }
+
+    Type expected_return_type = return_type_stack[ lvec_get_length( return_type_stack )-1 ];
+    if( !type_equals( return_type, expected_return_type ) )
+    {
+        Error error = {
+            .kind = ERRORKIND_TYPEMISMATCH,
+            .offending_token = starting_token,
+            .type_mismatch = {
+                .expected = expected_return_type,
+                .found = return_type,
+            },
+        };
+        report_error( error );
+        return false;
+    }
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -1198,6 +1233,12 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
             return check_subscript( node->subscript, st, &node->type );
         }
 
+        case ASTNODEKIND_RETURN:
+        {
+            bool b = check_return( node->return_statement, st, node->starting_token );
+            return b;
+        }
+
         case ASTNODEKIND_STRUCTDEFINITION:
         case ASTNODEKIND_ENUMDEFINITION:
         case ASTNODEKIND_ARRAYDEFINITION:
@@ -1214,6 +1255,9 @@ bool check_ast( AstNode* ast )
 {
     SymbolTable st;
     st_initialize( &st );
+
+    return_type_stack = lvec_new( Type );
+    lvec_append_aggregate( return_type_stack, TYPE_NONE );
 
     bool is_valid = check_expression( ast, &st, TYPE_UNSPECIFIED );
     return is_valid;

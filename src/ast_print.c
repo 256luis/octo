@@ -575,5 +575,19 @@ void ast_node_print( AstNode node )
             printf( "UNINITIALIZED" );
             break;
         }
+
+        case ASTNODEKIND_RETURN:
+        {
+            printf( "RETURN:" );
+            depth++;
+
+            if( node.return_statement.value != NULL )
+            {
+                ast_node_print( *node.return_statement.value );
+            }
+
+            depth--;
+            break;
+        }
     }
 }

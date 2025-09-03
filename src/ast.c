@@ -11,6 +11,11 @@
              ( TokenKind[] ){ __VA_ARGS__ },\
              sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
 
+#define EXPECT_NEXT( ctx_ptr, ... )\
+    _expect_next( ( ctx_ptr ),\
+             ( TokenKind[] ){ __VA_ARGS__ },\
+             sizeof( ( TokenKind[] ){ __VA_ARGS__ } ) / sizeof( TokenKind ) )
+
 typedef struct AstContext
 {
     Token* tokens;
@@ -25,6 +30,20 @@ static bool _expect( AstContext* ctx, TokenKind* expecteds, size_t length )
     for( size_t i = 0; i < length; i++ )
     {
         if( ctx->current_token.kind == expecteds[i] )
+        {
+            return true;
+        }
+    }
+
+    ctx->error_found = true;
+    return false;
+}
+
+static bool _expect_next( AstContext* ctx, TokenKind* expecteds, size_t length )
+{
+    for( size_t i = 0; i < length; i++ )
+    {
+        if( ctx->next_token.kind == expecteds[i] )
         {
             return true;
         }
@@ -887,6 +906,21 @@ static AstNodeConditional parse_conditional( AstContext* ctx )
     return conditional;
 }
 
+static AstNodeReturn parse_return( AstContext* ctx )
+{
+    AstNodeReturn return_statement = { 0 };
+
+    if( !EXPECT_NEXT( ctx, TOKENKIND_RVALUE_STARTERS ) )
+    {
+        ctx->error_found = false;
+        return return_statement;
+    }
+
+    advance( ctx );
+    return_statement.value = parse_expression_rvalue( ctx );
+    return return_statement;
+}
+
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -1044,6 +1078,13 @@ static AstNode* parse_term( AstContext* ctx )
                 }
             }
 
+            break;
+        }
+
+        case TOKENKIND_RETURN:
+        {
+            node->kind = ASTNODEKIND_RETURN;
+            node->return_statement = parse_return( ctx );
             break;
         }
 
