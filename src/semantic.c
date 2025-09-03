@@ -670,33 +670,22 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
     // check the return type
     Type* return_type = octo_malloc( sizeof( Type ) );
     *return_type = TYPE_NONE;
-    if( is_func )
+    if( routine_definition.return_type_definition != NULL )
     {
-        // functions must return a value
-        if( routine_definition.return_type_definition == NULL )
-        {
-            Error error = {
-                .kind = ERRORKIND_MISSINGTYPE,
-                .offending_token = routine_definition.body->starting_token,
-                .note = "functions must return a value"
-            };
-            report_error( error );
-            return false;
-        }
-
         if( !check_type_definition( routine_definition.return_type_definition, st ) )
         {
             return false;
         }
-
         *return_type = type_unwrap_type( routine_definition.return_type_definition->type );
     }
-    // procedures must not return a value
-    else if( routine_definition.return_type_definition != NULL )
+
+    // functions must return a value
+    if( is_func && routine_definition.return_type_definition == NULL )
     {
         Error error = {
-            .kind = ERRORKIND_PROCEDUREWITHRETURN,
+            .kind = ERRORKIND_MISSINGTYPE,
             .offending_token = routine_definition.body->starting_token,
+            .note = "functions must return a value"
         };
         report_error( error );
         return false;
