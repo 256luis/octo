@@ -65,6 +65,7 @@ typedef struct Type
 {
     TypeKind kind;
     Token* identifier_token; // for user defined types, can be null
+    bool is_mutable;
 
     union
     {

@@ -257,6 +257,12 @@ void report_error( Error error )
             printf( "`\n");
             break;
         }
+
+        case ERRORKIND_ATTEMPTTOMUTATEIMMUTABLE:
+        {
+            printf( "attempt to mutate immutable symbol\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

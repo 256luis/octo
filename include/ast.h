@@ -116,6 +116,7 @@ typedef struct AstNodeEnumDefinition
 
 typedef struct AstNodeVariableDeclaration
 {
+    bool is_mutable;
     Token identifier_token;
     AstNode* type_definition; // can be null
     AstNode* value;           // can be null

@@ -537,9 +537,15 @@ static AstNodeVariableDeclaration parse_variable_declaration( AstContext* ctx )
     AstNodeVariableDeclaration variable_declaration = { 0 };
     advance( ctx );
 
-    if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
+    if( !EXPECT( ctx, TOKENKIND_IDENTIFIER, TOKENKIND_MUT ) )
     {
         goto return_error;
+    }
+
+    if( ctx->current_token.kind == TOKENKIND_MUT )
+    {
+        variable_declaration.is_mutable = true;
+        advance( ctx );
     }
 
     variable_declaration.identifier_token = ctx->current_token;

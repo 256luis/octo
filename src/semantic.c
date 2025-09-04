@@ -448,10 +448,13 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
         return false;
     }
 
+    Type symbol_type = variable_declaration.value->type;
+    symbol_type.is_mutable = variable_declaration.is_mutable;
+
     // add to symbol table
     Symbol symbol = {
         .key = identifier_token,
-        .type = variable_declaration.value->type
+        .type = symbol_type,
     };
     st_insert( st, symbol );
     return true;
@@ -954,6 +957,16 @@ static bool check_assignment( AstNodeAssignment assignment, SymbolTable* st )
     }
 
     Type target_type = assignment.target->type;
+    if( !target_type.is_mutable )
+    {
+        Error error = {
+            .kind = ERRORKIND_ATTEMPTTOMUTATEIMMUTABLE,
+            .offending_token = assignment.target->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
     if( !check_rvalue( assignment.value, st, target_type ) )
     {
         return false;
