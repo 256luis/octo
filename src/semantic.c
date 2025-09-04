@@ -715,6 +715,7 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
         }
 
         Type param_type = type_unwrap_type( param_type_definition->type );
+        param_type.is_mutable = routine_definition.params_mutability[ i ];
         lvec_append_aggregate( param_types, param_type );
     }
 
@@ -826,9 +827,18 @@ static bool check_routine_call( AstNodeRoutineCall routine_call, SymbolTable* st
         {
             return false;
         }
+
+        if( !arg->type.is_mutable && expected_type.is_mutable )
+        {
+            Error error = {
+                .kind = ERRORKIND_ATTEMPTTOMUTATEIMMUTABLE,
+                .offending_token = arg->starting_token,
+                .note = "this paramater is not declared mutable in the routine's signature",
+            };
+            report_error( error );
+            return false;
+        }
     }
-
-
 
     return true;
 }

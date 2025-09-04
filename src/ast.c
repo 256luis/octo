@@ -743,6 +743,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     AstNodeRoutineDefinition routine_definition = {
         .param_identifier_tokens = lvec_new( Token ),
         .param_type_definitions = lvec_new( AstNode* ),
+        .params_mutability = lvec_new( bool ),
     };
 
     switch( ctx->current_token.kind )
@@ -774,10 +775,18 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTPAREN )
     {
-        if( !EXPECT( ctx, TOKENKIND_IDENTIFIER ) )
+        if( !EXPECT( ctx, TOKENKIND_IDENTIFIER, TOKENKIND_MUT ) )
         {
             goto return_error;
         }
+
+        bool param_mutability = false;
+        if( ctx->current_token.kind == TOKENKIND_MUT )
+        {
+            param_mutability = true;
+            advance( ctx );
+        }
+        lvec_append( routine_definition.params_mutability, param_mutability );
 
         lvec_append_aggregate( routine_definition.param_identifier_tokens, ctx->current_token );
 
