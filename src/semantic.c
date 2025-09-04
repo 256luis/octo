@@ -11,6 +11,11 @@
 #include "symbol.h"
 #include "globals.h"
 
+#define TOP_LEVEL_ALLOWED_NODES\
+    ASTNODEKIND_VARIABLEDECLARATION,\
+    ASTNODEKIND_TYPEDECLARATION,\
+    ASTNODEKIND_ROUTINEDECLARATION,
+
 // the sin of a global variable (i will refactor this out later)
 Type* return_type_stack;
 
@@ -1300,12 +1305,47 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
 bool check_ast( AstNode* ast )
 {
+    assert( ast->kind == ASTNODEKIND_MODULE );
+
     SymbolTable st;
     st_initialize( &st );
 
     return_type_stack = lvec_new( Type );
     lvec_append_aggregate( return_type_stack, TYPE_NONE );
 
-    bool is_valid = check_expression( ast, &st, TYPE_UNSPECIFIED );
+    bool is_valid = true;
+    size_t length = lvec_get_length( ast->module.nodes );
+    for( size_t i = 0; i < length; i++ )
+    {
+        // TODO: think about if we should quit when we encounter the first error or not
+        AstNode* node = ast->module.nodes[ i ];
+        switch( node->kind )
+        {
+            case ASTNODEKIND_VARIABLEDECLARATION:
+            case ASTNODEKIND_TYPEDECLARATION:
+            case ASTNODEKIND_ROUTINEDECLARATION:
+            {
+                break;
+            }
+
+            default:
+            {
+                Error error = {
+                    .kind = ERRORKIND_ILLEGALTOPLEVEL,
+                    .offending_token = node->starting_token,
+                };
+                report_error( error );
+                is_valid = false;
+                continue;
+            }
+        }
+
+        if ( !check_expression( node, &st, TYPE_UNSPECIFIED ) )
+        {
+            is_valid = false;
+            continue;
+        }
+    }
+
     return is_valid;
 }

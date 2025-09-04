@@ -263,6 +263,12 @@ void report_error( Error error )
             printf( "attempt to mutate immutable symbol\n" );
             break;
         }
+
+        case ERRORKIND_ILLEGALTOPLEVEL:
+        {
+            printf( "not allowed at the top level\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

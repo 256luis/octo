@@ -84,14 +84,27 @@ void ast_node_print( AstNode node )
 
         case ASTNODEKIND_COMPOUND:
         {
-
             printf( "COMPOUND:" );
             depth++;
-
 
             for( size_t i = 0; i < lvec_get_length( node.compound.nodes ); i++)
             {
                 AstNode* n = node.compound.nodes[i];
+                ast_node_print( *n );
+            }
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_MODULE:
+        {
+            printf( "MODULE:" );
+            depth++;
+
+            for( size_t i = 0; i < lvec_get_length( node.module.nodes ); i++)
+            {
+                AstNode* n = node.module.nodes[i];
                 ast_node_print( *n );
             }
 

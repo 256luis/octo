@@ -37,6 +37,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_UNINITIALIZED,
     ASTNODEKIND_RETURN,
     ASTNODEKIND_ECHO,
+    ASTNODEKIND_MODULE,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -96,6 +97,11 @@ typedef struct AstNodeCompound
 {
     AstNode** nodes; // lvec
 } AstNodeCompound;
+
+typedef struct AstNodeModule
+{
+    AstNode** nodes; // lvec
+} AstNodeModule;
 
 typedef struct AstNodeRoutineCall
 {
@@ -234,6 +240,7 @@ typedef struct AstNode
         AstNodePointerDefinition pointer_definition;
         AstNodeReturn return_statement;
         AstNodeEcho echo;
+        AstNodeModule module;
     };
 } AstNode;
 

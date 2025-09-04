@@ -1254,8 +1254,8 @@ AstNode* ast_from_tokens( Token* tokens )
     };
 
     AstNode* program = octo_malloc( sizeof( AstNode ) );
-    program->kind = ASTNODEKIND_COMPOUND;
-    program->compound.nodes = lvec_new( AstNode* );
+    program->kind = ASTNODEKIND_MODULE;
+    program->module.nodes = lvec_new( AstNode* );
 
     while( ctx.current_token.kind != TOKENKIND_EOF )
     {
@@ -1265,7 +1265,7 @@ AstNode* ast_from_tokens( Token* tokens )
             return NULL;
         }
 
-        lvec_append( program->compound.nodes, n );
+        lvec_append( program->module.nodes, n );
         advance( &ctx );
     }
 
