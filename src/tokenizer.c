@@ -110,6 +110,7 @@ static TokenKind word_symbol_to_token_kind( const char* word_symbol )
     if( strcmp( word_symbol, "or" ) == 0 )      return TOKENKIND_OR;
     if( strcmp( word_symbol, "routine" ) == 0 ) return TOKENKIND_ROUTINE;
     if( strcmp( word_symbol, "mut" ) == 0 )     return TOKENKIND_MUT;
+    if( strcmp( word_symbol, "echo" ) == 0 )    return TOKENKIND_ECHO;
 
     return TOKENKIND_IDENTIFIER;
 }

@@ -936,6 +936,15 @@ static AstNodeReturn parse_return( AstContext* ctx )
     return return_statement;
 }
 
+static AstNodeEcho parse_echo( AstContext* ctx )
+{
+    AstNodeEcho echo = { 0 };
+
+    advance( ctx );
+    echo.value = parse_expression_rvalue( ctx );
+    return echo;
+}
+
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -1108,6 +1117,13 @@ static AstNode* parse_term( AstContext* ctx )
             node->kind = ASTNODEKIND_UNINITIALIZED;
             break;
         }
+
+        case TOKENKIND_ECHO:
+        {
+            node->kind = ASTNODEKIND_ECHO;
+            node->echo = parse_echo( ctx );
+            break;
+        };
 
         default:
         {

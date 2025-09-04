@@ -1127,6 +1127,26 @@ static bool check_return( AstNodeReturn return_statement, SymbolTable* st, Token
     return true;
 }
 
+static bool check_echo( AstNodeEcho echo, SymbolTable* st )
+{
+    if( !check_rvalue( echo.value, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+
+    if( echo.value->type.kind == TYPEKIND_NONE )
+    {
+        Error error = {
+            .kind = ERRORKIND_ILLEGALNONETYPE,
+            .offending_token = echo.value->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -1258,8 +1278,12 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 
         case ASTNODEKIND_RETURN:
         {
-            bool b = check_return( node->return_statement, st, node->starting_token );
-            return b;
+            return check_return( node->return_statement, st, node->starting_token );
+        }
+
+        case ASTNODEKIND_ECHO:
+        {
+            return check_echo( node->echo, st );
         }
 
         case ASTNODEKIND_STRUCTDEFINITION:

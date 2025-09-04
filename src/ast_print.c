@@ -589,5 +589,16 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_ECHO:
+        {
+            printf( "ECHO:" );
+            depth++;
+
+            ast_node_print( *node.echo.value );
+
+            depth--;
+            break;
+        }
     }
 }

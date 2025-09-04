@@ -36,6 +36,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_POINTERDEFINITION,
     ASTNODEKIND_UNINITIALIZED,
     ASTNODEKIND_RETURN,
+    ASTNODEKIND_ECHO,
 } AstNodeKind;
 
 typedef struct AstNodeString
@@ -194,6 +195,11 @@ typedef struct AstNodeReturn
     AstNode* value; // can be null
 } AstNodeReturn;
 
+typedef struct AstNodeEcho
+{
+    AstNode* value;
+} AstNodeEcho;
+
 typedef struct AstNode
 {
     AstNodeKind kind;
@@ -227,6 +233,7 @@ typedef struct AstNode
         AstNodeAssignment assignment;
         AstNodePointerDefinition pointer_definition;
         AstNodeReturn return_statement;
+        AstNodeEcho echo;
     };
 } AstNode;
 
