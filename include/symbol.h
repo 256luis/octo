@@ -3,11 +3,13 @@
 
 #include "tokenizer.h"
 #include "type.h"
+#include "ast.h"
 
 typedef struct Symbol
 {
     Token key;
     Type type;
+    AstNode* value;
 } Symbol;
 
 typedef struct SymbolTable

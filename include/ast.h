@@ -52,7 +52,7 @@ typedef struct AstNodeCharacter
 
 typedef struct AstNodeInteger
 {
-    uint64_t integer;
+    int64_t integer;
     Token token;
 } AstNodeInteger;
 
@@ -162,7 +162,7 @@ typedef struct AstNodeConditional
 typedef struct AstNodeArrayLiteral
 {
     AstNode* base_type_definition;   // can be null
-    AstNode* length;                 // can be null
+    // AstNode* length;                 // can be null
     AstNode** initialized_elements;  // lvec
 } AstNodeArrayLiteral;
 

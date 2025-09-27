@@ -10,6 +10,7 @@
 #include "error.h"
 #include "symbol.h"
 #include "globals.h"
+#include "interpreter.h"
 
 #define TOP_LEVEL_ALLOWED_NODES\
     ASTNODEKIND_VARIABLEDECLARATION,\
@@ -208,6 +209,7 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
         return false;
     }
 
+    int64_t length = -1;
     if( array_definition.length != NULL )
     {
         if( !check_expression( array_definition.length, st, TYPE_UNSPECIFIED ) )
@@ -229,7 +231,11 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
             return false;
         }
 
-        // TODO: think about if we want to evaluate the length AST now ???
+        InterpreterContext ctx = {
+            .st = st,
+        };
+
+        length = walk_node( array_definition.length, &ctx ).integer_literal.integer;
     }
 
     Type* base = octo_malloc( sizeof( Type ) );
@@ -240,7 +246,7 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
         .kind = TYPEKIND_ARRAY,
         .array = {
             .base = base,
-            .length = array_definition.length
+            .length = length,
         },
     };
 
@@ -422,7 +428,19 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
         {
             return false;
         }
+
         declared_type = type_unwrap_type( variable_declaration.type_definition->type );
+        if( declared_type.kind == TYPEKIND_ARRAY &&
+            declared_type.array.length == -1 )
+        {
+            Error error = {
+                .kind = ERRORKIND_CANNOTINFERTYPE,
+                .offending_token = variable_declaration.type_definition->starting_token,
+                .note = "array length must be explicit here"
+            };
+            report_error( error );
+            return false;
+        }
     }
 
     // check if value is valid
@@ -456,6 +474,13 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     Type symbol_type = variable_declaration.value->type;
     symbol_type.is_mutable = variable_declaration.is_mutable;
 
+    Type* tmp = &symbol_type;
+    while( tmp->kind == TYPEKIND_ARRAY )
+    {
+        tmp->array.base->is_mutable = variable_declaration.is_mutable;
+        tmp = tmp->array.base;
+    }
+
     // add to symbol table
     Symbol symbol = {
         .key = identifier_token,
@@ -467,6 +492,7 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
 
 static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable* st, Type* found_type, Type type_hint )
 {
+    Type declared_base_type = TYPE_UNSPECIFIED;
     Type declared_type = TYPE_UNSPECIFIED;
     if( array_literal.base_type_definition != NULL )
     {
@@ -477,73 +503,76 @@ static bool check_array_literal( AstNodeArrayLiteral array_literal, SymbolTable*
 
         declared_type = array_literal.base_type_definition->type;
         declared_type = type_unwrap_type( declared_type );
-
-        if( type_hint.kind != TYPEKIND_UNSPECIFIED &&
-            !type_equals( declared_type, type_hint ) )
+        if( declared_type.kind != TYPEKIND_ARRAY )
         {
             Error error = {
-                .kind = ERRORKIND_TYPEMISMATCH,
+                .kind = ERRORKIND_NOTANARRAY,
                 .offending_token = array_literal.base_type_definition->starting_token,
-                .type_mismatch = {
-                    .expected = type_hint,
-                    .found = declared_type
-                },
+                .note = "try [N]T"
             };
             report_error( error );
             return false;
         }
+
+        declared_base_type = *declared_type.array.base;
     }
     else
     {
         declared_type = type_hint;
     }
 
-    if( array_literal.length != NULL &&
-        !check_rvalue( array_literal.length, st, TYPE_INT ) )
+    int64_t initialized_length = lvec_get_length( array_literal.initialized_elements );
+    if( initialized_length > 0 )
     {
-        return false;
-    }
-
-    Type base_type = TYPE_UNSPECIFIED;
-    if( declared_type.kind != TYPEKIND_UNSPECIFIED )
-    {
-        base_type = type_unwrap_array( declared_type );
-    }
-
-    size_t length = lvec_get_length( array_literal.initialized_elements );
-    if( base_type.kind == TYPEKIND_UNSPECIFIED && length > 0 )
-    {
-        AstNode* first = array_literal.initialized_elements[ 0 ];
-        if( !check_rvalue( first, st, base_type ) )
+        if( !check_rvalue( array_literal.initialized_elements[ 0 ], st, declared_base_type ) )
         {
             return false;
         }
 
-        base_type = first->type;
+        Type first_element_type = array_literal.initialized_elements[ 0 ]->type;
+        if( declared_base_type.kind == TYPEKIND_UNSPECIFIED )
+        {
+            declared_base_type = first_element_type;
+        }
     }
 
-    for( size_t i = 0; i < length; i++ )
+    for( int64_t i = 1; i < initialized_length; i++ )
     {
-        AstNode* expression = array_literal.initialized_elements[ i ];
-        if( !check_rvalue( expression, st, base_type ) )
+        if( !check_rvalue( array_literal.initialized_elements[ i ], st, declared_base_type ) )
         {
             return false;
         }
     }
 
-
-    if( base_type.kind == TYPEKIND_UNSPECIFIED )
+    int64_t declared_length = declared_type.array.length;
+    if( declared_type.kind == TYPEKIND_UNSPECIFIED )
     {
-        *found_type = TYPE_UNSPECIFIED;
-    }
-    else if( declared_type.kind != TYPEKIND_UNSPECIFIED )
-    {
-        *found_type = declared_type;
+        declared_type = type_wrap_array( declared_base_type );
+        declared_type.array.length = initialized_length;
     }
     else
     {
-        *found_type = type_wrap_array( base_type );
+        if( declared_length == -1 )
+        {
+            declared_type.array.length = initialized_length;
+        }
+
+        if( initialized_length > declared_type.array.length )
+        {
+            printf("kasdgsadkh\n");
+            return false;
+        }
     }
+
+    if( type_hint.kind == TYPEKIND_ARRAY &&
+        type_equals( *type_hint.array.base, declared_base_type ) &&
+        declared_length == -1 )
+    {
+        declared_type.array.length = type_hint.array.length;
+    }
+        // if( declared_base_type.array)
+
+    *found_type = declared_type;
     return true;
 }
 
@@ -767,6 +796,7 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
 
     st_pop_scope( st );
     lvec_remove_last( return_type_stack );
+
     return true;
 }
 
@@ -1051,8 +1081,6 @@ static bool check_binary( AstNodeBinary binary, SymbolTable* st, Type* found_typ
             break;
         }
 
-        case BINARYOPERATION_EQUALTO:
-        case BINARYOPERATION_NOTEQUALTO:
         case BINARYOPERATION_LESSTHAN:
         case BINARYOPERATION_LESSTHANOREQUALTO:
         case BINARYOPERATION_GREATERTHAN:
@@ -1063,6 +1091,18 @@ static bool check_binary( AstNodeBinary binary, SymbolTable* st, Type* found_typ
 
             if( !left_is_numeric || !right_is_numeric ||
                 !type_equals( binary.left->type, binary.right->type ) )
+            {
+                goto return_error;
+            }
+
+            *found_type = TYPE_BOOLEAN;
+            break;
+        }
+
+        case BINARYOPERATION_EQUALTO:
+        case BINARYOPERATION_NOTEQUALTO:
+        {
+            if( !type_equals( binary.left->type, binary.right->type ) )
             {
                 goto return_error;
             }
@@ -1298,17 +1338,22 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         {
             return check_type_definition( node, st );
         }
+
+        case ASTNODEKIND_MODULE:
+        {
+            UNREACHABLE();
+        }
     }
 
     return true;
 }
 
-bool check_ast( AstNode* ast )
+bool check_ast( AstNode* ast, SymbolTable* st )
 {
     assert( ast->kind == ASTNODEKIND_MODULE );
 
-    SymbolTable st;
-    st_initialize( &st );
+    // SymbolTable* st = octo_malloc( sizeof( SymbolTable ) );
+    st_initialize( st );
 
     return_type_stack = lvec_new( Type );
     lvec_append_aggregate( return_type_stack, TYPE_NONE );
@@ -1340,7 +1385,7 @@ bool check_ast( AstNode* ast )
             }
         }
 
-        if ( !check_expression( node, &st, TYPE_UNSPECIFIED ) )
+        if ( !check_expression( node, st, TYPE_UNSPECIFIED ) )
         {
             is_valid = false;
             continue;

@@ -970,6 +970,7 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_INTEGERLITERAL;
             node->integer_literal.integer = ctx->current_token.integer;
+            node->integer_literal.token = ctx->current_token;
             break;
         }
 
@@ -977,6 +978,7 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_FLOATLITERAL;
             node->float_literal.floating = ctx->current_token.floating;
+            node->float_literal.token = ctx->current_token;
             break;
         }
 
@@ -984,6 +986,7 @@ static AstNode* parse_term( AstContext* ctx )
         {
             node->kind = ASTNODEKIND_BOOLEANLITERAL;
             node->boolean_literal.boolean = ctx->current_token.boolean;
+            node->boolean_literal.token = ctx->current_token;
             break;
         }
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "type.h"
+#include "ast.h"
 #include "debug.h"
 #include "globals.h"
 #include "symbol.h"
@@ -83,7 +84,17 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_ARRAY:
         {
-            return type_equals( *t1.array.base, *t2.array.base );
+            if( t1.array.length != t2.array.length )
+            {
+                return false;
+            }
+
+            if( !type_equals( *t1.array.base, *t2.array.base ) )
+            {
+                return false;
+            }
+
+            return true;
         }
 
         case TYPEKIND_POINTER:
@@ -156,7 +167,7 @@ void type_print( Type type )
 
         case TYPEKIND_ARRAY:
         {
-            printf( "[]" );
+            printf( "[%ld]", type.array.length );
             type_print( *type.array.base );
             break;
         }

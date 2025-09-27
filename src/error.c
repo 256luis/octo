@@ -269,6 +269,12 @@ void report_error( Error error )
             printf( "not allowed at the top level\n" );
             break;
         }
+
+        case ERRORKIND_NOTANARRAY:
+        {
+            printf( "type definition is not of an array\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

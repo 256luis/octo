@@ -429,16 +429,16 @@ void ast_node_print( AstNode node )
                 depth--;
             }
 
-            if( node.array_literal.length != NULL )
-            {
-                newline();
+            /* if( node.array_literal.length != NULL ) */
+            /* { */
+            /*     newline(); */
 
-                printf( "length:" );
-                depth++;
+            /*     printf( "length:" ); */
+            /*     depth++; */
 
-                ast_node_print( *node.array_literal.length );
-                depth--;
-            }
+            /*     ast_node_print( *node.array_literal.length ); */
+            /*     depth--; */
+            /* } */
 
             size_t initialized_element_count = lvec_get_length( node.array_literal.initialized_elements );
             if( initialized_element_count > 0 )

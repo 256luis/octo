@@ -7,6 +7,10 @@
 #include "tokenizer.h"
 #include "ast.h"
 #include "semantic.h"
+#include "codegen.h"
+#include "interpreter.h"
+#include "type.h"
+#include "symbol.h"
 
 SourceCode g_source_code;
 
@@ -55,11 +59,14 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    if( !check_ast( ast ) )
+    SymbolTable* st = octo_malloc( sizeof( SymbolTable ) );
+    if( !check_ast( ast, st ) )
     {
         // printf( "here\n" );
         return 1;
     }
 
-    ast_node_print( *ast );
+    interpret( ast, st );
+
+    // ast_node_print( *ast );
 }

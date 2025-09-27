@@ -2,10 +2,10 @@
 #define TYPE_H
 
 #include <stdint.h>
+// #include "ast.h"
 #include "tokenizer.h"
 
 typedef struct SymbolTable SymbolTable;
-
 typedef struct Type Type;
 typedef struct AstNode AstNode;
 
@@ -29,7 +29,7 @@ typedef enum TypeKind
 typedef struct TypeArray
 {
     Type* base;
-    AstNode* length;
+    int64_t length;
 } TypeArray;
 
 typedef struct TypePointer
@@ -53,6 +53,7 @@ typedef struct TypeRoutine
     bool is_func;
     Type* return_type;  // null if is_func == true
     Type* param_types;  // lvec
+    // AstNodeRoutineDefinition* definition;
 } TypeRoutine;
 
 typedef struct TypeEnum

@@ -3,6 +3,6 @@
 
 #include "ast.h"
 
-bool check_ast( AstNode* ast );
+bool check_ast( AstNode* ast, SymbolTable* st );
 
 #endif

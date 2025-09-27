@@ -43,6 +43,8 @@ add_executable(${PROJECT_NAME}
                ${CMAKE_CURRENT_LIST_DIR}/src/semantic.c
                ${CMAKE_CURRENT_LIST_DIR}/src/type.c
                ${CMAKE_CURRENT_LIST_DIR}/src/symbol.c
+               # ${CMAKE_CURRENT_LIST_DIR}/src/codegen.c
+               ${CMAKE_CURRENT_LIST_DIR}/src/interpreter.c
                ${CMAKE_CURRENT_LIST_DIR}/whereami/src/whereami.c)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
