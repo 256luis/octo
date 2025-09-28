@@ -66,6 +66,8 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
+    // st_print( *st );
+
     interpret( ast, st );
 
     // ast_node_print( *ast );

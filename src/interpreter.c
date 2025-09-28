@@ -90,12 +90,6 @@ AstNode walk_compound( AstNodeCompound compound, InterpreterContext* ctx )
     return last_node;
 }
 
-AstNode walk_routine_definition( AstNodeRoutineDefinition routine_definition, InterpreterContext* ctx )
-{
-    // printf( "%zu\n", ( uintptr_t )routine_definition.body );
-    return walk_node( routine_definition.body, ctx );
-}
-
 void walk_variable_declaration( AstNodeVariableDeclaration variable_declaration, InterpreterContext* ctx )
 {
     Symbol symbol = {
@@ -427,6 +421,35 @@ AstNode walk_subscript( AstNodeSubscript subscript, InterpreterContext* ctx )
     return *array->array_literal.initialized_elements[ index ];
 }
 
+AstNode walk_routine_call( AstNodeRoutineCall routine_call, InterpreterContext* ctx )
+{
+    size_t arg_count = lvec_get_length( routine_call.args );
+    AstNode* lvalue = walk_lvalue( routine_call.routine, ctx );
+
+    st_push_scope( ctx->st );
+
+    // insert routine call args
+    AstNode* args = octo_malloc( sizeof( AstNode ) * arg_count );
+    for( size_t i = 0; i < arg_count; i++ )
+    {
+        args[ i ] = walk_node( routine_call.args[ i ], ctx );
+        Token arg_identifier = lvalue->routine_definition.param_identifier_tokens[ i ];
+
+        Symbol arg_symbol = {
+            .key = arg_identifier,
+            .value = &args[ i ],
+        };
+
+        st_insert( ctx->st, arg_symbol );
+    }
+
+    AstNode result = walk_node( lvalue->routine_definition.body, ctx );
+
+    st_pop_scope( ctx->st );
+    free( args );
+    return result;
+}
+
 AstNode walk_node( AstNode* node, InterpreterContext* ctx )
 {
     AstNode result;
@@ -484,8 +507,8 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
 
         case ASTNODEKIND_ROUTINECALL:
         {
-            // return walk_routine_call( node->routine_call, ctx );
-            UNIMPLEMENTED();
+            result = walk_routine_call( node->routine_call, ctx );
+            break;
         }
 
         case ASTNODEKIND_ARRAYLITERAL:
@@ -519,33 +542,34 @@ void interpret( AstNode* ast, SymbolTable* st )
         .st = st
     };
 
-    size_t node_count = lvec_get_length( ast->module.nodes );
-    AstNodeRoutineDefinition main_routine_definition;
-    bool found_main = false;
-    for( size_t i = 0; i < node_count; i++ )
-    {
-        AstNode* node = ast->module.nodes[ i ];
-        if( node->kind != ASTNODEKIND_ROUTINEDECLARATION )
-        {
-            continue;
-        }
+    /* size_t node_count = lvec_get_length( ast->module.nodes ); */
+    /* AstNodeRoutineDefinition main_routine_definition; */
+    /* bool found_main = false; */
+    /* for( size_t i = 0; i < node_count; i++ ) */
+    /* { */
+    /*     AstNode* node = ast->module.nodes[ i ]; */
+    /*     if( node->kind != ASTNODEKIND_ROUTINEDECLARATION ) */
+    /*     { */
+    /*         continue; */
+    /*     } */
 
-        if( strcmp( node->routine_declaration.identifier_token.as_string, "main" ) != 0 )
-        {
-            continue;
-        }
+    /*     if( strcmp( node->routine_declaration.identifier_token.as_string, "main" ) != 0 ) */
+    /*     { */
+    /*         continue; */
+    /*     } */
 
-        main_routine_definition = node->routine_declaration.routine_definition->routine_definition;
-        found_main = true;
-        break;
-    }
+    /*     main_routine_definition = node->routine_declaration.routine_definition->routine_definition; */
+    /*     found_main = true; */
+    /*     break; */
+    /* } */
 
-    if( !found_main )
-    {
-        // TODO: error
-        printf( "error: main routine not found" );
-        return;
-    }
+    /* if( !found_main ) */
+    /* { */
+    /*     // TODO: error */
+    /*     printf( "error: main routine not found" ); */
+    /*     return; */
+    /* } */
 
-    walk_routine_definition( main_routine_definition, &ctx );
+    AstNode* main_routine = st_get( *ctx.st, "main" )->value;
+    walk_node( main_routine->routine_definition.body, &ctx );
 }

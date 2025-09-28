@@ -765,9 +765,11 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
 
     if( routine_identifier_token != NULL )
     {
+        // printf("%s\n", routine_identifier_token->as_string );
         Symbol routine_symbol = {
             .key = *routine_identifier_token,
             .type = routine_type,
+            .value = node,
         };
         st_insert( st, routine_symbol );
     }
@@ -793,6 +795,10 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
         st_pop_scope( st );
         return false;
     }
+
+    /* printf( "here\n" ); */
+    /* *st_get( *st, routine_identifier_token->as_string )->value = *routine_definition.body; */
+    /* printf( "here2\n" ); */
 
     st_pop_scope( st );
     lvec_remove_last( return_type_stack );
