@@ -467,6 +467,20 @@ AstNode walk_if( AstNodeConditional conditional, InterpreterContext* ctx )
     return result;
 }
 
+AstNode walk_while( AstNodeConditional conditional, InterpreterContext* ctx )
+{
+    bool condition_result = walk_node( conditional.condition, ctx ).boolean_literal.boolean;
+
+    AstNode result = {};
+    while( condition_result )
+    {
+        result = walk_node( conditional.main_body, ctx );
+        condition_result = walk_node( conditional.condition, ctx ).boolean_literal.boolean;
+    }
+
+    return result;
+}
+
 AstNode walk_node( AstNode* node, InterpreterContext* ctx )
 {
     AstNode result;
@@ -544,7 +558,7 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
         {
             if( node->conditional.is_while )
             {
-                UNIMPLEMENTED();
+                result = walk_while( node->conditional, ctx );
             }
             else
             {
@@ -571,34 +585,6 @@ void interpret( AstNode* ast, SymbolTable* st )
     InterpreterContext ctx = {
         .st = st
     };
-
-    /* size_t node_count = lvec_get_length( ast->module.nodes ); */
-    /* AstNodeRoutineDefinition main_routine_definition; */
-    /* bool found_main = false; */
-    /* for( size_t i = 0; i < node_count; i++ ) */
-    /* { */
-    /*     AstNode* node = ast->module.nodes[ i ]; */
-    /*     if( node->kind != ASTNODEKIND_ROUTINEDECLARATION ) */
-    /*     { */
-    /*         continue; */
-    /*     } */
-
-    /*     if( strcmp( node->routine_declaration.identifier_token.as_string, "main" ) != 0 ) */
-    /*     { */
-    /*         continue; */
-    /*     } */
-
-    /*     main_routine_definition = node->routine_declaration.routine_definition->routine_definition; */
-    /*     found_main = true; */
-    /*     break; */
-    /* } */
-
-    /* if( !found_main ) */
-    /* { */
-    /*     // TODO: error */
-    /*     printf( "error: main routine not found" ); */
-    /*     return; */
-    /* } */
 
     AstNode* main_routine = st_get( *ctx.st, "main" )->value;
     walk_node( main_routine->routine_definition.body, &ctx );
