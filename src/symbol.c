@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
@@ -53,8 +54,8 @@ void st_insert( SymbolTable* st, Symbol symbol )
 
 Symbol* st_get( SymbolTable st, char* key )
 {
-    size_t length = lvec_get_length( st.symbols );
-    for( size_t i = 0; i < length; i++ )
+    int64_t length = lvec_get_length( st.symbols );
+    for( int64_t i = length - 1; i >= 0; i-- )
     {
         char* symbol_key = st.symbols[ i ].key.as_string;
         if( strcmp( symbol_key, key ) == 0 )

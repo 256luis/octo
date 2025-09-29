@@ -450,6 +450,23 @@ AstNode walk_routine_call( AstNodeRoutineCall routine_call, InterpreterContext* 
     return result;
 }
 
+AstNode walk_if( AstNodeConditional conditional, InterpreterContext* ctx )
+{
+    bool condition_result = walk_node( conditional.condition, ctx ).boolean_literal.boolean;
+
+    AstNode result = {};
+    if( condition_result )
+    {
+        result = walk_node( conditional.main_body, ctx );
+    }
+    else if( conditional.else_body != NULL )
+    {
+        result = walk_node( conditional.else_body, ctx );
+    }
+
+    return result;
+}
+
 AstNode walk_node( AstNode* node, InterpreterContext* ctx )
 {
     AstNode result;
@@ -520,6 +537,19 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
         case ASTNODEKIND_SUBSCRIPT:
         {
             result = walk_subscript( node->subscript, ctx );
+            break;
+        }
+
+        case ASTNODEKIND_CONDITIONAL:
+        {
+            if( node->conditional.is_while )
+            {
+                UNIMPLEMENTED();
+            }
+            else
+            {
+                result = walk_if( node->conditional, ctx );
+            }
             break;
         }
 
