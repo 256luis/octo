@@ -70,6 +70,7 @@ void walk_echo( AstNodeEcho echo, InterpreterContext* ctx )
 
         default:
         {
+            printf( "%d\n", to_echo.kind );
             UNREACHABLE();
         }
     }
@@ -481,6 +482,83 @@ AstNode walk_while( AstNodeConditional conditional, InterpreterContext* ctx )
     return result;
 }
 
+AstNode walk_unary( AstNodeUnary unary, InterpreterContext* ctx )
+{
+    AstNode result;
+    switch( unary.operand->kind )
+    {
+        case ASTNODEKIND_CHARACTERLITERAL:
+        case ASTNODEKIND_STRINGLITERAL:
+        {
+            UNREACHABLE();
+        }
+
+        case ASTNODEKIND_INTEGERLITERAL:
+        {
+            // assume unary.operation == UNARYOPERATION_NEGATION
+            result = walk_node( unary.operand, ctx );
+            result.integer_literal.integer = -result.integer_literal.integer;
+            break;
+        }
+
+        case ASTNODEKIND_FLOATLITERAL:
+        {
+            // assume unary.operation == UNARYOPERATION_NEGATION
+            result = walk_node( unary.operand, ctx );
+            result.float_literal.floating = -result.float_literal.floating;
+            break;
+        }
+
+        case ASTNODEKIND_BOOLEANLITERAL:
+        {
+            // assume unary.operation == UNARYOPERATION_NOT
+            result = walk_node( unary.operand, ctx );
+            result.boolean_literal.boolean = !result.boolean_literal.boolean;
+            break;
+        }
+
+        case ASTNODEKIND_IDENTIFIER:
+        {
+            if( unary.operation == UNARYOPERATION_ADDRESSOF )
+            {
+                UNIMPLEMENTED();
+                /* Symbol* symbol = st_get( *ctx->st, unary.operand->identifier.token.as_string ); */
+                /* result = ( AstNode ){ */
+                /*     .kind = ASTNODEKIND_POINTERDEFINITION, */
+                /*     . */
+                /* }; */
+            }
+            else if( unary.operation == UNARYOPERATION_DEREFERENCE )
+            {
+                UNIMPLEMENTED();
+            }
+            else
+            {
+                AstNode operand_result = walk_node( unary.operand, ctx );
+                AstNodeUnary new_unary = {
+                    .operation = unary.operation,
+                    .operand = &operand_result,
+                };
+
+                result = walk_unary( new_unary, ctx );
+            }
+        }
+
+        default:
+        {
+            AstNode operand_result = walk_node( unary.operand, ctx );
+            AstNodeUnary new_unary = {
+                .operation = unary.operation,
+                .operand = &operand_result,
+            };
+
+            result = walk_unary( new_unary, ctx );
+        }
+    }
+
+    return result;
+}
+
 AstNode walk_node( AstNode* node, InterpreterContext* ctx )
 {
     AstNode result;
@@ -567,11 +645,17 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
             break;
         }
 
-        default:
+        case ASTNODEKIND_UNARY:
         {
-            printf( "unimplemented: %d\n", node->kind );
-            UNIMPLEMENTED();
+            result = walk_unary( node->unary, ctx );
+            break;
         }
+
+        /* default: */
+        /* { */
+        /*     printf( "unimplemented: %d\n", node->kind ); */
+        /*     UNIMPLEMENTED(); */
+        /* } */
     }
 
     result.type = node->type;
