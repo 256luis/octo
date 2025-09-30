@@ -246,5 +246,6 @@ typedef struct AstNode
 
 AstNode* ast_from_tokens( Token* tokens );
 void ast_node_print( AstNode node );
+void ast_node_free( AstNode* node );
 
 #endif

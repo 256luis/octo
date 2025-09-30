@@ -1274,3 +1274,213 @@ AstNode* ast_from_tokens( Token* tokens )
 
     return program;
 }
+
+void ast_node_free( AstNode* node )
+{
+    if( node == NULL ) return;
+
+    switch( node->kind )
+    {
+        case ASTNODEKIND_STRINGLITERAL:
+        case ASTNODEKIND_CHARACTERLITERAL:
+        case ASTNODEKIND_INTEGERLITERAL:
+        case ASTNODEKIND_FLOATLITERAL:
+        case ASTNODEKIND_BOOLEANLITERAL:
+        case ASTNODEKIND_IDENTIFIER:
+        case ASTNODEKIND_UNINITIALIZED:
+                {
+            break;
+        }
+
+        case ASTNODEKIND_COMPOUND:
+        {
+            size_t length = lvec_get_length( node->compound.nodes );
+            for( size_t i = 0; i < length; i++ )
+            {
+                ast_node_free( node->compound.nodes[ i ] );
+            }
+
+            lvec_free( node->compound.nodes );
+            break;
+        }
+
+        case ASTNODEKIND_BINARY:
+        {
+            ast_node_free( node->binary.left );
+            ast_node_free( node->binary.right );
+            break;
+        }
+
+        case ASTNODEKIND_UNARY:
+        {
+            ast_node_free( node->unary.operand );
+            break;
+        }
+
+        case ASTNODEKIND_SUBSCRIPT:
+        {
+            ast_node_free( node->subscript.target );
+            ast_node_free( node->subscript.index );
+            break;
+        }
+
+        case ASTNODEKIND_ROUTINECALL:
+        {
+            ast_node_free( node->routine_call.routine );
+
+            size_t length = lvec_get_length( node->routine_call.args );
+            for( size_t i = 0; i < length; i++ )
+            {
+                ast_node_free( node->routine_call.args[ i ] );
+            }
+            lvec_free( node->routine_call.args );
+
+            break;
+        }
+
+        case ASTNODEKIND_VARIABLEDECLARATION:
+        {
+            ast_node_free( node->variable_declaration.type_definition );
+            ast_node_free( node->variable_declaration.value );
+            break;
+        }
+
+        case ASTNODEKIND_TYPEDECLARATION:
+        {
+            ast_node_free( node->type_declaration.type_definition );
+            break;
+        }
+
+        case ASTNODEKIND_STRUCTDEFINITION:
+        {
+            lvec_free( node->struct_definition.member_identifiers );
+
+            size_t member_count = lvec_get_length( node->struct_definition.member_type_definitions );
+            for( size_t i = 0; i < member_count; i++ )
+            {
+                ast_node_free( node->struct_definition.member_type_definitions[ i ] );
+            }
+            lvec_free( node->struct_definition.member_type_definitions );
+
+            break;
+        }
+
+        case ASTNODEKIND_ENUMDEFINITION:
+        {
+            lvec_free( node->enum_definition.variant_names );
+            break;
+        }
+
+        case ASTNODEKIND_ROUTINEDECLARATION:
+        {
+            ast_node_free( node->routine_declaration.routine_definition );
+            break;
+        }
+
+        case ASTNODEKIND_ROUTINEDEFINITION:
+        {
+            ast_node_free( node->routine_definition.return_type_definition );
+            ast_node_free( node->routine_definition.body );
+
+            lvec_free( node->routine_definition.param_identifier_tokens );
+            lvec_free( node->routine_definition.params_mutability );
+
+            size_t type_definition_count = lvec_get_length( node->routine_definition.param_type_definitions );
+            for( size_t i = 0; i < type_definition_count; i++ )
+            {
+                ast_node_free( node->routine_definition.param_type_definitions[ i ] );
+            }
+            lvec_free( node->routine_definition.param_type_definitions );
+
+            break;
+        }
+
+        case ASTNODEKIND_CONDITIONAL:
+        {
+            ast_node_free( node->conditional.condition );
+            ast_node_free( node->conditional.main_body );
+            ast_node_free( node->conditional.else_body );
+        }
+
+        case ASTNODEKIND_ARRAYLITERAL:
+        {
+            ast_node_free( node->array_literal.base_type_definition );
+
+            size_t initialized_element_count = lvec_get_length( node->array_literal.initialized_elements );
+            for( size_t i = 0; i < initialized_element_count; i++ )
+            {
+                ast_node_free( node->array_literal.initialized_elements[ i ] );
+            }
+            lvec_free( node->array_literal.initialized_elements );
+
+            break;
+        }
+
+        case ASTNODEKIND_STRUCTLITERAL:
+        {
+            ast_node_free( node->struct_literal.type_definition );
+            lvec_free( node->struct_literal.initialized_member_tokens );
+
+            size_t initialized_member_count = lvec_get_length( node->struct_literal.initialized_member_values );
+            for( size_t i = 0; i < initialized_member_count; i++ )
+            {
+                ast_node_free( node->struct_literal.initialized_member_values[ i ] );
+            }
+            lvec_free( node->struct_literal.initialized_member_values );
+
+            break;
+        }
+
+        case ASTNODEKIND_MEMBERACCESS:
+        {
+            ast_node_free( node->member_access.target );
+            break;
+        }
+
+        case ASTNODEKIND_ARRAYDEFINITION:
+        {
+            ast_node_free( node->array_definition.length );
+            ast_node_free( node->array_definition.base_type_definition );
+            break;
+        }
+
+        case ASTNODEKIND_ASSIGNMENT:
+        {
+            ast_node_free( node->assignment.target );
+            ast_node_free( node->assignment.value );
+            break;
+        }
+
+        case ASTNODEKIND_POINTERDEFINITION:
+        {
+            ast_node_free( node->pointer_definition.base_type_definition );
+            break;
+        }
+
+        case ASTNODEKIND_RETURN:
+        {
+            ast_node_free( node->return_statement.value );
+            break;
+        }
+
+        case ASTNODEKIND_ECHO:
+        {
+            ast_node_free( node->echo.value );
+            break;
+        }
+
+        case ASTNODEKIND_MODULE:
+        {
+            size_t node_count = lvec_get_length( node->module.nodes );
+            for( size_t i = 0; i < node_count; i++ )
+            {
+                ast_node_free( node->module.nodes[ i ] );
+            }
+            lvec_free( node->module.nodes );
+
+            break;
+        }
+    }
+
+    free( node );
+}
