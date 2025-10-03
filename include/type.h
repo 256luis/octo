@@ -89,6 +89,7 @@ Type type_wrap_array( Type type );
 Type type_unwrap_type( Type type );
 Type type_unwrap_array( Type type );
 Type type_unwrap_pointer( Type type );
+void type_propagate_mutability( Type* type, bool is_mutable );
 
 extern const Type TYPE_UNSPECIFIED;
 extern const Type TYPE_NONE;

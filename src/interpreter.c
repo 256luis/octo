@@ -13,82 +13,91 @@
 
 // TODO: actual string type!!!!!
 
-AstNode walk_node( AstNode* node, InterpreterContext* ctx );
+RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx );
 
-void walk_echo( AstNodeEcho echo, InterpreterContext* ctx )
+RuntimeValue walk_compound( AstNodeCompound compound, InterpreterContext* ctx )
 {
-    AstNode to_echo = walk_node( echo.value, ctx );
+    size_t length = lvec_get_length( compound.nodes );
+    RuntimeValue last_result;
 
-    switch( to_echo.kind )
+    st_push_scope( ctx->st );
+    for( size_t i = 0; i < length; i++ )
     {
-        case ASTNODEKIND_STRINGLITERAL:
+        last_result = walk_node( compound.nodes[ i ], ctx );
+    }
+    st_pop_scope( ctx->st );
+
+    return last_result;
+}
+
+void print_runtime_value( RuntimeValue rv )
+{
+    switch( rv.type.kind )
+    {
+        case TYPEKIND_PRIMITIVE_STRING:
         {
-            printf( "%s", to_echo.string_literal.token.as_string );
+            printf( "%s", rv.string );
             break;
         }
 
-        case ASTNODEKIND_CHARACTERLITERAL:
+        case TYPEKIND_PRIMITIVE_CHARACTER:
         {
-            printf( "%s", to_echo.character_literal.token.as_string );
+            printf( "%c", rv.character );
             break;
         }
 
-        case ASTNODEKIND_INTEGERLITERAL:
+        case TYPEKIND_PRIMITIVE_BOOLEAN:
         {
-            printf( "%ld", to_echo.integer_literal.integer );
+            printf( "%s", rv.boolean ? "true" : "false" );
             break;
         }
 
-        case ASTNODEKIND_FLOATLITERAL:
+        case TYPEKIND_PRIMITIVE_INT:
         {
-            printf( "%lf", to_echo.float_literal.floating );
+            printf( "%ld", rv.integer );
             break;
         }
 
-        case ASTNODEKIND_BOOLEANLITERAL:
+        case TYPEKIND_PRIMITIVE_FLOAT:
         {
-            printf( "%s", to_echo.boolean_literal.boolean ? "true" : "false" );
+            printf( "%lf", rv.floating );
             break;
         }
 
-        case ASTNODEKIND_ARRAYLITERAL:
+        case TYPEKIND_ARRAY:
         {
-            type_print( to_echo.type );
+            type_print( rv.type );
             printf( ".[" );
 
-            for( int64_t i = 0; i < to_echo.type.array.length; i++ )
+            for( int64_t i = 0; i < rv.type.array.length; i++ )
             {
-                AstNodeEcho echo = {
-                   .value = to_echo.array_literal.initialized_elements[i]
-                };
-                walk_echo( echo, ctx );
+                RuntimeValue element = rv.array[ i ];
+                print_runtime_value( element );
                 printf( ", " );
             }
             printf( "]" );
             break;
         }
 
+        case TYPEKIND_UNSPECIFIED:
+        case TYPEKIND_NONE:
+        {
+            UNREACHABLE();
+        }
+
         default:
         {
-            printf( "%d\n", to_echo.kind );
-            UNREACHABLE();
+            type_print( rv.type );
+            UNIMPLEMENTED();
         }
     }
 }
 
-AstNode walk_compound( AstNodeCompound compound, InterpreterContext* ctx )
+void walk_echo( AstNodeEcho echo, InterpreterContext* ctx )
 {
-    size_t length = lvec_get_length( compound.nodes );
-    AstNode last_node;
-
-    st_push_scope( ctx->st );
-    for( size_t i = 0; i < length; i++ )
-    {
-        last_node = walk_node( compound.nodes[ i ], ctx );
-    }
-    st_pop_scope( ctx->st );
-
-    return last_node;
+    RuntimeValue to_echo = walk_node( echo.value, ctx );
+    print_runtime_value( to_echo );
+    putchar('\n');
 }
 
 void walk_variable_declaration( AstNodeVariableDeclaration variable_declaration, InterpreterContext* ctx )
@@ -96,178 +105,16 @@ void walk_variable_declaration( AstNodeVariableDeclaration variable_declaration,
     Symbol symbol = {
         .key = variable_declaration.identifier_token,
         .type = variable_declaration.value->type,
-        .value = octo_malloc( sizeof( AstNode ) ),
+        .value = octo_malloc( sizeof( RuntimeValue ) ),
     };
 
-    AstNode value = walk_node( variable_declaration.value, ctx );
+    RuntimeValue value = walk_node( variable_declaration.value, ctx );
     *symbol.value = value;
 
     st_insert( ctx->st, symbol );
 }
 
-AstNode walk_binary( AstNodeBinary binary, InterpreterContext* ctx )
-{
-    AstNode left_result = walk_node( binary.left, ctx );
-    AstNode right_result = walk_node( binary.right, ctx );
-    AstNode result;
-
-    switch( left_result.type.kind )
-    {
-        case TYPEKIND_PRIMITIVE_INT:
-        {
-            int64_t left_integer = left_result.integer_literal.integer;
-            int64_t right_integer = right_result.integer_literal.integer;
-
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_INTEGERLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_INT
-                },
-            };
-
-            switch( binary.operation )
-            {
-                case BINARYOPERATION_ADDITION:       result.integer_literal.integer = left_integer + right_integer; return result;
-                case BINARYOPERATION_SUBTRACTION:    result.integer_literal.integer = left_integer - right_integer; return result;
-                case BINARYOPERATION_MULTIPLICATION: result.integer_literal.integer = left_integer * right_integer; return result;
-                case BINARYOPERATION_DIVISION:       result.integer_literal.integer = left_integer / right_integer; return result;
-                case BINARYOPERATION_MODULO:         result.integer_literal.integer = left_integer % right_integer; return result;
-                default: // do nothing
-            }
-
-            // if this point is reached, then it must be a boolean operation
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_BOOLEANLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_BOOLEAN
-                },
-            };
-
-            switch( binary.operation )
-            {
-                case BINARYOPERATION_EQUALTO:              result.boolean_literal.boolean = left_integer == right_integer; return result;
-                case BINARYOPERATION_NOTEQUALTO:           result.boolean_literal.boolean = left_integer != right_integer; return result;
-                case BINARYOPERATION_LESSTHAN:             result.boolean_literal.boolean = left_integer < right_integer; return result;
-                case BINARYOPERATION_LESSTHANOREQUALTO:    result.boolean_literal.boolean = left_integer <= right_integer; return result;
-                case BINARYOPERATION_GREATERTHAN:          result.boolean_literal.boolean = left_integer > right_integer; return result;
-                case BINARYOPERATION_GREATERTHANOREQUALTO: result.boolean_literal.boolean = left_integer >= right_integer; return result;
-                default: UNREACHABLE();
-            }
-        }
-
-        case TYPEKIND_PRIMITIVE_FLOAT:
-        {
-            double left_float = left_result.float_literal.floating;
-            double right_float = right_result.float_literal.floating;
-
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_FLOATLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_FLOAT
-                },
-            };
-
-            switch( binary.operation )
-            {
-                case BINARYOPERATION_ADDITION:       result.float_literal.floating = left_float + right_float; return result;
-                case BINARYOPERATION_SUBTRACTION:    result.float_literal.floating = left_float - right_float; return result;
-                case BINARYOPERATION_MULTIPLICATION: result.float_literal.floating = left_float * right_float; return result;
-                case BINARYOPERATION_DIVISION:       result.float_literal.floating = left_float / right_float; return result;
-                default: // do nothing
-            }
-
-            // if this point is reached, then it must be a boolean operation
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_BOOLEANLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_BOOLEAN
-                },
-            };
-
-            switch( binary.operation )
-            {
-                case BINARYOPERATION_EQUALTO:              result.boolean_literal.boolean = left_float == right_float; return result;
-                case BINARYOPERATION_NOTEQUALTO:           result.boolean_literal.boolean = left_float != right_float; return result;
-                case BINARYOPERATION_LESSTHAN:             result.boolean_literal.boolean = left_float < right_float; return result;
-                case BINARYOPERATION_LESSTHANOREQUALTO:    result.boolean_literal.boolean = left_float <= right_float; return result;
-                case BINARYOPERATION_GREATERTHAN:          result.boolean_literal.boolean = left_float > right_float; return result;
-                case BINARYOPERATION_GREATERTHANOREQUALTO: result.boolean_literal.boolean = left_float >= right_float; return result;
-                default: UNREACHABLE();
-            }
-        }
-
-        case TYPEKIND_PRIMITIVE_STRING:
-        {
-            // TODO: actual string type
-            char* left_string = left_result.string_literal.token.as_string;
-            char* right_string = right_result.string_literal.token.as_string;
-
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_BOOLEANLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_BOOLEAN
-                },
-            };
-
-            switch( binary.operation )
-            {                                                                      // TODO: better string compare
-                case BINARYOPERATION_EQUALTO:    result.boolean_literal.boolean = strcmp( left_string, right_string ) == 0; return result;
-                case BINARYOPERATION_NOTEQUALTO: result.boolean_literal.boolean = strcmp( left_string, right_string ) != 0; return result;
-                default: UNREACHABLE();
-            }
-        }
-
-        case TYPEKIND_PRIMITIVE_CHARACTER:
-        {
-            char left_char = left_result.character_literal.token.as_string[ 0 ];
-            char right_char = right_result.character_literal.token.as_string[ 0 ];
-
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_BOOLEANLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_BOOLEAN
-                },
-            };
-
-            switch( binary.operation )
-            {
-                case BINARYOPERATION_EQUALTO:    result.boolean_literal.boolean = left_char == right_char; return result;
-                case BINARYOPERATION_NOTEQUALTO: result.boolean_literal.boolean = left_char != right_char; return result;
-                default: UNREACHABLE();
-            }
-        }
-
-        case TYPEKIND_PRIMITIVE_BOOLEAN:
-        {
-            bool left_bool = left_result.boolean_literal.boolean;
-            bool right_bool = right_result.boolean_literal.boolean;
-
-            result = ( AstNode ){
-                .kind = ASTNODEKIND_BOOLEANLITERAL,
-                .type = ( Type ){
-                    .kind = TYPEKIND_PRIMITIVE_BOOLEAN
-                },
-            };
-
-            switch( binary.operation )
-            {
-                case BINARYOPERATION_EQUALTO:    result.boolean_literal.boolean = left_bool == right_bool; return result;
-                case BINARYOPERATION_NOTEQUALTO: result.boolean_literal.boolean = left_bool != right_bool; return result;
-                case BINARYOPERATION_AND:        result.boolean_literal.boolean = left_bool && right_bool; return result;
-                case BINARYOPERATION_OR:         result.boolean_literal.boolean = left_bool || right_bool; return result;
-                default: UNREACHABLE();
-            }
-        }
-
-        default:
-        {
-            printf("unimplemented: %d\n", left_result.type.kind );
-            UNIMPLEMENTED();
-        }
-    }
-}
-
-AstNode* walk_lvalue( AstNode* lvalue, InterpreterContext* ctx )
+RuntimeValue* walk_lvalue( AstNode* lvalue, InterpreterContext* ctx )
 {
     switch( lvalue->kind )
     {
@@ -280,15 +127,16 @@ AstNode* walk_lvalue( AstNode* lvalue, InterpreterContext* ctx )
 
         case ASTNODEKIND_SUBSCRIPT:
         {
-            AstNode* array = walk_lvalue( lvalue->subscript.target, ctx );
-            int64_t index = walk_node( lvalue->subscript.index, ctx ).integer_literal.integer;
+            RuntimeValue* rv = walk_lvalue( lvalue->subscript.target, ctx );
+            int64_t index = walk_node( lvalue->subscript.index, ctx ).integer;
 
-            return array->array_literal.initialized_elements[ index ];
+            return &rv->array[ index ];
         }
 
         case ASTNODEKIND_MEMBERACCESS:
         {
-            UNIMPLEMENTED();
+            RuntimeValue* rv = walk_lvalue( lvalue->member_access.target, ctx );
+            return st_get( rv->structure_st, lvalue->member_access.member_token.as_string )->value;
         }
 
         default:
@@ -300,66 +148,191 @@ AstNode* walk_lvalue( AstNode* lvalue, InterpreterContext* ctx )
 
 void walk_assignment( AstNodeAssignment assignment, InterpreterContext* ctx )
 {
-    AstNode* lvalue = walk_lvalue( assignment.target, ctx );
+    RuntimeValue* lvalue = walk_lvalue( assignment.target, ctx );
     *lvalue = walk_node( assignment.value, ctx );
 }
 
-AstNode get_default_value( Type type )
+RuntimeValue walk_binary( AstNodeBinary binary, InterpreterContext* ctx )
+{
+    RuntimeValue left_result = walk_node( binary.left, ctx );
+    RuntimeValue right_result = walk_node( binary.right, ctx );
+    RuntimeValue result;
+
+    switch( left_result.type.kind )
+    {
+        case TYPEKIND_PRIMITIVE_INT:
+        {
+            int64_t left_integer = left_result.integer;
+            int64_t right_integer = right_result.integer;
+
+            switch( binary.operation )
+            {
+                case BINARYOPERATION_ADDITION:       result.integer = left_integer + right_integer; return result;
+                case BINARYOPERATION_SUBTRACTION:    result.integer = left_integer - right_integer; return result;
+                case BINARYOPERATION_MULTIPLICATION: result.integer = left_integer * right_integer; return result;
+                case BINARYOPERATION_DIVISION:       result.integer = left_integer / right_integer; return result;
+                case BINARYOPERATION_MODULO:         result.integer = left_integer % right_integer; return result;
+                default: // do nothing
+            }
+
+            // if this point is reached, then it must be a boolean operation
+            switch( binary.operation )
+            {
+                case BINARYOPERATION_EQUALTO:              result.boolean = left_integer == right_integer; return result;
+                case BINARYOPERATION_NOTEQUALTO:           result.boolean = left_integer != right_integer; return result;
+                case BINARYOPERATION_LESSTHAN:             result.boolean = left_integer < right_integer; return result;
+                case BINARYOPERATION_LESSTHANOREQUALTO:    result.boolean = left_integer <= right_integer; return result;
+                case BINARYOPERATION_GREATERTHAN:          result.boolean = left_integer > right_integer; return result;
+                case BINARYOPERATION_GREATERTHANOREQUALTO: result.boolean = left_integer >= right_integer; return result;
+                default: UNREACHABLE();
+            }
+        }
+
+        case TYPEKIND_PRIMITIVE_FLOAT:
+        {
+            double left_float = left_result.floating;
+            double right_float = right_result.floating;
+
+            switch( binary.operation )
+            {
+                case BINARYOPERATION_ADDITION:       result.floating = left_float + right_float; return result;
+                case BINARYOPERATION_SUBTRACTION:    result.floating = left_float - right_float; return result;
+                case BINARYOPERATION_MULTIPLICATION: result.floating = left_float * right_float; return result;
+                case BINARYOPERATION_DIVISION:       result.floating = left_float / right_float; return result;
+                default: // do nothing
+            }
+
+            switch( binary.operation )
+            {
+                case BINARYOPERATION_EQUALTO:              result.boolean = left_float == right_float; return result;
+                case BINARYOPERATION_NOTEQUALTO:           result.boolean = left_float != right_float; return result;
+                case BINARYOPERATION_LESSTHAN:             result.boolean = left_float < right_float; return result;
+                case BINARYOPERATION_LESSTHANOREQUALTO:    result.boolean = left_float <= right_float; return result;
+                case BINARYOPERATION_GREATERTHAN:          result.boolean = left_float > right_float; return result;
+                case BINARYOPERATION_GREATERTHANOREQUALTO: result.boolean = left_float >= right_float; return result;
+                default: UNREACHABLE();
+            }
+        }
+
+        case TYPEKIND_PRIMITIVE_STRING:
+        {
+            // TODO: actual string type
+            char* left_string = left_result.string;
+            char* right_string = right_result.string;
+
+            switch( binary.operation )
+            {                                                                      // TODO: better string compare
+                case BINARYOPERATION_EQUALTO:    result.boolean = strcmp( left_string, right_string ) == 0; return result;
+                case BINARYOPERATION_NOTEQUALTO: result.boolean = strcmp( left_string, right_string ) != 0; return result;
+                default: UNREACHABLE();
+            }
+        }
+
+        case TYPEKIND_PRIMITIVE_CHARACTER:
+        {
+            char left_char = left_result.character;
+            char right_char = right_result.character;
+
+            switch( binary.operation )
+            {
+                case BINARYOPERATION_EQUALTO:    result.boolean = left_char == right_char; return result;
+                case BINARYOPERATION_NOTEQUALTO: result.boolean = left_char != right_char; return result;
+                default: UNREACHABLE();
+            }
+        }
+
+        case TYPEKIND_PRIMITIVE_BOOLEAN:
+        {
+            bool left_bool = left_result.boolean;
+            bool right_bool = right_result.boolean;
+
+            switch( binary.operation )
+            {
+                case BINARYOPERATION_EQUALTO:    result.boolean = left_bool == right_bool; return result;
+                case BINARYOPERATION_NOTEQUALTO: result.boolean = left_bool != right_bool; return result;
+                case BINARYOPERATION_AND:        result.boolean = left_bool && right_bool; return result;
+                case BINARYOPERATION_OR:         result.boolean = left_bool || right_bool; return result;
+                default: UNREACHABLE();
+            }
+        }
+
+        default:
+        {
+            printf("unimplemented: %d\n", left_result.type.kind );
+            UNIMPLEMENTED();
+        }
+    }
+}
+
+RuntimeValue walk_routine_call( AstNodeRoutineCall routine_call, InterpreterContext* ctx )
+{
+    size_t arg_count = lvec_get_length( routine_call.args );
+    RuntimeValue* lvalue = walk_lvalue( routine_call.routine, ctx );
+
+    st_push_scope( ctx->st );
+
+    // insert routine call args
+    RuntimeValue* args = octo_malloc( sizeof( RuntimeValue ) * arg_count );
+    for( size_t i = 0; i < arg_count; i++ )
+    {
+        args[ i ] = walk_node( routine_call.args[ i ], ctx );
+        Token arg_identifier = lvalue->routine_definition.param_identifier_tokens[ i ];
+        Symbol arg_symbol = {
+            .key = arg_identifier,
+            .value = &args[ i ],
+        };
+
+        st_insert( ctx->st, arg_symbol );
+    }
+
+    RuntimeValue result = walk_node( lvalue->routine_definition.body, ctx );
+
+    st_pop_scope( ctx->st );
+    free( args );
+    return result;
+}
+
+RuntimeValue get_default_value( Type type )
 {
     switch( type.kind )
     {
         case TYPEKIND_PRIMITIVE_STRING:
         {
-            return ( AstNode ){
-                .kind = ASTNODEKIND_STRINGLITERAL,
+            return ( RuntimeValue ){
                 .type = TYPE_STRING,
-                .string_literal = {
-                    .token.as_string = ""
-                }
+                .string = "",
             };
         }
 
         case TYPEKIND_PRIMITIVE_CHARACTER:
         {
-            return ( AstNode ){
-                .kind = ASTNODEKIND_CHARACTERLITERAL,
+            return ( RuntimeValue ){
                 .type = TYPE_CHARACTER,
-                .character_literal = {
-                    .token.as_string = ""
-                }
+                .character = '\0'
             };
         }
 
         case TYPEKIND_PRIMITIVE_BOOLEAN:
         {
-            return ( AstNode ){
-                .kind = ASTNODEKIND_BOOLEANLITERAL,
+            return ( RuntimeValue ){
                 .type = TYPE_BOOLEAN,
-                .boolean_literal = {
-                    .boolean = false,
-                }
+                .boolean = false,
             };
         }
 
         case TYPEKIND_PRIMITIVE_INT:
         {
-            return ( AstNode ){
-                .kind = ASTNODEKIND_INTEGERLITERAL,
+            return ( RuntimeValue ){
                 .type = TYPE_INT,
-                .integer_literal = {
-                    .integer = 0,
-                }
+                .integer = 0,
             };
         }
 
         case TYPEKIND_PRIMITIVE_FLOAT:
         {
-            return ( AstNode ){
-                .kind = ASTNODEKIND_FLOATLITERAL,
+            return ( RuntimeValue ){
                 .type = TYPE_FLOAT,
-                .float_literal = {
-                    .floating = 0,
-                }
+                .floating = 0,
             };
         }
 
@@ -380,82 +353,48 @@ AstNode get_default_value( Type type )
     }
 }
 
-AstNode walk_array_literal( AstNodeArrayLiteral array_literal, InterpreterContext* ctx, Type type )
+RuntimeValue walk_array_literal( AstNodeArrayLiteral array_literal, InterpreterContext* ctx, Type type )
 {
     int64_t length = type.array.length;
     int64_t initialized_length = lvec_get_length( array_literal.initialized_elements );
 
-    AstNode** initialized_elements = lvec_new( AstNode* );
-    lvec_reserve_minimum( initialized_elements, length );
+    RuntimeValue* elements = lvec_new( RuntimeValue );
+    lvec_reserve_minimum( elements, length );
 
     // evaluate initialized elements
     for( int64_t i = 0; i < initialized_length; i++ )
     {
-        AstNode* result = octo_malloc( sizeof( AstNode ) );
-        *result = walk_node( array_literal.initialized_elements[ i ], ctx );
-        lvec_append_aggregate( initialized_elements, result );
+        RuntimeValue result = walk_node( array_literal.initialized_elements[ i ], ctx );
+        lvec_append_aggregate( elements, result );
     }
 
+    // set uninitialized elements to default value
     for( int64_t i = initialized_length; i < length; i++ )
     {
-        AstNode* result = octo_malloc( sizeof( AstNode ) );
-        *result = get_default_value( type_unwrap_array( type ) );
-        lvec_append_aggregate( initialized_elements, result );
+        RuntimeValue result = get_default_value( type_unwrap_array( type ) );
+        lvec_append_aggregate( elements, result );
     }
 
-    AstNode result = {
-        .kind = ASTNODEKIND_ARRAYLITERAL,
-        .array_literal = ( AstNodeArrayLiteral ){
-            // .length = array_literal.length,
-            .initialized_elements = initialized_elements
-        }
+    RuntimeValue result = {
+        .array = elements
     };
 
     return result;
 }
 
-AstNode walk_subscript( AstNodeSubscript subscript, InterpreterContext* ctx )
+RuntimeValue walk_subscript( AstNodeSubscript subscript, InterpreterContext* ctx )
 {
-    AstNode* array = walk_lvalue( subscript.target, ctx );
-    int64_t index = walk_node( subscript.index, ctx ).integer_literal.integer;
+    RuntimeValue* array = walk_lvalue( subscript.target, ctx );
+    int64_t index = walk_node( subscript.index, ctx ).integer;
 
-    return *array->array_literal.initialized_elements[ index ];
+    return array->array[ index ];
 }
 
-AstNode walk_routine_call( AstNodeRoutineCall routine_call, InterpreterContext* ctx )
+RuntimeValue walk_if( AstNodeConditional conditional, InterpreterContext* ctx )
 {
-    size_t arg_count = lvec_get_length( routine_call.args );
-    AstNode* lvalue = walk_lvalue( routine_call.routine, ctx );
+    bool condition_result = walk_node( conditional.condition, ctx ).boolean;
 
-    st_push_scope( ctx->st );
-
-    // insert routine call args
-    AstNode* args = octo_malloc( sizeof( AstNode ) * arg_count );
-    for( size_t i = 0; i < arg_count; i++ )
-    {
-        args[ i ] = walk_node( routine_call.args[ i ], ctx );
-        Token arg_identifier = lvalue->routine_definition.param_identifier_tokens[ i ];
-
-        Symbol arg_symbol = {
-            .key = arg_identifier,
-            .value = &args[ i ],
-        };
-
-        st_insert( ctx->st, arg_symbol );
-    }
-
-    AstNode result = walk_node( lvalue->routine_definition.body, ctx );
-
-    st_pop_scope( ctx->st );
-    free( args );
-    return result;
-}
-
-AstNode walk_if( AstNodeConditional conditional, InterpreterContext* ctx )
-{
-    bool condition_result = walk_node( conditional.condition, ctx ).boolean_literal.boolean;
-
-    AstNode result = {};
+    RuntimeValue result = {};
     if( condition_result )
     {
         result = walk_node( conditional.main_body, ctx );
@@ -468,109 +407,170 @@ AstNode walk_if( AstNodeConditional conditional, InterpreterContext* ctx )
     return result;
 }
 
-AstNode walk_while( AstNodeConditional conditional, InterpreterContext* ctx )
+RuntimeValue walk_while( AstNodeConditional conditional, InterpreterContext* ctx )
 {
-    bool condition_result = walk_node( conditional.condition, ctx ).boolean_literal.boolean;
+    bool condition_result = walk_node( conditional.condition, ctx ).boolean;
 
-    AstNode result = {};
+    RuntimeValue result = {};
     while( condition_result )
     {
         result = walk_node( conditional.main_body, ctx );
-        condition_result = walk_node( conditional.condition, ctx ).boolean_literal.boolean;
+        condition_result = walk_node( conditional.condition, ctx ).boolean;
     }
 
     return result;
 }
 
-AstNode walk_unary( AstNodeUnary unary, InterpreterContext* ctx )
+RuntimeValue apply_unary_operation( RuntimeValue rv, UnaryOperation operation )
 {
-    AstNode result;
-    switch( unary.operand->kind )
+    RuntimeValue result = rv;
+    switch( operation )
     {
-        case ASTNODEKIND_CHARACTERLITERAL:
-        case ASTNODEKIND_STRINGLITERAL:
+        case UNARYOPERATION_NEGATION:
         {
-            UNREACHABLE();
-        }
-
-        case ASTNODEKIND_INTEGERLITERAL:
-        {
-            // assume unary.operation == UNARYOPERATION_NEGATION
-            result = walk_node( unary.operand, ctx );
-            result.integer_literal.integer = -result.integer_literal.integer;
-            break;
-        }
-
-        case ASTNODEKIND_FLOATLITERAL:
-        {
-            // assume unary.operation == UNARYOPERATION_NEGATION
-            result = walk_node( unary.operand, ctx );
-            result.float_literal.floating = -result.float_literal.floating;
-            break;
-        }
-
-        case ASTNODEKIND_BOOLEANLITERAL:
-        {
-            // assume unary.operation == UNARYOPERATION_NOT
-            result = walk_node( unary.operand, ctx );
-            result.boolean_literal.boolean = !result.boolean_literal.boolean;
-            break;
-        }
-
-        case ASTNODEKIND_IDENTIFIER:
-        {
-            if( unary.operation == UNARYOPERATION_ADDRESSOF )
+            if( rv.type.kind == TYPEKIND_PRIMITIVE_INT )
             {
-                UNIMPLEMENTED();
-                /* Symbol* symbol = st_get( *ctx->st, unary.operand->identifier.token.as_string ); */
-                /* result = ( AstNode ){ */
-                /*     .kind = ASTNODEKIND_POINTERDEFINITION, */
-                /*     . */
-                /* }; */
+                result.integer = -rv.integer;
             }
-            else if( unary.operation == UNARYOPERATION_DEREFERENCE )
+            else if( rv.type.kind == TYPEKIND_PRIMITIVE_FLOAT )
             {
-                UNIMPLEMENTED();
+                result.floating = -rv.floating;
             }
             else
             {
-                AstNode operand_result = walk_node( unary.operand, ctx );
-                AstNodeUnary new_unary = {
-                    .operation = unary.operation,
-                    .operand = &operand_result,
-                };
-
-                result = walk_unary( new_unary, ctx );
+                UNREACHABLE();
             }
+            break;
         }
 
-        default:
+        case UNARYOPERATION_NOT:
         {
-            AstNode operand_result = walk_node( unary.operand, ctx );
-            AstNodeUnary new_unary = {
-                .operation = unary.operation,
-                .operand = &operand_result,
-            };
+            result.boolean = !rv.boolean;
+            break;
+        }
 
-            result = walk_unary( new_unary, ctx );
+        case UNARYOPERATION_ADDRESSOF:
+        case UNARYOPERATION_DEREFERENCE:
+        {
+            UNREACHABLE();
         }
     }
 
     return result;
 }
 
-AstNode walk_node( AstNode* node, InterpreterContext* ctx )
+RuntimeValue walk_unary( AstNodeUnary unary, InterpreterContext* ctx )
 {
-    AstNode result;
+    RuntimeValue result;
+    if( unary.operation == UNARYOPERATION_ADDRESSOF )
+    {
+        UNIMPLEMENTED();
+    }
+    else if( unary.operation == UNARYOPERATION_DEREFERENCE )
+    {
+        UNIMPLEMENTED();
+    }
+    else
+    {
+        RuntimeValue operand_result = walk_node( unary.operand, ctx );
+        result = apply_unary_operation( operand_result, unary.operation );
+    }
+
+    return result;
+}
+
+RuntimeValue walk_struct_literal( AstNodeStructLiteral struct_literal, InterpreterContext* ctx, Type type )
+{
+    size_t member_count = type.structure.member_count;
+    size_t initialized_member_count = lvec_get_length( struct_literal.initialized_member_values );
+
+    RuntimeValue result = {};
+    st_initialize( &result.structure_st );
+
+    // evaluate initialized members
+    for( size_t i = 0; i < initialized_member_count; i++ )
+    {
+        AstNode* initialized_member_node = struct_literal.initialized_member_values[ i ];
+        Token member_identifier_token = struct_literal.initialized_member_tokens[ i ];
+        RuntimeValue* rv = octo_malloc( sizeof( RuntimeValue ) );
+        *rv = walk_node( initialized_member_node, ctx );
+        Symbol member_symbol = {
+            .key = member_identifier_token,
+            .value = rv,
+        };
+        st_insert( &result.structure_st, member_symbol );
+    }
+
+    // set uninitialized members to default
+    for( size_t i = 0; i < member_count; i++ )
+    {
+        Token member_identifier_token = type.structure.members->symbols[ i ].key;
+        if( st_get( result.structure_st, member_identifier_token.as_string ) != NULL )
+        {
+            continue;
+        }
+
+        RuntimeValue* rv = octo_malloc( sizeof( RuntimeValue ) );
+        *rv = get_default_value( st_get( *type.structure.members, member_identifier_token.as_string )->type );
+        Symbol member_symbol = {
+            .key = member_identifier_token,
+            .type = st_get( *type.structure.members, member_identifier_token.as_string )->type,
+            .value = rv,
+        };
+        st_insert( &result.structure_st, member_symbol );
+    }
+
+    return result;
+}
+
+RuntimeValue walk_member_access( AstNodeMemberAccess member_access, InterpreterContext* ctx )
+{
+    RuntimeValue* rv = walk_lvalue( member_access.target, ctx );
+    return *st_get( rv->structure_st, member_access.member_token.as_string )->value;
+}
+
+RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx )
+{
+    RuntimeValue result = {};
     switch( node->kind )
     {
         case ASTNODEKIND_STRINGLITERAL:
+        {
+            result = ( RuntimeValue ){
+                .string = node->string_literal.token.as_string,
+            };
+            break;
+        }
+
         case ASTNODEKIND_CHARACTERLITERAL:
+        {
+            result = ( RuntimeValue ){
+                .character = node->character_literal.token.as_string[ 0 ],
+            };
+            break;
+        }
+
         case ASTNODEKIND_INTEGERLITERAL:
+        {
+            result = ( RuntimeValue ){
+                .integer = node->integer_literal.integer
+            };
+            break;
+        }
+
         case ASTNODEKIND_FLOATLITERAL:
+        {
+            result = ( RuntimeValue ){
+                .floating = node->float_literal.floating,
+            };
+            break;
+        }
+
         case ASTNODEKIND_BOOLEANLITERAL:
         {
-            result = *node;
+            result = ( RuntimeValue ){
+                .boolean = node->boolean_literal.boolean,
+            };
             break;
         }
 
@@ -584,7 +584,6 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
         case ASTNODEKIND_ECHO:
         {
             walk_echo( node->echo, ctx );
-            result = *node;
             break;
         }
 
@@ -597,14 +596,12 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
         case ASTNODEKIND_VARIABLEDECLARATION:
         {
             walk_variable_declaration( node->variable_declaration, ctx );
-            result = *node;
             break;
         }
 
         case ASTNODEKIND_ASSIGNMENT:
         {
             walk_assignment( node->assignment, ctx );
-            result = *node;
             break;
         }
 
@@ -651,11 +648,23 @@ AstNode walk_node( AstNode* node, InterpreterContext* ctx )
             break;
         }
 
-        /* default: */
-        /* { */
-        /*     printf( "unimplemented: %d\n", node->kind ); */
-        /*     UNIMPLEMENTED(); */
-        /* } */
+        case ASTNODEKIND_STRUCTLITERAL:
+        {
+            result = walk_struct_literal( node->struct_literal, ctx, node->type );
+            break;
+        }
+
+        case ASTNODEKIND_MEMBERACCESS:
+        {
+            result = walk_member_access( node->member_access, ctx );
+            break;
+        }
+
+        default:
+        {
+            printf( "unimplemented: %d\n", node->kind );
+            UNIMPLEMENTED();
+        }
     }
 
     result.type = node->type;
@@ -670,6 +679,25 @@ void interpret( AstNode* ast, SymbolTable* st )
         .st = st
     };
 
-    AstNode* main_routine = st_get( *ctx.st, "main" )->value;
-    walk_node( main_routine->routine_definition.body, &ctx );
+    size_t node_count = lvec_get_length( ast->module.nodes );
+    AstNode* main_routine_body = NULL;
+    for( size_t i = 0; i < node_count; i++ )
+    {
+        AstNode* node = ast->module.nodes[ i ];
+        if( node->kind != ASTNODEKIND_ROUTINEDECLARATION ) continue;
+
+        AstNodeRoutineDeclaration routine_declaration = node->routine_declaration;
+        if( strcmp( routine_declaration.identifier_token.as_string, "main" ) == 0 )
+        {
+            main_routine_body = routine_declaration.routine_definition->routine_definition.body;
+        }
+    }
+
+    if( main_routine_body == NULL )
+    {
+        printf("no main routine found");
+        return;
+    }
+
+    walk_node( main_routine_body, &ctx );
 }

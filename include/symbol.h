@@ -3,13 +3,13 @@
 
 #include "tokenizer.h"
 #include "type.h"
-#include "ast.h"
 
+typedef struct RuntimeValue RuntimeValue;
 typedef struct Symbol
 {
     Token key;
     Type type;
-    AstNode* value;
+    RuntimeValue* value;
 } Symbol;
 
 typedef struct SymbolTable

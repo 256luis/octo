@@ -235,7 +235,7 @@ static bool check_array_definition( AstNodeArrayDefinition array_definition, Sym
             .st = st,
         };
 
-        length = walk_node( array_definition.length, &ctx ).integer_literal.integer;
+        length = walk_node( array_definition.length, &ctx ).integer;
     }
 
     Type* base = octo_malloc( sizeof( Type ) );
@@ -472,14 +472,7 @@ static bool check_variable_declaration( AstNodeVariableDeclaration variable_decl
     }
 
     Type symbol_type = variable_declaration.value->type;
-    symbol_type.is_mutable = variable_declaration.is_mutable;
-
-    Type* tmp = &symbol_type;
-    while( tmp->kind == TYPEKIND_ARRAY )
-    {
-        tmp->array.base->is_mutable = variable_declaration.is_mutable;
-        tmp = tmp->array.base;
-    }
+    type_propagate_mutability( &symbol_type, variable_declaration.is_mutable );
 
     // add to symbol table
     Symbol symbol = {
@@ -765,11 +758,16 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
 
     if( routine_identifier_token != NULL )
     {
-        // printf("%s\n", routine_identifier_token->as_string );
+        RuntimeValue* rv = octo_malloc( sizeof( RuntimeValue ) );
+        *rv = ( RuntimeValue ){
+            .type = routine_type,
+            .routine_definition = routine_definition,
+        };
+
         Symbol routine_symbol = {
             .key = *routine_identifier_token,
             .type = routine_type,
-            .value = node,
+            .value = rv,
         };
         st_insert( st, routine_symbol );
     }

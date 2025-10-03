@@ -265,3 +265,38 @@ Type type_unwrap_pointer( Type type )
     assert( type.kind == TYPEKIND_POINTER );
     return *type.pointer.base;
 }
+
+void type_propagate_mutability( Type* type, bool is_mutable )
+{
+    type->is_mutable = is_mutable;
+    switch( type->kind )
+    {
+        case TYPEKIND_ARRAY:
+        {
+            type_propagate_mutability( type->array.base, is_mutable );
+            break;
+        }
+
+        case TYPEKIND_POINTER:
+        {
+            type_propagate_mutability( type->pointer.base, is_mutable );
+            break;
+        }
+
+        case TYPEKIND_STRUCT:
+        {
+            size_t member_count = type->structure.member_count;
+            for( size_t i = 0; i < member_count; i++ )
+            {
+                Symbol* member_symbol = &type->structure.members->symbols[ i ];
+                type_propagate_mutability( &member_symbol->type, is_mutable );
+            }
+            break;
+        }
+
+        default:
+        {
+            // do nothing
+        }
+    }
+}

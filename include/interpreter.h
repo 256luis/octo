@@ -1,6 +1,7 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
+#include <stdint.h>
 #include "ast.h"
 #include "symbol.h"
 
@@ -9,7 +10,24 @@ typedef struct InterpreterContext
     SymbolTable* st;
 } InterpreterContext;
 
+typedef struct RuntimeValue
+{
+    Type type;
+    union
+    {
+        int64_t integer;
+        double floating;
+        bool boolean;
+        char character;
+        char* string;
+        struct RuntimeValue* array;
+        SymbolTable structure_st;
+        AstNodeRoutineDefinition routine_definition;
+        void* pointer;
+    };
+} RuntimeValue;
+
 void interpret( AstNode* ast, SymbolTable* st );
-AstNode walk_node( AstNode* node, InterpreterContext* ctx );
+RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx );
 
 #endif
