@@ -8,6 +8,7 @@
 typedef struct InterpreterContext
 {
     SymbolTable* st;
+    bool is_return;
 } InterpreterContext;
 
 typedef struct RuntimeValue

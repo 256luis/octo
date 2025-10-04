@@ -1400,6 +1400,7 @@ void ast_node_free( AstNode* node )
             ast_node_free( node->conditional.condition );
             ast_node_free( node->conditional.main_body );
             ast_node_free( node->conditional.else_body );
+            break;
         }
 
         case ASTNODEKIND_ARRAYLITERAL:

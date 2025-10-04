@@ -23,7 +23,12 @@ RuntimeValue walk_compound( AstNodeCompound compound, InterpreterContext* ctx )
     st_push_scope( ctx->st );
     for( size_t i = 0; i < length; i++ )
     {
+        ctx->is_return = false;
         last_result = walk_node( compound.nodes[ i ], ctx );
+        if( ctx->is_return )
+        {
+            break;
+        }
     }
     st_pop_scope( ctx->st );
 
@@ -523,6 +528,18 @@ RuntimeValue walk_struct_literal( AstNodeStructLiteral struct_literal, Interpret
     return result;
 }
 
+RuntimeValue walk_return( AstNodeReturn return_statement, InterpreterContext* ctx )
+{
+    RuntimeValue result = {};
+    if( return_statement.value != NULL )
+    {
+        result = walk_node( return_statement.value, ctx );
+    }
+
+    ctx->is_return = true;
+    return result;
+}
+
 RuntimeValue walk_member_access( AstNodeMemberAccess member_access, InterpreterContext* ctx )
 {
     RuntimeValue* rv = walk_lvalue( member_access.target, ctx );
@@ -660,11 +677,23 @@ RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx )
             break;
         }
 
-        default:
+        case ASTNODEKIND_RETURN:
         {
-            printf( "unimplemented: %d\n", node->kind );
-            UNIMPLEMENTED();
+            result = walk_return( node->return_statement, ctx );
+            break;
         }
+
+        case ASTNODEKIND_UNINITIALIZED:
+        {
+            // do nothing
+            break;
+        }
+
+        /* default: */
+        /* { */
+        /*     printf( "unimplemented: %d\n", node->kind ); */
+        /*     UNIMPLEMENTED(); */
+        /* } */
     }
 
     result.type = node->type;
