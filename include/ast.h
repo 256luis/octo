@@ -141,7 +141,7 @@ typedef struct AstNodeRoutineDefinition
     AstNode* return_type_definition;
     Token* param_identifier_tokens;   // lvec
     AstNode** param_type_definitions; // lvec
-    bool* params_mutability;          // lvec
+    // bool* params_mutability;          // lvec
     AstNode* body;
 } AstNodeRoutineDefinition;
 

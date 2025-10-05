@@ -743,7 +743,7 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     AstNodeRoutineDefinition routine_definition = {
         .param_identifier_tokens = lvec_new( Token ),
         .param_type_definitions = lvec_new( AstNode* ),
-        .params_mutability = lvec_new( bool ),
+        // .params_mutability = lvec_new( bool ),
     };
 
     switch( ctx->current_token.kind )
@@ -775,18 +775,18 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTPAREN )
     {
-        if( !EXPECT( ctx, TOKENKIND_IDENTIFIER, TOKENKIND_MUT ) )
-        {
-            goto return_error;
-        }
+        /* if( !EXPECT( ctx, TOKENKIND_IDENTIFIER, TOKENKIND_MUT ) ) */
+        /* { */
+        /*     goto return_error; */
+        /* } */
 
-        bool param_mutability = false;
-        if( ctx->current_token.kind == TOKENKIND_MUT )
-        {
-            param_mutability = true;
-            advance( ctx );
-        }
-        lvec_append( routine_definition.params_mutability, param_mutability );
+        /* bool param_mutability = false; */
+        /* if( ctx->current_token.kind == TOKENKIND_MUT ) */
+        /* { */
+        /*     param_mutability = true; */
+        /*     advance( ctx ); */
+        /* } */
+        // lvec_append( routine_definition.params_mutability, true );
 
         lvec_append_aggregate( routine_definition.param_identifier_tokens, ctx->current_token );
 
@@ -1383,7 +1383,7 @@ void ast_node_free( AstNode* node )
             ast_node_free( node->routine_definition.body );
 
             lvec_free( node->routine_definition.param_identifier_tokens );
-            lvec_free( node->routine_definition.params_mutability );
+            // lvec_free( node->routine_definition.params_mutability );
 
             size_t type_definition_count = lvec_get_length( node->routine_definition.param_type_definitions );
             for( size_t i = 0; i < type_definition_count; i++ )
