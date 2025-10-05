@@ -42,7 +42,7 @@ static CharacterType get_character_type(char c)
 
 static char* valid_special_symbols[] = {
     ";", ":", "::", ".", ",", "%", "+", "-", "*", "/", "=", "->", "!", ">", "<",
-    "==", "!=", ">=", "<=", "(", ")", "{", "}", "[", "]", "&", "..", "??",
+    "==", "!=", ">=", "<=", "(", ")", "{", "}", "[", "]", "&", "..", "??", "^",
 };
 
 // temporary function
@@ -82,6 +82,7 @@ static TokenKind special_symbol_to_token_kind( const char* special_symbol )
     if( strcmp( special_symbol, "&" ) == 0 )  return TOKENKIND_AMPERSAND;
     if( strcmp( special_symbol, ".." ) == 0 ) return TOKENKIND_DOUBLEPERIOD;
     if( strcmp( special_symbol, "??" ) == 0 ) return TOKENKIND_DOUBLEQUESTIONMARK;
+    if( strcmp( special_symbol, "^" ) == 0 )  return TOKENKIND_CARET;
 
     UNREACHABLE();
 }

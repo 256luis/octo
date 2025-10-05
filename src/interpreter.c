@@ -84,6 +84,12 @@ void print_runtime_value( RuntimeValue rv )
             break;
         }
 
+        /* case TYPEKIND_POINTER: */
+        /* { */
+        /*     printf("ptr\n"); */
+        /*     break; */
+        /* } */
+
         case TYPEKIND_UNSPECIFIED:
         case TYPEKIND_NONE:
         {
@@ -144,8 +150,15 @@ RuntimeValue* walk_lvalue( AstNode* lvalue, InterpreterContext* ctx )
             return st_get( rv->structure_st, lvalue->member_access.member_token.as_string )->value;
         }
 
+        case ASTNODEKIND_UNARY:
+        {
+            // assume dereference
+            return walk_lvalue( lvalue->unary.operand, ctx )->pointer;
+        }
+
         default:
         {
+            printf( "%d\n", lvalue->kind );
             UNREACHABLE();
         }
     }
@@ -469,11 +482,13 @@ RuntimeValue walk_unary( AstNodeUnary unary, InterpreterContext* ctx )
     RuntimeValue result;
     if( unary.operation == UNARYOPERATION_ADDRESSOF )
     {
-        UNIMPLEMENTED();
+        result = ( RuntimeValue ){
+            .pointer = walk_lvalue( unary.operand, ctx ),
+        };
     }
     else if( unary.operation == UNARYOPERATION_DEREFERENCE )
     {
-        UNIMPLEMENTED();
+        result = *walk_node( unary.operand, ctx ).pointer;
     }
     else
     {

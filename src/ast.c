@@ -156,7 +156,7 @@ static AstNodeUnary parse_unary( AstContext* ctx )
         case TOKENKIND_BANG:      unary.operation = UNARYOPERATION_NOT; break;
         case TOKENKIND_MINUS:     unary.operation = UNARYOPERATION_NEGATION; break;
         case TOKENKIND_AMPERSAND: unary.operation = UNARYOPERATION_ADDRESSOF; break;
-        case TOKENKIND_STAR:      unary.operation = UNARYOPERATION_DEREFERENCE; break;
+        case TOKENKIND_CARET:     unary.operation = UNARYOPERATION_DEREFERENCE; break;
         default: UNREACHABLE();
     }
 
@@ -1008,7 +1008,7 @@ static AstNode* parse_term( AstContext* ctx )
         case TOKENKIND_BANG:
         case TOKENKIND_MINUS:
         case TOKENKIND_AMPERSAND:
-        case TOKENKIND_STAR:
+        case TOKENKIND_CARET:
         {
             node->kind = ASTNODEKIND_UNARY;
             node->unary = parse_unary( ctx );

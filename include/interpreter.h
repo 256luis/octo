@@ -24,7 +24,7 @@ typedef struct RuntimeValue
         struct RuntimeValue* array;
         SymbolTable structure_st;
         AstNodeRoutineDefinition routine_definition;
-        void* pointer;
+        struct RuntimeValue* pointer;
     };
 } RuntimeValue;
 

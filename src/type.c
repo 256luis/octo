@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "type.h"
-#include "ast.h"
 #include "debug.h"
 #include "globals.h"
 #include "symbol.h"
@@ -279,7 +278,8 @@ void type_propagate_mutability( Type* type, bool is_mutable )
 
         case TYPEKIND_POINTER:
         {
-            type_propagate_mutability( type->pointer.base, is_mutable );
+            // type_propagate_mutability( type->pointer.base, is_mutable );
+            // do nothing
             break;
         }
 
