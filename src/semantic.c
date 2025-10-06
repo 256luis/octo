@@ -314,6 +314,63 @@ static bool check_enum_definition( AstNodeEnumDefinition enum_definition, Type* 
     return true;
 }
 
+static bool check_routine_type_definition( AstNodeRoutineTypeDefinition routine_type_definition, SymbolTable* st, Type* resulting_type, Token starting_token )
+{
+    // check the return type;
+    Type* return_type = octo_malloc( sizeof( Type ) );
+    *return_type = TYPE_NONE;
+    if( routine_type_definition.return_type_definition != NULL )
+    {
+        if( !check_type_definition( routine_type_definition.return_type_definition, st ) )
+        {
+            return false;
+        }
+        *return_type = type_unwrap_type( routine_type_definition.return_type_definition->type );
+    }
+
+    // functions must return a value
+    bool is_func = routine_type_definition.is_func;
+    if( is_func && routine_type_definition.return_type_definition == NULL )
+    {
+        Error error = {
+            .kind = ERRORKIND_MISSINGTYPE,
+            .offending_token = starting_token,
+            .note = "functions must return a value"
+        };
+        report_error( error );
+        return false;
+    }
+
+    // check params
+    size_t param_count = lvec_get_length( routine_type_definition.param_type_definitions );
+    Type* param_types = lvec_new( Type );
+    for( size_t i = 0; i < param_count; i++ )
+    {
+        AstNode* param_type_definition = routine_type_definition.param_type_definitions[ i ];
+
+        if( !check_type_definition( param_type_definition, st ) )
+        {
+            return false;
+        }
+
+        Type param_type = type_unwrap_type( param_type_definition->type );
+        param_type.is_mutable = true;
+        lvec_append_aggregate( param_types, param_type );
+    }
+
+    Type routine_type = {
+        .kind = TYPEKIND_ROUTINE,
+        .routine = {
+            .is_func = is_func,
+            .return_type = return_type,
+            .param_types = param_types,
+        }
+    };
+
+    *resulting_type = type_wrap_type( routine_type );
+    return true;
+}
+
 static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
 {
     switch( type_definition->kind )
@@ -341,6 +398,11 @@ static bool check_type_definition( AstNode* type_definition, SymbolTable* st )
         case ASTNODEKIND_POINTERDEFINITION:
         {
             return check_pointer_definition( type_definition->pointer_definition, st, &type_definition->type );
+        }
+
+        case ASTNODEKIND_ROUTINETYPEDEFINITION:
+        {
+            return check_routine_type_definition( type_definition->routine_type_definition, st, &type_definition->type, type_definition->starting_token );
         }
 
         default:
@@ -788,10 +850,6 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
         st_pop_scope( st );
         return false;
     }
-
-    /* printf( "here\n" ); */
-    /* *st_get( *st, routine_identifier_token->as_string )->value = *routine_definition.body; */
-    /* printf( "here2\n" ); */
 
     st_pop_scope( st );
     lvec_remove_last( return_type_stack );

@@ -39,6 +39,7 @@ typedef enum AstNodeKind
     ASTNODEKIND_ECHO,
     ASTNODEKIND_MODULE,
     ASTNODEKIND_ADDRESSOF,
+    ASTNODEKIND_ROUTINETYPEDEFINITION,
 } AstNodeKind;
 
 typedef struct AstNodeAddressOf
@@ -214,6 +215,13 @@ typedef struct AstNodeEcho
     AstNode* value;
 } AstNodeEcho;
 
+typedef struct AstNodeRoutineTypeDefinition
+{
+    bool is_func;
+    AstNode* return_type_definition;
+    AstNode** param_type_definitions; // lvec
+} AstNodeRoutineTypeDefinition;
+
 typedef struct AstNode
 {
     AstNodeKind kind;
@@ -250,6 +258,7 @@ typedef struct AstNode
         AstNodeEcho echo;
         AstNodeModule module;
         AstNodeAddressOf address_of;
+        AstNodeRoutineTypeDefinition routine_type_definition;
     };
 } AstNode;
 

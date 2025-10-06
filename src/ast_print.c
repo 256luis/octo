@@ -626,5 +626,11 @@ void ast_node_print( AstNode node )
             depth--;
             break;
         }
+
+        case ASTNODEKIND_ROUTINETYPEDEFINITION:
+        {
+            printf("ugh MAMAYA NA!!!\n");
+            break;
+        }
     }
 }

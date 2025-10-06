@@ -133,6 +133,39 @@ bool type_equals( Type t1, Type t2 )
             return false;
         }
 
+        case TYPEKIND_ROUTINE:
+        {
+            bool funcness_are_equal = t1.routine.is_func == t2.routine.is_func;
+            if( !funcness_are_equal ) return false;
+
+            bool return_types_are_equal = true;
+            if( t1.routine.return_type != NULL && t2.routine.return_type != NULL )
+            {
+                return_types_are_equal = type_equals( *t1.routine.return_type, *t2.routine.return_type );
+            }
+            if( !return_types_are_equal ) return false;
+
+            size_t t1_param_count = lvec_get_length( t1.routine.param_types );
+            size_t t2_param_count = lvec_get_length( t2.routine.param_types );
+            bool param_counts_are_equal = t1_param_count == t2_param_count;
+            if( !param_counts_are_equal )
+            {
+                return false;
+            }
+
+            for( size_t i = 0; i < t1_param_count; i++ )
+            {
+                Type t1_param = t1.routine.param_types[ i ];
+                Type t2_param = t2.routine.param_types[ i ];
+                if( !type_equals( t1_param, t2_param ) )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         default:
         {
             UNIMPLEMENTED();

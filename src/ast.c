@@ -650,6 +650,87 @@ static AstNodePointerDefinition parse_pointer_definition( AstContext* ctx )
     return pointer_definition;
 }
 
+static AstNodeRoutineTypeDefinition parse_routine_type_definition( AstContext* ctx )
+{
+    AstNodeRoutineTypeDefinition routine_type_definition = {
+        .param_type_definitions = lvec_new( AstNode* ),
+    };
+
+    switch( ctx->current_token.kind )
+    {
+        case TOKENKIND_FUNC:
+        {
+            routine_type_definition.is_func = true;
+            break;
+        }
+
+        case TOKENKIND_PROC:
+        {
+            routine_type_definition.is_func = false;
+            break;
+        }
+
+        default:
+        {
+            goto return_error;
+        }
+    }
+
+    advance( ctx );
+    if( !EXPECT( ctx, TOKENKIND_LEFTPAREN ) )
+    {
+        goto return_error;
+    }
+
+    advance( ctx );
+    while( ctx->current_token.kind != TOKENKIND_RIGHTPAREN )
+    {
+        AstNode* param_type_definition = parse_type_definition( ctx, NULL );
+        if( ctx->error_found )
+        {
+            return routine_type_definition;
+        }
+
+        lvec_append_aggregate( routine_type_definition.param_type_definitions, param_type_definition );
+
+        advance( ctx );
+        if( !EXPECT( ctx, TOKENKIND_COMMA, TOKENKIND_RIGHTPAREN ) )
+        {
+            goto return_error;
+        }
+
+        if( ctx->current_token.kind == TOKENKIND_COMMA )
+        {
+            advance( ctx );
+        }
+    }
+
+    advance( ctx );
+    if( ctx->current_token.kind == TOKENKIND_ARROW )
+    {
+        advance( ctx );
+        routine_type_definition.return_type_definition = parse_type_definition( ctx, NULL );
+        if( ctx->error_found )
+        {
+            return routine_type_definition;
+        }
+
+        advance( ctx );
+    }
+
+    return routine_type_definition;
+
+ return_error:
+    Error error = {
+        .kind = ERRORKIND_INCORRECTSYNTAX,
+        .offending_token = ctx->current_token,
+        .note = "routine type definitions take the form `func | proc ( <type>, ... ) -> <type>`",
+    };
+    report_error( error );
+    ctx->error_found = true;
+    return routine_type_definition;
+}
+
 static AstNode* parse_type_definition( AstContext* ctx, Token* identifier_token )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -689,6 +770,14 @@ static AstNode* parse_type_definition( AstContext* ctx, Token* identifier_token 
         {
             node->kind = ASTNODEKIND_POINTERDEFINITION;
             node->pointer_definition = parse_pointer_definition( ctx );
+            break;
+        }
+
+        case TOKENKIND_FUNC:
+        case TOKENKIND_PROC:
+        {
+            node->kind = ASTNODEKIND_ROUTINETYPEDEFINITION;
+            node->routine_type_definition = parse_routine_type_definition( ctx );
             break;
         }
 
@@ -780,19 +869,6 @@ static AstNodeRoutineDefinition parse_routine_definition( AstContext* ctx )
     advance( ctx );
     while( ctx->current_token.kind != TOKENKIND_RIGHTPAREN )
     {
-        /* if( !EXPECT( ctx, TOKENKIND_IDENTIFIER, TOKENKIND_MUT ) ) */
-        /* { */
-        /*     goto return_error; */
-        /* } */
-
-        /* bool param_mutability = false; */
-        /* if( ctx->current_token.kind == TOKENKIND_MUT ) */
-        /* { */
-        /*     param_mutability = true; */
-        /*     advance( ctx ); */
-        /* } */
-        // lvec_append( routine_definition.params_mutability, true );
-
         lvec_append_aggregate( routine_definition.param_identifier_tokens, ctx->current_token );
 
         advance( ctx );

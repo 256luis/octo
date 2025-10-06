@@ -10,6 +10,7 @@
 #include "type.h"
 #include "globals.h"
 #include "interpreter.h"
+#include "dlfcn.h"
 
 // TODO: actual string type!!!!!
 
@@ -711,10 +712,18 @@ RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx )
             break;
         }
 
+        case ASTNODEKIND_ROUTINEDEFINITION:
+        {
+            result = ( RuntimeValue ){
+                .routine_definition = node->routine_definition
+            };
+            break;
+        }
+
         default:
         {
             printf( "unimplemented: %d\n", node->kind );
-            UNIMPLEMENTED();
+            UNREACHABLE();
         }
     }
 
