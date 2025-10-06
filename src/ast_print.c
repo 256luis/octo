@@ -27,7 +27,6 @@ static char* binary_operation_string[] = {
 static char* unary_operation_string[] = {
     [ UNARYOPERATION_NOT ]         = "NOT",
     [ UNARYOPERATION_NEGATION ]    = "NEGATION",
-    [ UNARYOPERATION_ADDRESSOF ]   = "ADDRESSOF",
     [ UNARYOPERATION_DEREFERENCE ] = "DEREFERENCE",
 };
 
@@ -609,6 +608,20 @@ void ast_node_print( AstNode node )
             depth++;
 
             ast_node_print( *node.echo.value );
+
+            depth--;
+            break;
+        }
+
+        case ASTNODEKIND_ADDRESSOF:
+        {
+            printf( "ADDRESS OF:" );
+            depth++;
+
+            printf( "is mutable:%s", node.address_of.is_mutable ? "true" : "false" );
+            newline();
+            printf( "operand:" );
+            ast_node_print( *node.address_of.operand );
 
             depth--;
             break;

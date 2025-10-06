@@ -275,6 +275,12 @@ void report_error( Error error )
             printf( "type definition is not of an array\n" );
             break;
         }
+
+        case ERRORKIND_ILLEGALMUTABLEPOINTER:
+        {
+            printf( "cannot get mutable pointer to immutable value\n" );
+            break;
+        }
     }
 
     if( offending_token.kind != TOKENKIND_EOF )

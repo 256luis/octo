@@ -84,11 +84,11 @@ void print_runtime_value( RuntimeValue rv )
             break;
         }
 
-        /* case TYPEKIND_POINTER: */
-        /* { */
-        /*     printf("ptr\n"); */
-        /*     break; */
-        /* } */
+        case TYPEKIND_POINTER:
+        {
+            printf( "%p", ( void* )rv.pointer );
+            break;
+        }
 
         case TYPEKIND_UNSPECIFIED:
         case TYPEKIND_NONE:
@@ -467,7 +467,7 @@ RuntimeValue apply_unary_operation( RuntimeValue rv, UnaryOperation operation )
             break;
         }
 
-        case UNARYOPERATION_ADDRESSOF:
+        // case UNARYOPERATION_ADDRESSOF:
         case UNARYOPERATION_DEREFERENCE:
         {
             UNREACHABLE();
@@ -480,13 +480,7 @@ RuntimeValue apply_unary_operation( RuntimeValue rv, UnaryOperation operation )
 RuntimeValue walk_unary( AstNodeUnary unary, InterpreterContext* ctx )
 {
     RuntimeValue result;
-    if( unary.operation == UNARYOPERATION_ADDRESSOF )
-    {
-        result = ( RuntimeValue ){
-            .pointer = walk_lvalue( unary.operand, ctx ),
-        };
-    }
-    else if( unary.operation == UNARYOPERATION_DEREFERENCE )
+    if( unary.operation == UNARYOPERATION_DEREFERENCE )
     {
         result = *walk_node( unary.operand, ctx ).pointer;
     }
@@ -559,6 +553,13 @@ RuntimeValue walk_member_access( AstNodeMemberAccess member_access, InterpreterC
 {
     RuntimeValue* rv = walk_lvalue( member_access.target, ctx );
     return *st_get( rv->structure_st, member_access.member_token.as_string )->value;
+}
+
+RuntimeValue walk_address_of( AstNodeAddressOf address_of, InterpreterContext* ctx )
+{
+    return ( RuntimeValue ){
+        .pointer = walk_lvalue( address_of.operand, ctx ),
+    };
 }
 
 RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx )
@@ -704,11 +705,17 @@ RuntimeValue walk_node( AstNode* node, InterpreterContext* ctx )
             break;
         }
 
-        /* default: */
-        /* { */
-        /*     printf( "unimplemented: %d\n", node->kind ); */
-        /*     UNIMPLEMENTED(); */
-        /* } */
+        case ASTNODEKIND_ADDRESSOF:
+        {
+            result = walk_address_of( node->address_of, ctx );
+            break;
+        }
+
+        default:
+        {
+            printf( "unimplemented: %d\n", node->kind );
+            UNIMPLEMENTED();
+        }
     }
 
     result.type = node->type;

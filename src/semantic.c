@@ -120,15 +120,7 @@ static bool check_unary( AstNodeUnary unary, SymbolTable* st, Type* found_type )
             }
 
             *found_type = type_unwrap_pointer( unary.operand->type );
-            break;
-        }
-
-        case UNARYOPERATION_ADDRESSOF:
-        {
-            *found_type = ( Type ){
-                .kind = TYPEKIND_POINTER,
-                .pointer.base = &unary.operand->type
-            };
+            found_type->is_mutable = unary.operand->type.pointer.is_mutable;
             break;
         }
     }
@@ -191,7 +183,10 @@ static bool check_pointer_definition( AstNodePointerDefinition pointer_definitio
     Type* definition = octo_malloc( sizeof( Type ) );
     *definition = ( Type ){
         .kind = TYPEKIND_POINTER,
-        .pointer.base = base,
+        .pointer = {
+            .base = base,
+            .is_mutable = pointer_definition.is_mutable,
+        },
     };
 
     *resulting_type = ( Type ){
@@ -742,7 +737,6 @@ static bool check_routine_definition( AstNode* node, SymbolTable* st, Token* rou
         }
 
         Type param_type = type_unwrap_type( param_type_definition->type );
-        // param_type.is_mutable = routine_definition.params_mutability[ i ];
         param_type.is_mutable = true;
         lvec_append_aggregate( param_types, param_type );
     }
@@ -1197,6 +1191,34 @@ static bool check_echo( AstNodeEcho echo, SymbolTable* st )
     return true;
 }
 
+static bool check_address_of( AstNodeAddressOf address_of, SymbolTable* st, Type* found_type )
+{
+    if( !check_expression( address_of.operand, st, TYPE_UNSPECIFIED ) )
+    {
+        return false;
+    }
+
+    if( !address_of.operand->type.is_mutable && address_of.is_mutable )
+    {
+        Error error = {
+            .kind = ERRORKIND_ILLEGALMUTABLEPOINTER,
+            .offending_token = address_of.operand->starting_token,
+        };
+        report_error( error );
+        return false;
+    }
+
+    *found_type = ( Type ){
+        .kind = TYPEKIND_POINTER,
+        .pointer = {
+            .base = &address_of.operand->type,
+            .is_mutable = address_of.is_mutable,
+        }
+    };
+
+    return true;
+}
+
 static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
 {
     node->type = TYPE_NONE;
@@ -1263,6 +1285,11 @@ static bool check_expression( AstNode* node, SymbolTable* st, Type type_hint )
         case ASTNODEKIND_UNARY:
         {
             return check_unary( node->unary, st, &node->type );
+        }
+
+        case ASTNODEKIND_ADDRESSOF:
+        {
+            return check_address_of( node->address_of, st, &node->type );
         }
 
         case ASTNODEKIND_VARIABLEDECLARATION:

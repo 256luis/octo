@@ -35,6 +35,7 @@ typedef struct TypeArray
 typedef struct TypePointer
 {
     Type* base;
+    bool is_mutable;
 } TypePointer;
 
 typedef struct TypeType

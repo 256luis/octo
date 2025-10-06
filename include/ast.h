@@ -38,7 +38,14 @@ typedef enum AstNodeKind
     ASTNODEKIND_RETURN,
     ASTNODEKIND_ECHO,
     ASTNODEKIND_MODULE,
+    ASTNODEKIND_ADDRESSOF,
 } AstNodeKind;
+
+typedef struct AstNodeAddressOf
+{
+    AstNode* operand;
+    bool is_mutable;
+} AstNodeAddressOf;
 
 typedef struct AstNodeString
 {
@@ -194,6 +201,7 @@ typedef struct AstNodeAssignment
 typedef struct AstNodePointerDefinition
 {
     AstNode* base_type_definition;
+    bool is_mutable;
 } AstNodePointerDefinition;
 
 typedef struct AstNodeReturn
@@ -241,6 +249,7 @@ typedef struct AstNode
         AstNodeReturn return_statement;
         AstNodeEcho echo;
         AstNodeModule module;
+        AstNodeAddressOf address_of;
     };
 } AstNode;
 

@@ -155,7 +155,6 @@ static AstNodeUnary parse_unary( AstContext* ctx )
     {
         case TOKENKIND_BANG:      unary.operation = UNARYOPERATION_NOT; break;
         case TOKENKIND_MINUS:     unary.operation = UNARYOPERATION_NEGATION; break;
-        case TOKENKIND_AMPERSAND: unary.operation = UNARYOPERATION_ADDRESSOF; break;
         case TOKENKIND_CARET:     unary.operation = UNARYOPERATION_DEREFERENCE; break;
         default: UNREACHABLE();
     }
@@ -641,6 +640,12 @@ static AstNodePointerDefinition parse_pointer_definition( AstContext* ctx )
     AstNodePointerDefinition pointer_definition = { 0 };
 
     advance( ctx );
+    if( ctx->current_token.kind == TOKENKIND_MUT )
+    {
+        pointer_definition.is_mutable = true;
+        advance( ctx );
+    }
+
     pointer_definition.base_type_definition = parse_type_definition( ctx, NULL );
     return pointer_definition;
 }
@@ -945,6 +950,21 @@ static AstNodeEcho parse_echo( AstContext* ctx )
     return echo;
 }
 
+static AstNodeAddressOf parse_address_of( AstContext* ctx )
+{
+    AstNodeAddressOf address_of = { 0 };
+
+    advance( ctx );
+    if( ctx->current_token.kind == TOKENKIND_MUT )
+    {
+        address_of.is_mutable = true;
+        advance( ctx );
+    }
+
+    address_of.operand = parse_term( ctx );
+    return address_of;
+}
+
 static AstNode* parse_term( AstContext* ctx )
 {
     AstNode* node = octo_malloc( sizeof( AstNode ) );
@@ -1007,11 +1027,17 @@ static AstNode* parse_term( AstContext* ctx )
         // unary operations
         case TOKENKIND_BANG:
         case TOKENKIND_MINUS:
-        case TOKENKIND_AMPERSAND:
         case TOKENKIND_CARET:
         {
             node->kind = ASTNODEKIND_UNARY;
             node->unary = parse_unary( ctx );
+            break;
+        }
+
+        case TOKENKIND_AMPERSAND:
+        {
+            node->kind = ASTNODEKIND_ADDRESSOF;
+            node->address_of = parse_address_of( ctx );
             break;
         }
 
@@ -1479,6 +1505,12 @@ void ast_node_free( AstNode* node )
             }
             lvec_free( node->module.nodes );
 
+            break;
+        }
+
+        case ASTNODEKIND_ADDRESSOF:
+        {
+            ast_node_free( node->address_of.operand );
             break;
         }
     }

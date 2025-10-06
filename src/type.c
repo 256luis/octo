@@ -98,7 +98,9 @@ bool type_equals( Type t1, Type t2 )
 
         case TYPEKIND_POINTER:
         {
-            return type_equals( *t1.pointer.base, *t2.pointer.base );
+            bool bases_are_equal = type_equals( *t1.pointer.base, *t2.pointer.base );
+            bool mutabilities_are_equal = t1.pointer.is_mutable == t2.pointer.is_mutable;
+            return bases_are_equal && mutabilities_are_equal;
         }
 
         case TYPEKIND_STRUCT:
@@ -159,7 +161,7 @@ void type_print( Type type )
 
         case TYPEKIND_POINTER:
         {
-            printf( "&" );
+            printf( "&%s", type.pointer.is_mutable ? "mut ": "" );
             type_print( *type.pointer.base );
             break;
         }
