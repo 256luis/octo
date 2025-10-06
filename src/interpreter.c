@@ -10,7 +10,6 @@
 #include "type.h"
 #include "globals.h"
 #include "interpreter.h"
-#include "dlfcn.h"
 
 // TODO: actual string type!!!!!
 
