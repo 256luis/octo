@@ -705,17 +705,15 @@ static AstNodeRoutineTypeDefinition parse_routine_type_definition( AstContext* c
         }
     }
 
-    advance( ctx );
-    if( ctx->current_token.kind == TOKENKIND_ARROW )
+    if( ctx->next_token.kind == TOKENKIND_ARROW )
     {
+        advance( ctx );
         advance( ctx );
         routine_type_definition.return_type_definition = parse_type_definition( ctx, NULL );
         if( ctx->error_found )
         {
             return routine_type_definition;
         }
-
-        advance( ctx );
     }
 
     return routine_type_definition;

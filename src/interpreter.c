@@ -156,6 +156,11 @@ RuntimeValue* walk_lvalue( AstNode* lvalue, InterpreterContext* ctx )
             return walk_lvalue( lvalue->unary.operand, ctx )->pointer;
         }
 
+        case ASTNODEKIND_ROUTINEDEFINITION:
+        {
+            UNIMPLEMENTED();
+        }
+
         default:
         {
             printf( "%d\n", lvalue->kind );
